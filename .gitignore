@@ -1,0 +1,12 @@
+# ===== Backend =====
+backend/target/
+backend/*.log
+backend/*.class
+backend/*.jar
+backend/.idea/
+backend/.env
+
+# ===== Frontend =====
+frontend/node_modules/
+frontend/build/
+frontend/.env
