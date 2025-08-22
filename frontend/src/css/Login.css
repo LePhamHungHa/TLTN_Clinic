@@ -1,0 +1,355 @@
+.login-page {
+  height: 100vh;
+  width: 100vw;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab);
+  background-size: 1000% 1000%;
+  animation: gradient 15s ease infinite;
+  position: relative;
+  overflow: hidden;
+}
+
+.floating-dots {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  overflow: hidden;
+  z-index: 0;
+}
+
+.dot {
+  position: absolute;
+  background: rgba(255, 255, 255, 0.6);
+  border-radius: 50%;
+  animation: float 10s linear infinite;
+}
+
+.login-container {
+  width: 100%;
+  max-width: 28rem;
+  position: relative;
+  z-index: 10;
+}
+
+.login-card {
+  background-color: white;
+  border-radius: 1rem;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  overflow: hidden;
+  transition: all 0.3s;
+  transform: translateY(0);
+}
+
+.login-card:hover {
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4);
+  transform: translateY(-5px);
+}
+
+.card-content {
+  padding: 2rem;
+}
+
+.login-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.avatar {
+  width: 6rem;
+  height: 6rem;
+  border-radius: 50%;
+  background: linear-gradient(to right, #ec4899, #8b5cf6);
+  margin: 0 auto 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  animation: float 6s ease-in-out infinite;
+}
+
+.avatar i {
+  color: white;
+  font-size: 2.25rem;
+}
+
+.login-header h1 {
+  font-size: 1.875rem;
+  font-weight: bold;
+  color: #1f2937;
+}
+
+.login-header p {
+  color: #6b7280;
+  margin-top: 0.5rem;
+}
+
+.login-form .form-group {
+  margin-bottom: 1rem;
+}
+
+.login-form .form-group label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #374151;
+  margin-bottom: 0.25rem;
+}
+
+.login-form .form-group .input-container {
+  position: relative;
+}
+
+.login-form .form-group .input-container .input-icon {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  padding-left: 1rem;
+  display: flex;
+  align-items: center;
+  pointer-events: none;
+  color: #9ca3af;
+  transition: color 0.3s;
+}
+
+.login-form .form-group .input-container input {
+  width: 100%;
+  padding: 0.75rem 1rem 0.75rem 2.5rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  transition: all 0.3s;
+  box-shadow: 0 4px 6px -1px rgb(255, 255, 255);
+}
+
+.login-form .form-group .input-container input:focus {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  border-color: #8b5cf6;
+  outline: none;
+}
+
+.login-form .form-group .input-container input:focus + .input-icon {
+  color: #8b5cf6;
+}
+
+.login-form .form-group .input-container .password-toggle {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  padding-right: 1rem;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  color: #9ca3af;
+  transition: color 0.3s;
+}
+
+.login-form .form-group .input-container .password-toggle:hover {
+  color: #8b5cf6;
+}
+
+.login-form .form-options {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+}
+
+.login-form .form-options .remember-me {
+  display: flex;
+  align-items: center;
+}
+
+.login-form .form-options .remember-me input {
+  margin-right: 0.5rem;
+  color: #8b5cf6;
+}
+
+.login-form .form-options .remember-me label {
+  font-size: 0.875rem;
+  color: #374151;
+}
+
+.login-form .form-options .forgot-password {
+  font-size: 0.875rem;
+  color: #8b5cf6;
+  font-weight: 500;
+  transition: color 0.3s;
+}
+
+.login-form .form-options .forgot-password:hover {
+  color: #7c3aed;
+}
+
+.login-form .login-button {
+  width: 100%;
+  padding: 0.75rem;
+  background: linear-gradient(to right, #8b5cf6, #ec4899);
+  color: white;
+  border: none;
+  border-radius: 0.5rem;
+  font-weight: 500;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s;
+  box-shadow: 0 4px 6px -1px rgba(139, 92, 246, 0.3);
+}
+
+.login-form .login-button:hover {
+  background: linear-gradient(to right, #7c3aed, #db2777);
+  box-shadow: 0 10px 15px -3px rgba(139, 92, 246, 0.4);
+  transform: translateY(-2px);
+}
+
+.login-form .login-button::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+  transition: all 0.5s ease;
+}
+
+.social-login {
+  margin-top: 1.5rem;
+}
+
+.social-login .divider {
+  position: relative;
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+.social-login .divider::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background-color: #e5e7eb;
+}
+
+.social-login .divider span {
+  position: relative;
+  background-color: white;
+  padding: 0 0.75rem;
+  color: #6b7280;
+  font-size: 0.875rem;
+}
+
+.social-login .social-buttons {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.75rem;
+}
+
+.social-login .social-buttons .social-button {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  padding: 0.5rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  background-color: white;
+  cursor: pointer;
+  transition: all 0.3s;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+.social-login .social-buttons .social-button:hover {
+  transform: translateY(-5px) scale(1.05);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}
+
+.social-login .social-buttons .social-button i {
+  font-size: 1.25rem;
+}
+
+.social-login .social-buttons .social-button.facebook {
+  color: #3b5998;
+}
+
+.social-login .social-buttons .social-button.google {
+  color: #db4437;
+}
+
+.social-login .social-buttons .social-button.github {
+  color: #333;
+}
+
+.register-link {
+  margin-top: 1.5rem;
+  text-align: center;
+  font-size: 0.875rem;
+  color: #6b7280;
+}
+
+.register-link a {
+  color: #8b5cf6;
+  font-weight: 500;
+  transition: color 0.3s;
+}
+
+.register-link a:hover {
+  color: #7c3aed;
+}
+
+/* Animations */
+@keyframes gradient {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-20px);
+  }
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(50px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.slide-in {
+  animation: slideIn 0.8s ease-out forwards;
+}
+
+.delay-1 {
+  animation-delay: 0.2s;
+}
+
+.delay-2 {
+  animation-delay: 0.4s;
+}
+
+.delay-3 {
+  animation-delay: 0.6s;
+}

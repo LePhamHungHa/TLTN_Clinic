@@ -1,0 +1,158 @@
+/* Header.css - Viết theo cấu trúc SCSS */
+.header {
+  background-color: #1e40af;
+  color: white;
+  width: 100%;
+  position: relative;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+.header .container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 0;
+}
+.header .container .logo-section {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  cursor: pointer;
+}
+.header .container .logo-section i {
+  font-size: 1.875rem;
+  color: #fbbf24;
+}
+.header .container .logo-section span {
+  font-size: 1.25rem;
+  font-weight: bold;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+.header .container nav {
+  display: none;
+  gap: 1.5rem;
+}
+@media (min-width: 768px) {
+  .header .container nav {
+    display: flex;
+  }
+}
+.header .container nav a {
+  color: white;
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.3s ease;
+  position: relative;
+  padding: 0.5rem 0;
+}
+.header .container nav a:hover {
+  color: #93c5fd;
+}
+.header .container nav a::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background-color: #93c5fd;
+  transition: width 0.3s ease;
+}
+.header .container nav a:hover::after {
+  width: 100%;
+}
+.header .container .auth-buttons {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+.header .container .auth-buttons .user-greeting {
+  padding: 0.5rem 1rem;
+  font-weight: 500;
+  color: #fbbf24;
+}
+.header .container .auth-buttons button, .header .container .auth-buttons a {
+  border: 2px solid white;
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+  transition: all 0.3s ease;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-block;
+  text-align: center;
+}
+.header .container .auth-buttons button:hover, .header .container .auth-buttons a:hover {
+  background-color: #1e3a8a;
+  transform: translateY(-2px);
+}
+.header .container .auth-buttons .login-btn {
+  background-color: transparent;
+  color: white;
+}
+.header .container .auth-buttons .register-btn {
+  background-color: #fbbf24;
+  color: #1e40af;
+  border: 2px solid #fbbf24;
+}
+.header .container .auth-buttons .register-btn:hover {
+  background-color: #f59e0b;
+  border-color: #f59e0b;
+}
+.header .container .auth-buttons .logout-btn {
+  background-color: transparent;
+  color: white;
+}
+.header .container .auth-buttons .logout-btn:hover {
+  background-color: #ef4444;
+  border-color: #ef4444;
+}
+
+/* Mobile menu styles */
+.mobile-menu-btn {
+  display: block;
+  background: none;
+  border: none;
+  color: white;
+  font-size: 1.5rem;
+  cursor: pointer;
+}
+@media (min-width: 768px) {
+  .mobile-menu-btn {
+    display: none;
+  }
+}
+.mobile-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background-color: #1e40af;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  z-index: 1000;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  transform: translateY(-10px);
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.3s ease;
+}
+.mobile-menu.open {
+  transform: translateY(0);
+  opacity: 1;
+  visibility: visible;
+}
+.mobile-menu a {
+  color: white;
+  text-decoration: none;
+  padding: 0.5rem 0;
+  font-weight: 500;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+.mobile-menu a:hover {
+  color: #93c5fd;
+}
