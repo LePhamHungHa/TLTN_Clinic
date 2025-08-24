@@ -3,13 +3,14 @@ package com.example.clinic_backend.dto;
 import jakarta.validation.constraints.NotBlank;
 
 public class LoginRequest {
-    @NotBlank
+    
+    @NotBlank(message = "Username không được để trống")
     private String username;
 
-    @NotBlank
+    @NotBlank(message = "Password không được để trống")
     private String password;
 
-    // getter và setter
+    // Getters & Setters
     public String getUsername() { return username; }
     public void setUsername(String username) { this.username = username; }
 

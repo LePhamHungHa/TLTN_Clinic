@@ -22,19 +22,27 @@ function App() {
 
   return (
     <Router>
-      {/* Header xuất hiện ở tất cả các trang */}
-      <Header />
-
       <Routes>
-        {/* Trang chủ */}
-        <Route path="/" element={<Home />} />
+        {/* Trang chủ với Header */}
+        <Route
+          path="/"
+          element={
+            <>
+              <Header />
+              <Home />
+            </>
+          }
+        />
 
-        {/* Các route cần login */}
+        {/* Các route cần login với Header */}
         <Route
           path="/patients"
           element={
             <PrivateRoute>
-              <Patients />
+              <>
+                <Header />
+                <Patients />
+              </>
             </PrivateRoute>
           }
         />
@@ -42,12 +50,15 @@ function App() {
           path="/appointments"
           element={
             <PrivateRoute>
-              <Appointments userId={user?.id} />
+              <>
+                <Header />
+                <Appointments userId={user?.id} />
+              </>
             </PrivateRoute>
           }
         />
 
-        {/* Đăng nhập / đăng ký */}
+        {/* Đăng nhập / đăng ký không có Header */}
         <Route
           path="/login"
           element={

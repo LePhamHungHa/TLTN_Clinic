@@ -1,17 +1,16 @@
 package com.example.clinic_backend.dto;
 
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
 
 public class RegisterRequest {
-    @NotBlank
+    
+    @NotBlank(message = "Username không được để trống")
     private String username;
 
-    @NotBlank
-    @Size(min = 6)
+    @NotBlank(message = "Password không được để trống")
     private String password;
 
-    // getter và setter
+    // Getters & Setters
     public String getUsername() { return username; }
     public void setUsername(String username) { this.username = username; }
 

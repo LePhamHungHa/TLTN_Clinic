@@ -2,6 +2,12 @@ import React, { useState, useEffect } from "react";
 import { loginUser } from "../api/userAPI";
 import { useNavigate, Link } from "react-router-dom";
 import "../css/Login.css";
+import { CiUser } from "react-icons/ci";
+import { FaUserTie } from "react-icons/fa6";
+import { IoIosLock } from "react-icons/io";
+import { FaFacebookF } from "react-icons/fa";
+import { FaGoogle } from "react-icons/fa";
+import { FaGithub } from "react-icons/fa";
 
 const Login = () => {
   const [username, setUsername] = useState("");
@@ -53,17 +59,21 @@ const Login = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const res = await loginUser({ username, password });
-      if (res.id) {
+      const trimmedUsername = username.trim();
+      const trimmedPassword = password.trim();
+      console.log("Gửi yêu cầu đăng nhập:", { username: trimmedUsername, password: trimmedPassword });
+      const res = await loginUser({ username: trimmedUsername, password: trimmedPassword });
+      console.log("Phản hồi đăng nhập:", res);
+      if (res && (res.username || res.id)) { // Kiểm tra username hoặc id để linh hoạt
         alert("Đăng nhập thành công!");
         localStorage.setItem("user", JSON.stringify(res));
         navigate("/");
       } else {
-        alert("Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.");
+        alert("Phản hồi không hợp lệ từ server!");
       }
     } catch (error) {
-      console.error("Login error:", error);
-      alert("Có lỗi xảy ra khi đăng nhập. Vui lòng thử lại.");
+      console.error("Lỗi đăng nhập:", error.message);
+      alert(`Lỗi đăng nhập: ${error.message}`);
     }
   };
 
@@ -84,7 +94,7 @@ const Login = () => {
           <div className="card-content">
             <div className="login-header slide-in">
               <div className="avatar">
-                <i className="fas fa-user"></i>
+                <i className="fas fa-user"><CiUser /></i>
               </div>
               <h1>Đăng Nhập</h1>
               <p>Chào mừng bạn trở lại</p>
@@ -95,7 +105,7 @@ const Login = () => {
                 <label htmlFor="username">Tên đăng nhập</label>
                 <div className="input-container">
                   <div className="input-icon">
-                    <i className="fas fa-user"></i>
+                    <i className="fas fa-user"><FaUserTie /></i>
                   </div>
                   <input
                     type="text"
@@ -113,7 +123,7 @@ const Login = () => {
                 <label htmlFor="password">Mật khẩu</label>
                 <div className="input-container">
                   <div className="input-icon">
-                    <i className="fas fa-lock"></i>
+                    <i className="fas fa-lock"><IoIosLock /></i>
                   </div>
                   <input
                     type={showPassword ? "text" : "password"}
@@ -160,21 +170,21 @@ const Login = () => {
                   className="social-button facebook"
                   onClick={() => handleSocialLogin('Facebook')}
                 >
-                  <i className="fab fa-facebook-f"></i>
+                  <i className="fab fa-facebook-f"><FaFacebookF /></i>
                 </button>
                 <button 
                   type="button" 
                   className="social-button google"
                   onClick={() => handleSocialLogin('Google')}
                 >
-                  <i className="fab fa-google"></i>
+                  <i className="fab fa-google"><FaGoogle /></i>
                 </button>
                 <button 
                   type="button" 
                   className="social-button github"
                   onClick={() => handleSocialLogin('GitHub')}
                 >
-                  <i className="fab fa-github"></i>
+                  <i className="fab fa-github"><FaGithub /></i>
                 </button>
               </div>
             </div>

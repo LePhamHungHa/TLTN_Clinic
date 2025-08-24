@@ -103,53 +103,41 @@
 
 .login-form .form-group .input-container {
   position: relative;
-}
-
-.login-form .form-group .input-container .input-icon {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 0;
-  padding-left: 1rem;
-  display: flex;
-  align-items: center;
-  pointer-events: none;
-  color: #9ca3af;
-  transition: color 0.3s;
+  width: 100%;
 }
 
 .login-form .form-group .input-container input {
   width: 100%;
-  padding: 0.75rem 1rem 0.75rem 2.5rem;
+  padding: 0.75rem 2.5rem; 
+  padding-left: 2.5rem;   
+  padding-right: 2.5rem;
+  background-color: #ffffff;
+  color: #000000;   
   border: 1px solid #d1d5db;
   border-radius: 0.5rem;
   transition: all 0.3s;
   box-shadow: 0 4px 6px -1px rgb(255, 255, 255);
+  box-sizing: border-box; 
 }
 
-.login-form .form-group .input-container input:focus {
-  transform: translateY(-2px);
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-  border-color: #8b5cf6;
-  outline: none;
-}
-
-.login-form .form-group .input-container input:focus + .input-icon {
-  color: #8b5cf6;
+.login-form .form-group .input-container .input-icon {
+  position: absolute;
+  top: 50%;
+  left: 0.75rem;
+  transform: translateY(-50%);
+  color: #9ca3af;
+  pointer-events: none;
 }
 
 .login-form .form-group .input-container .password-toggle {
   position: absolute;
-  top: 0;
-  bottom: 0;
-  right: 0;
-  padding-right: 1rem;
-  display: flex;
-  align-items: center;
-  cursor: pointer;
+  top: 50%;
+  right: 0.75rem;
+  transform: translateY(-50%);
   color: #9ca3af;
-  transition: color 0.3s;
+  cursor: pointer;
 }
+
 
 .login-form .form-group .input-container .password-toggle:hover {
   color: #8b5cf6;
