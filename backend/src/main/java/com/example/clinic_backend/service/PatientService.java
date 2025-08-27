@@ -29,20 +29,21 @@ public class PatientService {
     }
 
     public Patient updatePatient(Long id, Patient updatedPatient) {
-        Optional<Patient> optionalPatient = patientRepository.findById(id);
-        if (optionalPatient.isPresent()) {
-            Patient patient = optionalPatient.get();
-            patient.setUsername(updatedPatient.getUsername());
-            patient.setPassword(updatedPatient.getPassword());
-            patient.setFullName(updatedPatient.getFullName());
-            patient.setPhone(updatedPatient.getPhone());
-            patient.setEmail(updatedPatient.getEmail());
-            return patientRepository.save(patient);
-        }
-        return null;
+        return patientRepository.findById(id)
+                .map(patient -> {
+                    patient.setFullName(updatedPatient.getFullName());
+                    patient.setDob(updatedPatient.getDob());
+                    patient.setPhone(updatedPatient.getPhone());
+                    patient.setAddress(updatedPatient.getAddress());
+                    patient.setEmail(updatedPatient.getEmail());
+                    patient.setSymptoms(updatedPatient.getSymptoms());
+                    return patientRepository.save(patient);
+                })
+                .orElse(null);
     }
 
     public void deletePatient(Long id) {
         patientRepository.deleteById(id);
     }
 }
+

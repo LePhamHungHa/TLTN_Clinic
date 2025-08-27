@@ -57,25 +57,31 @@ const Login = () => {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      const trimmedUsername = username.trim();
-      const trimmedPassword = password.trim();
-      console.log("Gửi yêu cầu đăng nhập:", { username: trimmedUsername, password: trimmedPassword });
-      const res = await loginUser({ username: trimmedUsername, password: trimmedPassword });
-      console.log("Phản hồi đăng nhập:", res);
-      if (res && (res.username || res.id)) { // Kiểm tra username hoặc id để linh hoạt
-        alert("Đăng nhập thành công!");
-        localStorage.setItem("user", JSON.stringify(res));
-        navigate("/");
-      } else {
-        alert("Phản hồi không hợp lệ từ server!");
-      }
-    } catch (error) {
-      console.error("Lỗi đăng nhập:", error.message);
-      alert(`Lỗi đăng nhập: ${error.message}`);
+  e.preventDefault();
+  try {
+    const trimmedUsername = username.trim();
+    const trimmedPassword = password.trim();
+    console.log("Gửi yêu cầu đăng nhập:", { username: trimmedUsername, password: trimmedPassword });
+    const res = await loginUser({ username: trimmedUsername, password: trimmedPassword });
+    console.log("Phản hồi đăng nhập:", res);
+
+    if (res && res.username && res.role) {
+      alert("Đăng nhập thành công!");
+      localStorage.setItem("user", JSON.stringify(res));
+
+      // Điều hướng theo role
+      if (res.role === "PATIENT") navigate("/patient");
+      else if (res.role === "DOCTOR") navigate("/doctor");
+      else if (res.role === "ADMIN") navigate("/admin");
+      else navigate("/");
+    } else {
+      alert("Phản hồi không hợp lệ từ server!");
     }
-  };
+  } catch (error) {
+    console.error("Lỗi đăng nhập:", error.message);
+    alert(`Lỗi đăng nhập: ${error.message}`);
+  }
+};
 
   const togglePasswordVisibility = () => {
     setShowPassword(!showPassword);

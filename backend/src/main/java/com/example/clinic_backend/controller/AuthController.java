@@ -12,7 +12,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/auth")
-@CrossOrigin(origins = "http://localhost:5173") // Cập nhật thành cổng 5173
+@CrossOrigin(origins = "http://localhost:5173") 
 public class AuthController {
     private final UserService userService;
 
@@ -28,6 +28,7 @@ public class AuthController {
             response.put("message", "Đăng ký thành công");
             response.put("username", user.getUsername());
             response.put("id", user.getId());
+            response.put("role", user.getRole());
             return ResponseEntity.ok(response);
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
@@ -45,6 +46,7 @@ public class AuthController {
                         response.put("message", "Đăng nhập thành công");
                         response.put("username", user.getUsername());
                         response.put("id", user.getId());
+                        response.put("role", user.getRole()); // thêm role
                         return ResponseEntity.ok(response);
                     })
                     .orElseGet(() -> {

@@ -1,3 +1,5 @@
+import { data } from "react-router-dom";
+
 const BASE_URL = "http://localhost:8080/api/auth";
 
 export const loginUser = async (credentials) => {
@@ -14,18 +16,16 @@ export const loginUser = async (credentials) => {
   }
   return data;
 };
-
-export const registerUser = async (user) => {
-  console.log("Gửi yêu cầu đăng ký:", user);
+export const registerUser = async (userData) => {
+  console.log("Gửi yêu cầu đến backend:", userData);
   const res = await fetch(`${BASE_URL}/register`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(user),
+    body: JSON.stringify(userData),
   });
-  const data = await res.json();
-  console.log("Phản hồi đăng ký:", data);
+  console.log("Phản hồi từ backend:", data);
   if (!res.ok) {
     throw new Error(data.error || "Đăng ký thất bại");
   }
   return data;
-};
+}

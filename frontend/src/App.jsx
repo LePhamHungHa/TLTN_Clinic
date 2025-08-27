@@ -6,16 +6,22 @@ import Appointments from "./pages/Appointments.jsx";
 import Login from "./pages/Login.jsx";
 import Register from "./pages/Register.jsx";
 import Header from "./components/Header.jsx";
+import RegisterPatient from "./pages/RegisterPatient.jsx";
+
+// Components for future use - currently commented out to avoid errors
+// import PatientDashboard from "./pages/patient/Dashboard.jsx";
+// import DoctorDashboard from "./pages/doctor/Dashboard.jsx";
+// import AdminDashboard from "./pages/admin/Dashboard.jsx";
 
 function App() {
   const user = JSON.parse(localStorage.getItem("user")) || null;
 
-  // Route cần login
-  const PrivateRoute = ({ children }) => {
-    return user ? children : <Navigate to="/login" />;
+  const PrivateRoute = ({ children, role }) => {
+    if (!user) return <Navigate to="/login" />;
+    if (role && user.role !== role) return <Navigate to="/" />;
+    return children;
   };
 
-  // Route chỉ cho khách chưa login
   const GuestRoute = ({ children }) => {
     return !user ? children : <Navigate to="/" />;
   };
@@ -23,7 +29,7 @@ function App() {
   return (
     <Router>
       <Routes>
-        {/* Trang chủ với Header */}
+        {/* Trang chủ */}
         <Route
           path="/"
           element={
@@ -34,11 +40,21 @@ function App() {
           }
         />
 
-        {/* Các route cần login với Header */}
+        <Route
+          path="/register-patient"
+          element={
+            <>
+              <Header />
+              <RegisterPatient />
+            </>
+          }
+        />
+
+        {/* Các route khác */}
         <Route
           path="/patients"
           element={
-            <PrivateRoute>
+            <PrivateRoute role="ADMIN">
               <>
                 <Header />
                 <Patients />
@@ -52,13 +68,52 @@ function App() {
             <PrivateRoute>
               <>
                 <Header />
-                <Appointments userId={user?.id} />
+                <Appointments />
               </>
             </PrivateRoute>
           }
         />
 
-        {/* Đăng nhập / đăng ký không có Header */}
+        {/* Portal cho Bệnh nhân - Commented for future use */}
+        {/* <Route
+          path="/patient/*"
+          element={
+            <PrivateRoute role="PATIENT">
+              <>
+                <Header />
+                <PatientDashboard />
+              </>
+            </PrivateRoute>
+          }
+        /> */}
+
+        {/* Portal cho Bác sĩ - Commented for future use */}
+        {/* <Route
+          path="/doctor/*"
+          element={
+            <PrivateRoute role="DOCTOR">
+              <>
+                <Header />
+                <DoctorDashboard />
+              </>
+            </PrivateRoute>
+          }
+        /> */}
+
+        {/* Portal cho Admin - Commented for future use */}
+        {/* <Route
+          path="/admin/*"
+          element={
+            <PrivateRoute role="ADMIN">
+              <>
+                <Header />
+                <AdminDashboard />
+              </>
+            </PrivateRoute>
+          }
+        /> */}
+
+        {/* Đăng nhập / đăng ký */}
         <Route
           path="/login"
           element={
@@ -76,7 +131,7 @@ function App() {
           }
         />
 
-        {/* Mặc định: redirect về home */}
+        {/* Mặc định */}
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </Router>

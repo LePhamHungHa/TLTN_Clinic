@@ -25,7 +25,8 @@ public class UserService {
         User user = new User();
         user.setUsername(request.getUsername());
         user.setPassword(encodedPassword);
-        user.setRole("USER"); // mặc định gán role USER, có thể tùy chỉnh
+        // Nếu request có role thì dùng, nếu không thì mặc định là PATIENT
+        user.setRole(request.getRole() != null ? request.getRole() : "PATIENT");
         return userRepository.save(user);
     }
 
@@ -41,3 +42,4 @@ public class UserService {
         return Optional.empty();
     }
 }
+

@@ -1,0 +1,183 @@
+/* RegisterClinic.css */
+.clinic-registration-container {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  min-height: 100vh;
+  min-width: 100vw;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  padding: 20px;
+  font-family: 'Segoe UI', Arial, sans-serif;
+}
+
+.clinic-registration-card {
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  max-width: 800px;
+  overflow: hidden;
+}
+
+.clinic-registration-title {
+  background: #1e5eb3;
+  color: white;
+  text-align: center;
+  padding: 20px;
+  margin: 0;
+  font-size: 24px;
+  font-weight: bold;
+}
+
+.clinic-notice-box {
+  background: #fff9e6;
+  border-left: 4px solid #ffcc00;
+  padding: 20px;
+  margin: 20px;
+  border-radius: 4px;
+}
+
+.clinic-notice-title {
+  color: #d97706;
+  margin-top: 0;
+  font-size: 18px;
+}
+
+.clinic-notice-box p {
+  margin: 10px 0;
+  line-height: 1.5;
+  color: #666;
+}
+
+.clinic-form-section {
+  padding: 20px;
+}
+
+.clinic-form-title {
+  text-align: center;
+  color: #1e5eb3;
+  font-size: 22px;
+  margin-bottom: 10px;
+}
+
+.clinic-form-subtitle {
+  text-align: center;
+  color: #666;
+  margin-bottom: 30px;
+}
+
+.clinic-form {
+  width: 100%;
+}
+
+.clinic-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  background-color: white;
+  color: #333;
+  gap: 20px;
+}
+
+.clinic-form-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.clinic-form-group.full-width {
+  grid-column: 1 / span 2;
+}
+
+.clinic-form-label {
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: #333;
+}
+
+.clinic-form-input {
+  padding: 12px 15px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background-color: whitesmoke;
+  color: #333;
+  font-size: 16px;
+  transition: border-color 0.3s;
+}
+
+.clinic-form-input:focus {
+  border-color: #1e5eb3;
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(30, 94, 179, 0.2);
+}
+
+.clinic-form-input.error {
+  border-color: #e53e3e;
+}
+
+.clinic-error-message {
+  color: #e53e3e;
+  font-size: 14px;
+  margin-top: 5px;
+}
+
+.clinic-form-textarea {
+  padding: 12px 15px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 16px;
+  background-color: white;
+  color: #333;
+  resize: vertical;
+  min-height: 100px;
+  font-family: inherit;
+}
+
+.clinic-form-textarea:focus {
+  border-color: #1e5eb3;
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(30, 94, 179, 0.2);
+}
+
+.clinic-form-submit {
+  text-align: center;
+  margin-top: 30px;
+}
+
+.clinic-submit-button {
+  background: #1e5eb3;
+  color: white;
+  border: none;
+  padding: 15px 40px;
+  font-size: 16px;
+  font-weight: 600;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.clinic-submit-button:hover {
+  background: #164a94;
+}
+
+.clinic-submit-button:disabled {
+  background: #a0aec0;
+  cursor: not-allowed;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .clinic-form-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .clinic-form-group.full-width {
+    grid-column: 1;
+  }
+  
+  .clinic-registration-container {
+    padding: 10px;
+  }
+  
+  .clinic-notice-box, .clinic-form-section {
+    padding: 15px;
+  }
+}
