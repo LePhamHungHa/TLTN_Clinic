@@ -28,6 +28,18 @@ public class PatientService {
         return patientRepository.findById(id);
     }
 
+    public Optional<Patient> getPatientByUserId(Long userId) {
+    return patientRepository.findByUserId(userId);
+    }
+
+    public Optional<Patient> findByEmail(String email) {
+        return patientRepository.findByEmail(email);
+    }
+
+    public Optional<Patient> findByUsername(String username) {
+        return patientRepository.findByUsername(username);
+    }
+
     public Patient updatePatient(Long id, Patient updatedPatient) {
         return patientRepository.findById(id)
                 .map(patient -> {
@@ -46,4 +58,3 @@ public class PatientService {
         patientRepository.deleteById(id);
     }
 }
-

@@ -9,16 +9,13 @@ public class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "username")
+    @Column(nullable = false, unique = true)
     private String username;
 
-    @Column(name = "password")
+    @Column(nullable = false)
     private String password;
-
-    @Column(name = "role")
     private String role;
-
-    // Getters và Setters
+    // getters và setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 

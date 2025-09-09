@@ -66,17 +66,21 @@ const Login = () => {
     console.log("Phản hồi đăng nhập:", res);
 
     if (res && res.username && res.role) {
-      alert("Đăng nhập thành công!");
-      localStorage.setItem("user", JSON.stringify(res));
+    alert("Đăng nhập thành công!");
 
-      // Điều hướng theo role
-      if (res.role === "PATIENT") navigate("/patient");
-      else if (res.role === "DOCTOR") navigate("/doctor");
-      else if (res.role === "ADMIN") navigate("/admin");
-      else navigate("/");
-    } else {
-      alert("Phản hồi không hợp lệ từ server!");
-    }
+  // ✅ Nếu backend không trả token -> tạo fake token
+  const token = res.token || `fake-token-${res.username}`;
+
+  localStorage.setItem("token", token);
+  localStorage.setItem("user", JSON.stringify(res));
+
+  if (res.role === "PATIENT") navigate("/patient");
+  else if (res.role === "DOCTOR") navigate("/doctor");
+  else if (res.role === "ADMIN") navigate("/admin");
+  else navigate("/");
+} else {
+  alert("Phản hồi không hợp lệ từ server!");
+}
   } catch (error) {
     console.error("Lỗi đăng nhập:", error.message);
     alert(`Lỗi đăng nhập: ${error.message}`);

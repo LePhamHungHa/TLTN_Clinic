@@ -5,6 +5,17 @@ import Footer from "../components/Footer";
 const Home = () => {
   const navigate = useNavigate();
 
+  const handleRegisterClick = () => {
+  const token = localStorage.getItem("token");
+  const user = JSON.parse(localStorage.getItem("user") || "{}");
+
+  if (!token || !user.username) {
+    navigate("/login", { state: { from: "/register-patient" } });
+  } else {
+    navigate("/register-patient", { state: { userId: user.id } }); 
+  }
+};
+
   return (
     <div className="min-h-screen bg-gray-50">
       <section className="bg-white py-12">
@@ -18,7 +29,7 @@ const Home = () => {
             </p>
             <button 
               className="bg-blue-900 text-white px-6 py-3 rounded-md hover:bg-blue-800"
-              onClick={() => navigate("/register-patient")}
+              onClick={handleRegisterClick}
             >
               Đăng ký khám
             </button>

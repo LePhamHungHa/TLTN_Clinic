@@ -2,6 +2,8 @@ package com.example.clinic_backend.controller;
 
 import com.example.clinic_backend.model.Patient;
 import com.example.clinic_backend.service.PatientService;
+
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -20,6 +22,13 @@ public class PatientController {
     @PostMapping("/register")
     public Patient registerPatient(@RequestBody Patient patient) {
         return patientService.createPatient(patient);
+    }
+
+    @GetMapping("/by-user/{userId}")
+    public ResponseEntity<Patient> getPatientByUserId(@PathVariable Long userId) {
+    return patientService.getPatientByUserId(userId)
+            .map(ResponseEntity::ok)
+            .orElse(ResponseEntity.notFound().build());
     }
 
     @GetMapping

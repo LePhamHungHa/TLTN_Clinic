@@ -2,6 +2,17 @@ import React, { useState } from "react";
 import { registerUser } from "../api/userAPI";
 import { useNavigate } from "react-router-dom";
 import "../css/Register.css";
+import { CiUser } from "react-icons/ci";
+import { FaUserTie } from "react-icons/fa6";
+import { FaRegAddressCard } from "react-icons/fa";
+import { BiLogoGmail } from "react-icons/bi";
+import { IoPhonePortraitOutline } from "react-icons/io5";
+import { FaRegCalendarAlt } from "react-icons/fa";
+import { TbLockPassword } from "react-icons/tb";
+import { FaRegEye } from "react-icons/fa";
+import { FaFacebookF } from "react-icons/fa";
+import { FaGoogle } from "react-icons/fa";
+import { FaGithub } from "react-icons/fa";
 
 const Register = () => {
   const [user, setUser] = useState({
@@ -10,6 +21,7 @@ const Register = () => {
     phone: "",
     birthday: "",
     gender: "male",
+    address: "",
     password: "",
     confirmPassword: "",
     terms: false,
@@ -33,40 +45,47 @@ const Register = () => {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (user.password !== user.confirmPassword) {
-      alert("Mật khẩu không khớp! Vui lòng nhập lại.");
-      return;
-    }
-    if (user.password.length < 8) {
-      alert("Mật khẩu phải có ít nhất 8 ký tự!");
-      return;
-    }
-    if (!user.terms) {
-      alert("Vui lòng đồng ý với điều khoản dịch vụ!");
-      return;
-    }
+  e.preventDefault();
 
-    try {
-      const res = await registerUser({
-        username: user.email, // Giả sử backend dùng email làm username
-        password: user.password,
-        fullname: user.fullname,
-        email: user.email,
-        phone: user.phone,
-        birthday: user.birthday,
-        gender: user.gender,
-      });
-      if (res.id) {
-        setShowModal(true);
-      } else {
-        alert("Đăng ký thất bại: " + (res.error || "Lỗi không xác định"));
-      }
-    } catch (error) {
-      console.error("Lỗi đăng ký:", error.message);
-      alert(`Lỗi đăng ký: ${error.message}`);
+  if (user.password !== user.confirmPassword) {
+    alert("Mật khẩu không khớp! Vui lòng nhập lại.");
+    return;
+  }
+  if (user.password.length < 6) {
+    alert("Mật khẩu phải có ít nhất 6 ký tự!");
+    return;
+  }
+  if (!user.terms) {
+    alert("Vui lòng đồng ý với điều khoản dịch vụ!");
+    return;
+  }
+
+  try {
+   
+    const payload = {
+      username: user.email,        
+      password: user.password,
+      
+      fullName: user.fullname,
+      dob: user.birthday || null,   
+      phone: user.phone,
+      address: user.address || "", 
+      email: user.email,
+    };
+
+    const res = await registerUser(payload);
+
+    if (res && res.id) {
+      setShowModal(true);
+    } else {
+      console.error("Register response unexpected:", res);
+      alert("Đăng ký thất bại: phản hồi không hợp lệ từ server");
     }
-  };
+  } catch (error) {
+    console.error("Lỗi đăng ký:", error);
+    alert(`Lỗi đăng ký: ${error.message}`);
+  }
+};
 
   const closeModal = () => {
     setShowModal(false);
@@ -76,6 +95,7 @@ const Register = () => {
       phone: "",
       birthday: "",
       gender: "male",
+      address: "",
       password: "",
       confirmPassword: "",
       terms: false,
@@ -104,7 +124,7 @@ const Register = () => {
         <div className="register-card slide-in">
           <div className="header">
             <div className="avatar">
-              <i className="fas fa-hospital-user"></i>
+              <i className="fas fa-hospital-user"><CiUser /></i>
             </div>
             <h1 className="header-title">Đăng ký tài khoản</h1>
             <p className="header-subtitle">Hệ thống đăng ký khám bệnh trực tuyến</p>
@@ -116,7 +136,7 @@ const Register = () => {
                   Họ và tên
                 </label>
                 <div className="input-container">
-                  <i className="fas fa-user input-icon"></i>
+                  <i className="fas fa-user input-icon"><FaUserTie /></i>
                   <input
                     type="text"
                     id="fullname"
@@ -129,12 +149,32 @@ const Register = () => {
                   />
                 </div>
               </div>
+
+               <div className="form-group">
+                  <label htmlFor="address" className="label">
+                    Địa chỉ
+                    </label>
+                  <div className="input-container">
+                    <i className="fas fa-address input-icon"><FaRegAddressCard /></i>
+                    <input
+                      type="text"
+                      id="address"
+                      name="address"
+                      required
+                      className="input-field"
+                      placeholder="123 Đường ABC Quận X"
+                      value={user.address}
+                      onChange={handleChange}
+                    />
+                  </div>
+                </div>
+
               <div className="form-group">
                 <label htmlFor="email" className="label">
                   Email
                 </label>
                 <div className="input-container">
-                  <i className="fas fa-envelope input-icon"></i>
+                  <i className="fas fa-envelope input-icon"><BiLogoGmail /></i>
                   <input
                     type="email"
                     id="email"
@@ -152,7 +192,7 @@ const Register = () => {
                   Số điện thoại
                 </label>
                 <div className="input-container">
-                  <i className="fas fa-phone input-icon"></i>
+                  <i className="fas fa-phone input-icon"><IoPhonePortraitOutline /></i>
                   <input
                     type="tel"
                     id="phone"
@@ -170,7 +210,7 @@ const Register = () => {
                   Ngày sinh
                 </label>
                 <div className="input-container">
-                  <i className="fas fa-calendar-alt input-icon"></i>
+                  <i className="fas fa-calendar-alt input-icon"><FaRegCalendarAlt/></i>
                   <input
                     type="date"
                     id="birthday"
@@ -194,7 +234,7 @@ const Register = () => {
                       onChange={handleChange}
                       className="radio-input"
                     />
-                    <span className="ml-2 text-gray-700">Nam</span>
+                    <span className="gender-label">Nam</span>
                   </label>
                   <label className="inline-flex items-center">
                     <input
@@ -205,7 +245,7 @@ const Register = () => {
                       onChange={handleChange}
                       className="radio-input"
                     />
-                    <span className="ml-2 text-gray-700">Nữ</span>
+                    <span className="gender-label">Nữ</span>
                   </label>
                   <label className="inline-flex items-center">
                     <input
@@ -214,9 +254,9 @@ const Register = () => {
                       value="other"
                       checked={user.gender === "other"}
                       onChange={handleChange}
-                      className="radio-input"
+                      className="radio-input" 
                     />
-                    <span className="ml-2 text-gray-700">Khác</span>
+                    <span className="gender-label">Khác</span>
                   </label>
                 </div>
               </div>
@@ -225,7 +265,7 @@ const Register = () => {
                   Mật khẩu
                 </label>
                 <div className="input-container">
-                  <i className="fas fa-lock input-icon"></i>
+                  <i className="fas fa-lock input-icon"><TbLockPassword /></i>
                   <input
                     type={showPassword ? "text" : "password"}
                     id="password"
@@ -241,17 +281,17 @@ const Register = () => {
                     className="password-toggle"
                     onClick={() => togglePasswordVisibility("password")}
                   >
-                    <i className={`fas ${showPassword ? "fa-eye-slash" : "fa-eye"}`}></i>
+                    <i className={`fas ${showPassword ? "fa-eye-slash" : "fa-eye"}`}><FaRegEye /></i>
                   </button>
                 </div>
-                <p className="password-hint">Mật khẩu tối thiểu 8 ký tự</p>
+                
               </div>
               <div className="form-group">
                 <label htmlFor="confirmPassword" className="label">
                   Xác nhận mật khẩu
                 </label>
                 <div className="input-container">
-                  <i className="fas fa-lock input-icon"></i>
+                  <i className="fas fa-lock input-icon"><TbLockPassword /></i>
                   <input
                     type={showConfirmPassword ? "text" : "password"}
                     id="confirmPassword"
@@ -267,7 +307,7 @@ const Register = () => {
                     className="password-toggle"
                     onClick={() => togglePasswordVisibility("confirmPassword")}
                   >
-                    <i className={`fas ${showConfirmPassword ? "fa-eye-slash" : "fa-eye"}`}></i>
+                    <i className={`fas ${showConfirmPassword ? "fa-eye-slash" : "fa-eye"}`}><FaRegEye /></i>
                   </button>
                 </div>
               </div>
@@ -304,13 +344,13 @@ const Register = () => {
               </div>
               <div className="social-buttons">
                 <button className="social-button facebook">
-                  <i className="fab fa-facebook-f"></i>
+                  <i className="fab fa-facebook-f"><FaFacebookF /></i>
                 </button>
                 <button className="social-button google">
-                  <i className="fab fa-google"></i>
+                  <i className="fab fa-google"><FaGoogle /></i>
                 </button>
                 <button className="social-button github">
-                  <i className="fab fa-github"></i>
+                  <i className="fab fa-github"><FaGithub /></i>
                 </button>
               </div>
             </div>

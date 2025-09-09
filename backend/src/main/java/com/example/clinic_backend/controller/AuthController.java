@@ -12,7 +12,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/auth")
-@CrossOrigin(origins = "http://localhost:5173") 
+@CrossOrigin(origins = "http://localhost:5173")
 public class AuthController {
     private final UserService userService;
 
@@ -23,12 +23,19 @@ public class AuthController {
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody RegisterRequest request) {
         try {
+            // Nếu role chưa được gửi từ frontend -> gán mặc định = PATIENT
+            if (request.getRole() == null || request.getRole().isEmpty()) {
+                request.setRole("PATIENT");
+            }
+
             User user = userService.registerUser(request);
+
             Map<String, Object> response = new HashMap<>();
             response.put("message", "Đăng ký thành công");
             response.put("username", user.getUsername());
             response.put("id", user.getId());
             response.put("role", user.getRole());
+
             return ResponseEntity.ok(response);
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
@@ -46,7 +53,7 @@ public class AuthController {
                         response.put("message", "Đăng nhập thành công");
                         response.put("username", user.getUsername());
                         response.put("id", user.getId());
-                        response.put("role", user.getRole()); // thêm role
+                        response.put("role", user.getRole());
                         return ResponseEntity.ok(response);
                     })
                     .orElseGet(() -> {
