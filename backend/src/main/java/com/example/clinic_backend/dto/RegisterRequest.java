@@ -1,5 +1,6 @@
 package com.example.clinic_backend.dto;
 
+import java.time.LocalDate;
 import jakarta.validation.constraints.NotBlank;
 
 public class RegisterRequest {
@@ -10,15 +11,16 @@ public class RegisterRequest {
     @NotBlank(message = "Password không được để trống")
     private String password;
 
-    private String role; // nhận vào nếu admin tạo, mặc định PATIENT nếu null
+    private String role; 
 
     // Thông tin bệnh nhân
     private String fullName;
-    private String dob;      
+    private LocalDate dob;      
     private String phone;
     private String address;
     private String email;
     private String symptoms;
+    private String bhyt;
 
     // getters / setters
     public String getUsername() { return username; }
@@ -33,8 +35,8 @@ public class RegisterRequest {
     public String getFullName() { return fullName; }
     public void setFullName(String fullName) { this.fullName = fullName; }
 
-    public String getDob() { return dob; }
-    public void setDob(String dob) { this.dob = dob; }
+    public LocalDate getDob() { return dob; }
+    public void setDob(LocalDate dob) { this.dob = dob; }
 
     public String getPhone() { return phone; }
     public void setPhone(String phone) { this.phone = phone; }
@@ -47,4 +49,7 @@ public class RegisterRequest {
 
     public String getSymptoms() { return symptoms; }
     public void setSymptoms(String symptoms) { this.symptoms = symptoms; }
+    
+    public String getBhyt() { return bhyt; }
+    public void setBhyt(String bhyt) { this.bhyt = bhyt; }
 }

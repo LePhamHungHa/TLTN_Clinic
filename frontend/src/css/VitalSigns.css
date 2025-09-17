@@ -1,0 +1,35 @@
+.vital-container {
+  width: 650px;
+  margin: 20px auto;
+  padding: 20px;
+  border-radius: 12px;
+  background: #f9f9f9;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.vital-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.vital-form input {
+  flex: 1 1 120px;
+  padding: 8px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+}
+
+.vital-form button {
+  padding: 8px 16px;
+  border-radius: 6px;
+  border: none;
+  background: #23a6d5;
+  color: white;
+  cursor: pointer;
+}
+
+.vital-form button:hover {
+  background: #1a89b6;
+}

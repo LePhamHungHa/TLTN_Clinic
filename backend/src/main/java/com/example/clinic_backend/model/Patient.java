@@ -1,16 +1,16 @@
 package com.example.clinic_backend.model;
 
+import java.time.LocalDate;
+
 import jakarta.persistence.*;
 
 @Entity
 @Table(name = "patients")
 public class Patient {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // user_id liên kết tới bảng users
     @OneToOne
     @JoinColumn(name = "user_id")
     private User user;
@@ -18,17 +18,17 @@ public class Patient {
     @Column(name = "full_name")
     private String fullName;
 
-    // dùng String để đơn giản (theo yêu cầu của bạn)
-    private String dob;
+    @Column(name = "dob")
+    private LocalDate dob;
+
+    @Column(name = "bhyt")
+    private String bhyt;
 
     private String phone;
     private String address;
     private String email;
-
-    // hợp lệ nếu bạn muốn lưu lại (mã hoá trong users), nhưng schema có trường này nên giữ
     private String password;
     private String username;
-
     private String symptoms;
 
     // Getters / Setters
@@ -41,8 +41,8 @@ public class Patient {
     public String getFullName() { return fullName; }
     public void setFullName(String fullName) { this.fullName = fullName; }
 
-    public String getDob() { return dob; }
-    public void setDob(String dob) { this.dob = dob; }
+    public LocalDate getDob() { return dob; }
+    public void setDob(LocalDate dob) { this.dob = dob; }
 
     public String getPhone() { return phone; }
     public void setPhone(String phone) { this.phone = phone; }
@@ -61,4 +61,7 @@ public class Patient {
 
     public String getSymptoms() { return symptoms; }
     public void setSymptoms(String symptoms) { this.symptoms = symptoms; }
+
+    public String getBhyt() { return bhyt; }
+    public void setBhyt(String bhyt) { this.bhyt = bhyt; }
 }

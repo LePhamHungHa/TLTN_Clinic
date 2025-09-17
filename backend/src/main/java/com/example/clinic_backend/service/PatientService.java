@@ -41,18 +41,19 @@ public class PatientService {
     }
 
     public Patient updatePatient(Long id, Patient updatedPatient) {
-        return patientRepository.findById(id)
-                .map(patient -> {
-                    patient.setFullName(updatedPatient.getFullName());
-                    patient.setDob(updatedPatient.getDob());
-                    patient.setPhone(updatedPatient.getPhone());
-                    patient.setAddress(updatedPatient.getAddress());
-                    patient.setEmail(updatedPatient.getEmail());
-                    patient.setSymptoms(updatedPatient.getSymptoms());
-                    return patientRepository.save(patient);
-                })
-                .orElse(null);
-    }
+    return patientRepository.findById(id)
+            .map(patient -> {
+                patient.setFullName(updatedPatient.getFullName());
+                patient.setDob(updatedPatient.getDob());
+                patient.setPhone(updatedPatient.getPhone());
+                patient.setAddress(updatedPatient.getAddress());
+                patient.setEmail(updatedPatient.getEmail());
+                patient.setSymptoms(updatedPatient.getSymptoms());
+                patient.setBhyt(updatedPatient.getBhyt());
+                return patientRepository.save(patient);
+            })
+            .orElse(null);
+}
 
     public void deletePatient(Long id) {
         patientRepository.deleteById(id);

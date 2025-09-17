@@ -9,13 +9,26 @@ public class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, unique = true)
+    @Column(unique = true, nullable = false)
     private String username;
 
-    @Column(nullable = false)
     private String password;
+
     private String role;
-    // getters và setters
+
+    private String phone;
+
+    // Thêm các trường mới
+    private String email;
+    private String googleId;
+    private String facebookId;
+    private String fullName;
+    private String avatar;
+
+    // Constructors, getters và setters
+    public User() {}
+
+    // Getters và Setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
@@ -27,4 +40,22 @@ public class User {
 
     public String getRole() { return role; }
     public void setRole(String role) { this.role = role; }
+
+    public String getPhone() { return phone; }
+    public void setPhone(String phone) { this.phone = phone; }
+
+    public String getEmail() { return email; }
+    public void setEmail(String email) { this.email = email; }
+
+    public String getGoogleId() { return googleId; }
+    public void setGoogleId(String googleId) { this.googleId = googleId; }
+
+    public String getFacebookId() { return facebookId; }
+    public void setFacebookId(String facebookId) { this.facebookId = facebookId; }
+
+    public String getFullName() { return fullName; }
+    public void setFullName(String fullName) { this.fullName = fullName; }
+
+    public String getAvatar() { return avatar; }
+    public void setAvatar(String avatar) { this.avatar = avatar; }
 }
