@@ -18,7 +18,7 @@ import { jwtDecode } from "jwt-decode";
 
 // ================== Firebase Config ==================
 const firebaseConfig = {
-  apiKey: "AIzaSyBZJ7CaSjH2RooWIHiqiLiyM78FLMxzzz8",
+  apiKey: "",
   authDomain: "clinicweb-8fa34.firebaseapp.com",
   projectId: "clinicweb-8fa34",
   storageBucket: "clinicweb-8fa34.firebasestorage.app",
