@@ -26,12 +26,18 @@ export const registerUser = async (userData) => {
     body: JSON.stringify(userData),
   });
 
-  // IMPORTANT: phải parse JSON trước khi dùng
-  const data = await res.json();
+  let data;
+  const text = await res.text();
+  try {
+    data = text ? JSON.parse(text) : {}; // nếu rỗng trả về object trống
+  } catch (err) {
+    console.error("Lỗi parse JSON từ backend:", err);
+    data = {}; // fallback
+  }
+
   console.log("Phản hồi từ backend (register):", data);
 
   if (!res.ok) {
-    // trả về message lỗi rõ ràng từ backend nếu có
     throw new Error(data.error || data.message || "Đăng ký thất bại");
   }
 

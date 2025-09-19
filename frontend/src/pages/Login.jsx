@@ -1,5 +1,9 @@
 import { initializeApp } from "firebase/app";
-import { getAuth, RecaptchaVerifier, signInWithPhoneNumber } from "firebase/auth";
+import {
+  getAuth,
+  RecaptchaVerifier,
+  signInWithPhoneNumber,
+} from "firebase/auth";
 import React, { useState, useEffect } from "react";
 import { loginUser } from "../api/userAPI";
 import { useNavigate, Link } from "react-router-dom";
@@ -18,7 +22,7 @@ import { jwtDecode } from "jwt-decode";
 
 // ================== Firebase Config ==================
 const firebaseConfig = {
-  apiKey: "",
+  apiKey: "", // nhớ xóa key này khi public code
   authDomain: "clinicweb-8fa34.firebaseapp.com",
   projectId: "clinicweb-8fa34",
   storageBucket: "clinicweb-8fa34.firebasestorage.app",
@@ -116,12 +120,16 @@ const Login = () => {
   // ===== Login Phone / OTP =====
   const setupRecaptcha = () => {
     if (!window.recaptchaVerifier) {
-      window.recaptchaVerifier = new RecaptchaVerifier(auth, "recaptcha-container", {
-        size: "invisible",
-        callback: (response) => {
-          console.log("reCAPTCHA verified:", response);
-        },
-      });
+      window.recaptchaVerifier = new RecaptchaVerifier(
+        auth,
+        "recaptcha-container",
+        {
+          size: "invisible",
+          callback: (response) => {
+            console.log("reCAPTCHA verified:", response);
+          },
+        }
+      );
     }
   };
 
@@ -133,7 +141,11 @@ const Login = () => {
     try {
       setupRecaptcha();
       const appVerifier = window.recaptchaVerifier;
-      const result = await signInWithPhoneNumber(auth, phoneNumber, appVerifier);
+      const result = await signInWithPhoneNumber(
+        auth,
+        phoneNumber,
+        appVerifier
+      );
       setConfirmationResult(result);
       setOtpSent(true);
       setCountdown(90);
@@ -196,7 +208,7 @@ const Login = () => {
           email: decoded.email,
           name: decoded.name,
           googleId: decoded.sub,
-          picture: decoded.picture
+          picture: decoded.picture,
         }),
       });
 
@@ -205,7 +217,7 @@ const Login = () => {
         alert("Đăng nhập Google thành công!");
         localStorage.setItem("user", JSON.stringify(data));
         localStorage.setItem("token", data.token);
-        
+
         if (data.role === "PATIENT") navigate("/patient");
         else if (data.role === "DOCTOR") navigate("/doctor");
         else if (data.role === "ADMIN") navigate("/admin");
@@ -225,13 +237,19 @@ const Login = () => {
 
   const handleFacebookSuccess = async (response) => {
     try {
-      console.log("Facebook response:", response);
       const { data } = response;
+      // Kiểm tra email
+      if (!data.email) {
+        alert("Facebook không trả về email. Vui lòng dùng phương thức khác!");
+        return;
+      }
 
       const res = await fetch("http://localhost:8080/api/auth/facebook-login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          email: data.email,
+          name: data.name,
           accessToken: data.accessToken,
         }),
       });
@@ -241,7 +259,7 @@ const Login = () => {
         alert("Đăng nhập Facebook thành công!");
         localStorage.setItem("user", JSON.stringify(result));
         localStorage.setItem("token", result.token);
-        
+
         if (result.role === "PATIENT") navigate("/patient");
         else if (result.role === "DOCTOR") navigate("/doctor");
         else if (result.role === "ADMIN") navigate("/admin");
@@ -292,25 +310,27 @@ const Login = () => {
           <div className="card-content">
             <div className="login-header slide-in">
               <div className="avatar">
-                <i><CiUser /></i>
+                <i>
+                  <CiUser />
+                </i>
               </div>
               <h1>
                 {phoneLogin
                   ? "Đăng nhập bằng SĐT"
                   : isForgot
-                    ? isResetting
-                      ? "Đặt lại mật khẩu"
-                      : "Quên mật khẩu"
-                    : "Đăng Nhập"}
+                  ? isResetting
+                    ? "Đặt lại mật khẩu"
+                    : "Quên mật khẩu"
+                  : "Đăng Nhập"}
               </h1>
               <p>
                 {phoneLogin
                   ? "Nhập số điện thoại để nhận mã OTP"
                   : isForgot
-                    ? isResetting
-                      ? "Nhập mật khẩu mới của bạn"
-                      : "Nhập email để đặt lại mật khẩu"
-                    : "Chào mừng bạn trở lại"}
+                  ? isResetting
+                    ? "Nhập mật khẩu mới của bạn"
+                    : "Nhập email để đặt lại mật khẩu"
+                  : "Chào mừng bạn trở lại"}
               </p>
             </div>
 
@@ -345,13 +365,25 @@ const Login = () => {
 
             {/* ===== FORM Phone ===== */}
             {phoneLogin && (
-              <form onSubmit={otpSent ? verifyOtp : (e) => { e.preventDefault(); sendOtp(); }} className="phone-login-form">
+              <form
+                onSubmit={
+                  otpSent
+                    ? verifyOtp
+                    : (e) => {
+                        e.preventDefault();
+                        sendOtp();
+                      }
+                }
+                className="phone-login-form"
+              >
                 {!otpSent ? (
                   <>
                     <div className="form-group slide-in delay-1">
                       <label>Số điện thoại</label>
                       <div className="input-container">
-                        <div className="input-icon"><FiPhone /></div>
+                        <div className="input-icon">
+                          <FiPhone />
+                        </div>
                         <PhoneInput
                           international
                           defaultCountry="VN"
@@ -362,7 +394,10 @@ const Login = () => {
                         />
                       </div>
                     </div>
-                    <button type="submit" className="login-button slide-in delay-2">
+                    <button
+                      type="submit"
+                      className="login-button slide-in delay-2"
+                    >
                       Gửi mã OTP
                     </button>
                   </>
@@ -388,11 +423,16 @@ const Login = () => {
                           onClick={resendOtp}
                           disabled={countdown > 0}
                         >
-                          {countdown > 0 ? `Gửi lại sau ${countdown}s` : "Gửi lại mã OTP"}
+                          {countdown > 0
+                            ? `Gửi lại sau ${countdown}s`
+                            : "Gửi lại mã OTP"}
                         </button>
                       </div>
                     </div>
-                    <button type="submit" className="login-button slide-in delay-2">
+                    <button
+                      type="submit"
+                      className="login-button slide-in delay-2"
+                    >
                       Xác thực
                     </button>
                   </>
@@ -406,7 +446,9 @@ const Login = () => {
                 <div className="form-group slide-in delay-1">
                   <label htmlFor="username">Tên đăng nhập</label>
                   <div className="input-container">
-                    <div className="input-icon"><FaUserTie /></div>
+                    <div className="input-icon">
+                      <FaUserTie />
+                    </div>
                     <input
                       type="text"
                       id="username"
@@ -421,7 +463,9 @@ const Login = () => {
                 <div className="form-group slide-in delay-2">
                   <label htmlFor="password">Mật khẩu</label>
                   <div className="input-container">
-                    <div className="input-icon"><IoIosLock /></div>
+                    <div className="input-icon">
+                      <IoIosLock />
+                    </div>
                     <input
                       type={showPassword ? "text" : "password"}
                       id="password"
@@ -469,7 +513,9 @@ const Login = () => {
                 <div className="form-group slide-in delay-1">
                   <label>Email</label>
                   <div className="input-container">
-                    <div className="input-icon"><CiUser /></div>
+                    <div className="input-icon">
+                      <CiUser />
+                    </div>
                     <input
                       type="email"
                       placeholder="Nhập email của bạn"
@@ -480,7 +526,9 @@ const Login = () => {
                   </div>
                 </div>
                 <div className="forgot-actions slide-in delay-2">
-                  <button type="submit" className="submit-btn">Gửi yêu cầu</button>
+                  <button type="submit" className="submit-btn">
+                    Gửi yêu cầu
+                  </button>
                   <button
                     type="button"
                     className="back-btn"
@@ -497,7 +545,9 @@ const Login = () => {
                 <div className="form-group slide-in delay-1">
                   <label>Mật khẩu mới</label>
                   <div className="input-container">
-                    <div className="input-icon"><IoIosLock /></div>
+                    <div className="input-icon">
+                      <IoIosLock />
+                    </div>
                     <input
                       type="password"
                       placeholder="Nhập mật khẩu mới"
@@ -510,7 +560,9 @@ const Login = () => {
                 <div className="form-group slide-in delay-2">
                   <label>Xác nhận mật khẩu</label>
                   <div className="input-container">
-                    <div className="input-icon"><IoIosLock /></div>
+                    <div className="input-icon">
+                      <IoIosLock />
+                    </div>
                     <input
                       type="password"
                       placeholder="Nhập lại mật khẩu mới"
@@ -521,7 +573,9 @@ const Login = () => {
                   </div>
                 </div>
                 <div className="forgot-actions slide-in delay-3">
-                  <button type="submit" className="submit-btn">Đổi mật khẩu</button>
+                  <button type="submit" className="submit-btn">
+                    Đổi mật khẩu
+                  </button>
                   <button
                     type="button"
                     className="back-btn"
@@ -540,9 +594,14 @@ const Login = () => {
             {!isForgot && !phoneLogin && (
               <>
                 <div className="social-login slide-in delay-3">
-                  <div className="divider"><span>Hoặc đăng nhập bằng</span></div>
+                  <div className="divider">
+                    <span>Hoặc đăng nhập bằng</span>
+                  </div>
                   <div className="social-buttons">
-                    <GoogleLogin onSuccess={handleGoogleSuccess} onError={handleGoogleError} />
+                    <GoogleLogin
+                      onSuccess={handleGoogleSuccess}
+                      onError={handleGoogleError}
+                    />
                     <LoginSocialFacebook
                       appId="649463591534890"
                       onResolve={handleFacebookSuccess}

@@ -123,12 +123,16 @@ const Register = () => {
       </div>
       <div className="register-container">
         <div className="register-card slide-in">
-          <div className="header" style={{ textAlign: 'center' }}>
-            <div className="avatar" style={{ margin: '0 auto 1rem' }}>
-              <i className="fas fa-hospital-user"><CiUser /></i>
+          <div className="header" style={{ textAlign: "center" }}>
+            <div className="avatar" style={{ margin: "0 auto 1rem" }}>
+              <i className="fas fa-hospital-user">
+                <CiUser />
+              </i>
             </div>
             <h1 className="header-title">Đăng ký tài khoản</h1>
-            <p className="header-subtitle">Hệ thống đăng ký khám bệnh trực tuyến</p>
+            <p className="header-subtitle">
+              Hệ thống đăng ký khám bệnh trực tuyến
+            </p>
           </div>
           <div className="card-content">
             <form onSubmit={handleSubmit} className="form">
@@ -137,7 +141,9 @@ const Register = () => {
                   Họ và tên
                 </label>
                 <div className="input-container">
-                  <i className="fas fa-user input-icon"><FaUserTie /></i>
+                  <i className="fas fa-user input-icon">
+                    <FaUserTie />
+                  </i>
                   <input
                     type="text"
                     id="fullname"
@@ -152,9 +158,13 @@ const Register = () => {
               </div>
 
               <div className="form-group">
-                <label htmlFor="bhyt" className="label">Số BHYT</label>
+                <label htmlFor="bhyt" className="label">
+                  Số BHYT
+                </label>
                 <div className="input-container">
-                  <i className="fas fa-id-card input-icon"><FaRegAddressCard /></i>
+                  <i className="fas fa-id-card input-icon">
+                    <FaRegAddressCard />
+                  </i>
                   <input
                     type="text"
                     id="bhyt"
@@ -173,7 +183,9 @@ const Register = () => {
                   Địa chỉ
                 </label>
                 <div className="input-container">
-                  <i className="fas fa-address input-icon"><FaLocationDot /></i>
+                  <i className="fas fa-address input-icon">
+                    <FaLocationDot />
+                  </i>
                   <input
                     type="text"
                     id="address"
@@ -192,7 +204,9 @@ const Register = () => {
                   Email
                 </label>
                 <div className="input-container">
-                  <i className="fas fa-envelope input-icon"><BiLogoGmail /></i>
+                  <i className="fas fa-envelope input-icon">
+                    <BiLogoGmail />
+                  </i>
                   <input
                     type="email"
                     id="email"
@@ -210,7 +224,9 @@ const Register = () => {
                   Số điện thoại
                 </label>
                 <div className="input-container">
-                  <i className="fas fa-phone input-icon"><IoPhonePortraitOutline /></i>
+                  <i className="fas fa-phone input-icon">
+                    <IoPhonePortraitOutline />
+                  </i>
                   <input
                     type="tel"
                     id="phone"
@@ -228,7 +244,9 @@ const Register = () => {
                   Ngày sinh
                 </label>
                 <div className="input-container">
-                  <i className="fas fa-calendar-alt input-icon"><FaRegCalendarAlt /></i>
+                  <i className="fas fa-calendar-alt input-icon">
+                    <FaRegCalendarAlt />
+                  </i>
                   <input
                     type="date"
                     id="birthday"
@@ -242,7 +260,10 @@ const Register = () => {
               </div>
               <div className="form-group">
                 <label className="label">Giới tính</label>
-                <div className="gender-options" style={{ display: 'flex', gap: '1rem' }}>
+                <div
+                  className="gender-options"
+                  style={{ display: "flex", gap: "1rem" }}
+                >
                   <label className="inline-flex items-center">
                     <input
                       type="radio"
@@ -283,7 +304,9 @@ const Register = () => {
                   Mật khẩu
                 </label>
                 <div className="input-container">
-                  <i className="fas fa-lock input-icon"><TbLockPassword /></i>
+                  <i className="fas fa-lock input-icon">
+                    <TbLockPassword />
+                  </i>
                   <input
                     type={showPassword ? "text" : "password"}
                     id="password"
@@ -299,7 +322,13 @@ const Register = () => {
                     className="password-toggle"
                     onClick={() => togglePasswordVisibility("password")}
                   >
-                    <i className={`fas ${showPassword ? "fa-eye-slash" : "fa-eye"}`}><FaRegEye /></i>
+                    <i
+                      className={`fas ${
+                        showPassword ? "fa-eye-slash" : "fa-eye"
+                      }`}
+                    >
+                      <FaRegEye />
+                    </i>
                   </button>
                 </div>
               </div>
@@ -308,7 +337,9 @@ const Register = () => {
                   Xác nhận mật khẩu
                 </label>
                 <div className="input-container">
-                  <i className="fas fa-lock input-icon"><TbLockPassword /></i>
+                  <i className="fas fa-lock input-icon">
+                    <TbLockPassword />
+                  </i>
                   <input
                     type={showConfirmPassword ? "text" : "password"}
                     id="confirmPassword"
@@ -324,7 +355,13 @@ const Register = () => {
                     className="password-toggle"
                     onClick={() => togglePasswordVisibility("confirmPassword")}
                   >
-                    <i className={`fas ${showConfirmPassword ? "fa-eye-slash" : "fa-eye"}`}><FaRegEye /></i>
+                    <i
+                      className={`fas ${
+                        showConfirmPassword ? "fa-eye-slash" : "fa-eye"
+                      }`}
+                    >
+                      <FaRegEye />
+                    </i>
                   </button>
                 </div>
               </div>
@@ -348,10 +385,7 @@ const Register = () => {
                   </a>
                 </label>
               </div>
-              <button
-                type="submit"
-                className="register-button"
-              >
+              <button type="submit" className="register-button">
                 Đăng ký tài khoản
               </button>
             </form>
@@ -361,13 +395,19 @@ const Register = () => {
               </div>
               <div className="social-buttons">
                 <button className="social-button facebook">
-                  <i className="fab fa-facebook-f"><FaFacebookF /></i>
+                  <i className="fab fa-facebook-f">
+                    <FaFacebookF />
+                  </i>
                 </button>
                 <button className="social-button google">
-                  <i className="fab fa-google"><FaGoogle /></i>
+                  <i className="fab fa-google">
+                    <FaGoogle />
+                  </i>
                 </button>
                 <button className="social-button github">
-                  <i className="fab fa-github"><FaGithub /></i>
+                  <i className="fab fa-github">
+                    <FaGithub />
+                  </i>
                 </button>
               </div>
             </div>
@@ -390,12 +430,10 @@ const Register = () => {
             </div>
             <h3 className="modal-title">Đăng ký thành công!</h3>
             <p className="modal-message">
-              Tài khoản của bạn đã được tạo. Vui lòng kiểm tra email để xác thực.
+              Tài khoản của bạn đã được tạo. Vui lòng kiểm tra email để xác
+              thực.
             </p>
-            <button
-              onClick={closeModal}
-              className="modal-button"
-            >
+            <button onClick={closeModal} className="modal-button">
               Đóng
             </button>
           </div>

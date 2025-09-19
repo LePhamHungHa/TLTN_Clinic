@@ -112,4 +112,10 @@ public class UserService {
             return userRepository.save(user);
         }
     }
+
+    public User findByUsernameOrPhone(String usernameOrPhone) {
+    // Nếu dùng JPA Repository, có thể viết query như sau
+    return userRepository.findByUsernameOrPhone(usernameOrPhone, usernameOrPhone)
+                         .orElse(null);
+}
 }

@@ -5,7 +5,7 @@ import { getAnalytics } from "firebase/analytics";
 
 // Cấu hình Firebase cho project của bạn
 const firebaseConfig = {
-  apiKey: "",
+  apiKey: "", // nhớ xóa key này khi public code
   authDomain: "clinicweb-8fa34.firebaseapp.com",
   projectId: "clinicweb-8fa34",
   storageBucket: "clinicweb-8fa34.firebasestorage.app",

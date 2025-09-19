@@ -11,7 +11,7 @@ public class RegisterRequest {
     @NotBlank(message = "Password không được để trống")
     private String password;
 
-    private String role; 
+    private String role; // mặc định có thể là PATIENT
 
     // Thông tin bệnh nhân
     private String fullName;
@@ -22,7 +22,25 @@ public class RegisterRequest {
     private String symptoms;
     private String bhyt;
 
-    // getters / setters
+    // ===== Constructor =====
+    public RegisterRequest() {}
+
+    public RegisterRequest(String username, String password, String role, 
+                           String fullName, LocalDate dob, String phone, 
+                           String address, String email, String symptoms, String bhyt) {
+        this.username = username;
+        this.password = password;
+        this.role = role;
+        this.fullName = fullName;
+        this.dob = dob;
+        this.phone = phone;
+        this.address = address;
+        this.email = email;
+        this.symptoms = symptoms;
+        this.bhyt = bhyt;
+    }
+
+    // ===== Getters / Setters =====
     public String getUsername() { return username; }
     public void setUsername(String username) { this.username = username; }
 
@@ -52,4 +70,20 @@ public class RegisterRequest {
     
     public String getBhyt() { return bhyt; }
     public void setBhyt(String bhyt) { this.bhyt = bhyt; }
+
+    // ===== toString =====
+    @Override
+    public String toString() {
+        return "RegisterRequest{" +
+                "username='" + username + '\'' +
+                ", fullName='" + fullName + '\'' +
+                ", dob=" + dob +
+                ", phone='" + phone + '\'' +
+                ", address='" + address + '\'' +
+                ", email='" + email + '\'' +
+                ", symptoms='" + symptoms + '\'' +
+                ", bhyt='" + bhyt + '\'' +
+                ", role='" + role + '\'' +
+                '}';
+    }
 }

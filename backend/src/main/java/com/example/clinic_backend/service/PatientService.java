@@ -40,6 +40,10 @@ public class PatientService {
         return patientRepository.findByUsername(username);
     }
 
+    public Patient save(Patient patient) {
+        return patientRepository.save(patient);
+    }
+
     public Patient updatePatient(Long id, Patient updatedPatient) {
     return patientRepository.findById(id)
             .map(patient -> {

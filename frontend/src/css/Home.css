@@ -1,0 +1,547 @@
+/* Reset cơ bản */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body, html {
+  width: 100%;
+  overflow-x: hidden;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: #f8f9fa;
+}
+
+.min-h-screen {
+  min-height: 100vh;
+  min-width: 100vw;
+}
+
+/* Container */
+.container {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+/* ===================== Hero Section ===================== */
+.hero {
+  width: 100%;
+  background: linear-gradient(135deg, rgba(26, 115, 232, 0.85), rgba(10, 66, 117, 0.85)),
+              url('https://images.unsplash.com/photo-1532938911079-1b06ac7ceec7?auto=format&fit=crop&w=1770&q=80');
+  background-size: cover;
+  background-position: center;
+  color: white;
+  text-align: center;
+  padding: 100px 20px;
+}
+
+.hero .hero-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 30px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.hero .hero-text {
+  max-width: 800px;
+}
+
+.hero .hero-text h1 {
+  font-size: 3rem;
+  margin-bottom: 20px;
+  font-weight: 700;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+}
+
+.hero .hero-text p {
+  font-size: 1.3rem;
+  margin-bottom: 30px;
+  opacity: 0.95;
+}
+
+.hero .btn-primary {
+  background-color: #ff6b6b;
+  color: white;
+  padding: 15px 40px;
+  font-size: 1.2rem;
+  border-radius: 50px;
+  border: none;
+  cursor: pointer;
+  transition: 0.3s;
+  font-weight: 600;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.hero .btn-primary:hover {
+  background-color: #ff5252;
+  transform: translateY(-3px);
+  box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+}
+
+.hero .hero-image {
+  max-width: 600px;
+  margin-top: 30px;
+}
+
+.hero .hero-image img {
+  width: 100%;
+  border-radius: 10px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+  display: block;
+}
+
+/* ===================== Stats Section ===================== */
+.stats {
+  background: linear-gradient(135deg, #1a73e8, #0a4275);
+  color: white;
+  text-align: center;
+  padding: 80px 20px;
+}
+
+.stats .stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 30px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.stats .stats-grid .stat-item {
+  padding: 30px 20px;
+}
+
+.stats .stats-grid .stat-item .stat-number {
+  font-size: 3rem;
+  font-weight: 700;
+  margin-bottom: 10px;
+  display: block;
+}
+
+.stats .stats-grid .stat-item .stat-label {
+  font-size: 1.1rem;
+  opacity: 0.9;
+}
+
+/* ===================== Services & Specialties ===================== */
+.services-specialties {
+  background: #f8fbff;
+  padding: 60px 20px;
+}
+
+.services-specialties .content-wrapper {
+  display: flex;
+  max-width: 1200px;
+  margin: 0 auto;
+  gap: 40px;
+  flex-wrap: wrap;
+  align-items: stretch;
+}
+
+.services-specialties .section-heading {
+  font-size: 1.8rem;
+  font-weight: 700;
+  text-align: center;
+  margin-bottom: 30px;
+  color: #1a56db;
+}
+
+.services-specialties .services-left, 
+.services-specialties .specialties-right {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  background: transparent;
+}
+
+.services-specialties .services-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.services-specialties .services-grid .service-item {
+  background: #fff;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+  text-align: center;
+  transition: 0.3s;
+}
+
+.services-specialties .services-grid .service-item:hover {
+  transform: translateY(-5px);
+}
+
+.services-specialties .services-grid .service-item img {
+  width: 100%;
+  height: 160px;
+  object-fit: cover;
+}
+
+.services-specialties .services-grid .service-item h3 {
+  font-size: 1rem;
+  padding: 15px;
+  color: #0a4275;
+}
+
+/* ===================== PHẦN CHUYÊN KHOA ĐÃ SỬA ===================== */
+.services-specialties .specialty-list {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.services-specialties .specialty-item {
+  display: flex;
+  align-items: stretch;
+  background: white;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s ease;
+  margin-bottom: 15px;
+}
+
+.services-specialties .specialty-item:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.services-specialties .specialty-icon-wrapper {
+  width: 80px;
+  background: linear-gradient(135deg, #1a73e8 0%, #0a4275 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.services-specialties .specialty-icon-wrapper i {
+  font-size: 2rem;
+  color: white;
+}
+
+.services-specialties .specialty-content {
+  flex: 1;
+  padding: 20px 25px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.services-specialties .specialty-content h4 {
+  font-size: 1.2rem;
+  color: #0a4275;
+  margin: 0;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.services-specialties .specialty-content span {
+  color: #1a73e8;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  transition: all 0.2s ease;
+}
+
+.services-specialties .specialty-content span:hover {
+  color: #ff6b6b;
+  gap: 8px;
+}
+
+.services-specialties .specialty-arrows {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.services-specialties .specialty-arrows button {
+  width: 40px;
+  height: 40px;
+  border: 1px solid #1a56db;
+  border-radius: 50%;
+  background: transparent;
+  color: #1a56db;
+  cursor: pointer;
+  transition: 0.3s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.services-specialties .specialty-arrows button:hover {
+  background: #1a56db;
+  color: #fff;
+}
+
+.services-specialties .specialty-arrows button i {
+  font-size: 1.5rem;
+  display: flex;
+}
+
+/* ===================== Services Section ===================== */
+.services {
+  padding: 80px 20px;
+  background-color: #f8f9fa;
+}
+
+.services .section-title {
+  text-align: center;
+  margin-bottom: 60px;
+}
+
+.services .section-title h2 {
+  font-size: 2.5rem;
+  color: #0a4275;
+  margin-bottom: 15px;
+  position: relative;
+  display: inline-block;
+}
+
+.services .section-title h2::after {
+  content: '';
+  position: absolute;
+  bottom: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 80px;
+  height: 4px;
+  background-color: #1a73e8;
+  border-radius: 2px;
+}
+
+.services .section-title p {
+  color: #666;
+  max-width: 700px;
+  margin: 20px auto 0;
+  font-size: 1.1rem;
+}
+
+.services .services-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 30px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.services .services-grid .service-card {
+  background-color: white;
+  border-radius: 15px;
+  padding: 40px 30px;
+  text-align: center;
+  transition: 0.3s;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+  border-top: 5px solid #1a73e8;
+}
+
+.services .services-grid .service-card:hover {
+  transform: translateY(-10px);
+  box-shadow: 0 15px 30px rgba(0,0,0,0.1);
+}
+
+.services .services-grid .service-card .service-icon {
+  font-size: 3rem;
+  color: #1a73e8;
+  margin-bottom: 25px;
+  background: rgba(26,115,232,0.1);
+  width: 80px;
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  margin: 0 auto 25px;
+}
+
+.services .services-grid .service-card h3 {
+  font-size: 1.5rem;
+  margin-bottom: 15px;
+  color: #0a4275;
+}
+
+.services .services-grid .service-card p {
+  color: #666;
+  line-height: 1.6;
+}
+
+/* ===================== Features Section ===================== */
+.features {
+  padding: 80px 20px;
+  background: linear-gradient(to bottom, #f8f9fa 50%, white 50%);
+}
+
+.features .features-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 40px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.features .features-grid .feature-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  background: white;
+  padding: 40px 30px;
+  border-radius: 15px;
+  box-shadow: 0 5px 20px rgba(0,0,0,0.05);
+  transition: 0.3s;
+}
+
+.features .features-grid .feature-item:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+}
+
+.features .features-grid .feature-item .feature-icon {
+  font-size: 2.5rem;
+  color: #1a73e8;
+  margin-bottom: 20px;
+}
+
+.features .features-grid .feature-item .feature-content h3 {
+  font-size: 1.3rem;
+  margin-bottom: 10px;
+  color: #0a4275;
+}
+
+.features .features-grid .feature-item .feature-content p {
+  color: #666;
+}
+
+/* ===================== Doctors Section ===================== */
+.doctors {
+  padding: 80px 20px;
+  background: #f8fbff;
+}
+
+.doctors .section-title {
+  text-align: center;
+  margin-bottom: 60px;
+}
+
+.doctors .section-title h2 {
+  font-size: 2.2rem;
+  color: #0a4275;
+  margin-bottom: 15px;
+}
+
+.doctors .section-title p {
+  color: #666;
+}
+
+.doctors .doctors-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 30px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.doctors .doctors-grid .doctor-card {
+  background: #fff;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+  transition: 0.3s;
+}
+
+.doctors .doctors-grid .doctor-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+}
+
+.doctors .doctors-grid .doctor-card .doctor-image img {
+  width: 100%;
+  height: 260px;
+  object-fit: cover;
+}
+
+.doctors .doctors-grid .doctor-card .doctor-info {
+  padding: 20px;
+}
+
+.doctors .doctors-grid .doctor-card .doctor-info h3 {
+  color: #0a4275;
+  margin-bottom: 8px;
+}
+
+.doctors .doctors-grid .doctor-card .doctor-info .doctor-specialty {
+  font-weight: 600;
+  color: #1a73e8;
+  margin-bottom: 10px;
+}
+
+.doctors .doctors-grid .doctor-card .doctor-info p {
+  color: #666;
+  line-height: 1.5;
+}
+
+/* ===================== Footer Full Width ===================== */
+footer, .footer {
+  width: 100vw;
+  position: relative;
+  left: 50%;
+  right: 50%;
+  margin-left: -50vw;
+  margin-right: -50vw;
+}
+
+/* ===================== Responsive ===================== */
+@media (max-width: 992px) {
+  .hero .hero-text h1 { font-size: 2.5rem; }
+  .hero .hero-text p { font-size: 1.1rem; }
+}
+
+@media (max-width: 768px) {
+  .hero { padding: 70px 20px; }
+  .hero .hero-text h1 { font-size: 2rem; }
+  .services .section-title h2 { font-size: 2rem; }
+  
+  .services .services-grid,
+  .features .features-grid,
+  .doctors .doctors-grid,
+  .stats .stats-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .services .services-grid .service-card,
+  .features .features-grid .feature-item {
+    padding: 30px 20px;
+  }
+
+  /* Responsive cho phần Chuyên Khoa */
+  .services-specialties .specialty-icon-wrapper {
+    width: 70px;
+  }
+  
+  .services-specialties .specialty-icon-wrapper i {
+    font-size: 1.7rem;
+  }
+  
+  .services-specialties .specialty-content {
+    padding: 15px 20px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  
+  .services-specialties .specialty-content h4 {
+    font-size: 1.1rem;
+  }
+  
+  .services-specialties .specialty-content span {
+    align-self: flex-end;
+  }
+}
