@@ -219,9 +219,9 @@ const Login = () => {
         localStorage.setItem("token", data.token);
 
         if (data.role === "PATIENT") navigate("/patient");
-        else if (data.role === "DOCTOR") navigate("/doctor");
-        else if (data.role === "ADMIN") navigate("/admin");
-        else navigate("/");
+        if (data.role === "DOCTOR") navigate("/doctor");
+        if (data.role === "ADMIN") navigate("/admin");
+        navigate("/");
       } else {
         alert(data.error || "Đăng nhập Google thất bại!");
       }

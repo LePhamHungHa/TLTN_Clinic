@@ -8,7 +8,7 @@ const Header = () => {
   const navigate = useNavigate();
 
   const handleLogout = () => {
-    localStorage.removeItem("user");  
+    localStorage.removeItem("user");
     navigate("/login");
   };
 
@@ -29,55 +29,117 @@ const Header = () => {
 
     if (user?.role === "PATIENT") {
       links.push(
-        <Link key="p-dashboard" to="/patient" className={linkClass} onClick={isMobile ? toggleMobileMenu : undefined}>
+        <Link
+          key="p-dashboard"
+          to="/patient"
+          className={linkClass}
+          onClick={isMobile ? toggleMobileMenu : undefined}
+        >
           Dashboard
         </Link>
       );
       links.push(
-        <Link key="p-appointments" to="/patient/appointments" className={linkClass} onClick={isMobile ? toggleMobileMenu : undefined}>
+        <Link
+          key="p-appointments"
+          to="/patient/appointments"
+          className={linkClass}
+          onClick={isMobile ? toggleMobileMenu : undefined}
+        >
           Lịch hẹn
         </Link>
       );
+
       links.push(
-      <a key="about" href="#" className={linkClass} onClick={isMobile ? toggleMobileMenu : undefined}>
-        GIỚI THIỆU
-      </a>
-    );
-    links.push(
-      <a key="services" href="#" className={linkClass} onClick={isMobile ? toggleMobileMenu : undefined}>
-        DỊCH VỤ
-      </a>
-    );
-    links.push(
-      <a key="contact" href="#" className={linkClass} onClick={isMobile ? toggleMobileMenu : undefined}>
-        LIÊN HỆ
-      </a>
-    );
+        <Link
+          key="p-wallet"
+          to="/wallet"
+          className={linkClass}
+          onClick={isMobile ? toggleMobileMenu : undefined}
+        >
+          Ví điện tử
+        </Link>
+      );
+
+      links.push(
+        <a
+          key="about"
+          href="#"
+          className={linkClass}
+          onClick={isMobile ? toggleMobileMenu : undefined}
+        >
+          GIỚI THIỆU
+        </a>
+      );
+      links.push(
+        <a
+          key="services"
+          href="#"
+          className={linkClass}
+          onClick={isMobile ? toggleMobileMenu : undefined}
+        >
+          DỊCH VỤ
+        </a>
+      );
+      links.push(
+        <a
+          key="contact"
+          href="#"
+          className={linkClass}
+          onClick={isMobile ? toggleMobileMenu : undefined}
+        >
+          LIÊN HỆ
+        </a>
+      );
     }
 
     if (user?.role === "DOCTOR") {
       links.push(
-        <Link key="d-dashboard" to="/doctor" className={linkClass} onClick={isMobile ? toggleMobileMenu : undefined}>
+        <Link
+          key="d-dashboard"
+          to="/doctor"
+          className={linkClass}
+          onClick={isMobile ? toggleMobileMenu : undefined}
+        >
           Lịch làm việc
         </Link>
       );
       links.push(
-        <Link key="d-patients" to="/doctor/patients" className={linkClass} onClick={isMobile ? toggleMobileMenu : undefined}>
+        <Link
+          key="d-patients"
+          to="/doctor/patients"
+          className={linkClass}
+          onClick={isMobile ? toggleMobileMenu : undefined}
+        >
           Quản lý bệnh nhân
         </Link>
       );
       links.push(
-        <Link key="d-appointments" to="/doctor/appointments" className={linkClass} onClick={isMobile ? toggleMobileMenu : undefined}>
+        <Link
+          key="d-appointments"
+          to="/doctor/appointments"
+          className={linkClass}
+          onClick={isMobile ? toggleMobileMenu : undefined}
+        >
           Quản lý lịch hẹn
         </Link>
       );
       links.push(
-        <Link key="d-patient_records" to="/doctor/patient_records" className={linkClass} onClick={isMobile ? toggleMobileMenu : undefined}>
+        <Link
+          key="d-patient_records"
+          to="/doctor/patient_records"
+          className={linkClass}
+          onClick={isMobile ? toggleMobileMenu : undefined}
+        >
           Hồ sơ bệnh án
         </Link>
       );
       links.push(
-        <Link key="d-personal_statistics" to="/doctor/Personal_statistics" className={linkClass} onClick={isMobile ? toggleMobileMenu : undefined}>
+        <Link
+          key="d-personal_statistics"
+          to="/doctor/Personal_statistics"
+          className={linkClass}
+          onClick={isMobile ? toggleMobileMenu : undefined}
+        >
           Thống kê cá nhân
         </Link>
       );
@@ -85,22 +147,42 @@ const Header = () => {
 
     if (user?.role === "ADMIN") {
       links.push(
-        <Link key="a-dashboard" to="/admin" className={linkClass} onClick={isMobile ? toggleMobileMenu : undefined}>
+        <Link
+          key="a-dashboard"
+          to="/admin"
+          className={linkClass}
+          onClick={isMobile ? toggleMobileMenu : undefined}
+        >
           Quản lý cơ cấu
         </Link>
       );
       links.push(
-        <Link key="a-users" to="/admin/users" className={linkClass} onClick={isMobile ? toggleMobileMenu : undefined}>
+        <Link
+          key="a-users"
+          to="/admin/users"
+          className={linkClass}
+          onClick={isMobile ? toggleMobileMenu : undefined}
+        >
           Quản lý người dùng
         </Link>
       );
       links.push(
-        <Link key="a-appointments" to="/admin/appointments" className={linkClass} onClick={isMobile ? toggleMobileMenu : undefined}>
+        <Link
+          key="a-appointments"
+          to="/admin/appointments"
+          className={linkClass}
+          onClick={isMobile ? toggleMobileMenu : undefined}
+        >
           Quản lý lịch hệ thống
         </Link>
       );
       links.push(
-        <Link key="a-data" to="/admin/data" className={linkClass} onClick={isMobile ? toggleMobileMenu : undefined}>
+        <Link
+          key="a-data"
+          to="/admin/data"
+          className={linkClass}
+          onClick={isMobile ? toggleMobileMenu : undefined}
+        >
           Quản lý dữ liệu hệ thống
         </Link>
       );
@@ -108,45 +190,79 @@ const Header = () => {
 
     // Menu chung
 
-     // Menu dành cho khách (chưa đăng nhập hoặc không có role)
-  if (!user || !user.role) {
-    links.push(
-      <a key="about" href="#" className={linkClass} onClick={isMobile ? toggleMobileMenu : undefined}>
-        GIỚI THIỆU
-      </a>
-    );
-    links.push(
-      <a key="services" href="#" className={linkClass} onClick={isMobile ? toggleMobileMenu : undefined}>
-        DỊCH VỤ
-      </a>
-    );
-    links.push(
-      <a key="specialty" href="#" className={linkClass} onClick={isMobile ? toggleMobileMenu : undefined}>
-        CHUYÊN KHOA
-      </a>
-    );
-    links.push(
-      <a key="doctors" href="#" className={linkClass} onClick={isMobile ? toggleMobileMenu : undefined}>
-        ĐỘI NGŨ BÁC SĨ
-      </a>
-    );
-    links.push(
-      <a key="news" href="#" className={linkClass} onClick={isMobile ? toggleMobileMenu : undefined}>
-        TIN TỨC
-      </a>
-    );
-    links.push(
-      <a key="instruct" href="#" className={linkClass} onClick={isMobile ? toggleMobileMenu : undefined}>
-        HƯỚNG DẪN KHÁCH HÀNG
-      </a>
-    );
-    links.push(
-      <a key="contact" href="#" className={linkClass} onClick={isMobile ? toggleMobileMenu : undefined}>
-        LIÊN HỆ
-      </a>
-    );
-  }
-    
+    // Menu dành cho khách (chưa đăng nhập hoặc không có role)
+    if (!user || !user.role) {
+      links.push(
+        <a
+          key="about"
+          href="#"
+          className={linkClass}
+          onClick={isMobile ? toggleMobileMenu : undefined}
+        >
+          GIỚI THIỆU
+        </a>
+      );
+      links.push(
+        <a
+          key="services"
+          href="#"
+          className={linkClass}
+          onClick={isMobile ? toggleMobileMenu : undefined}
+        >
+          DỊCH VỤ
+        </a>
+      );
+      links.push(
+        <a
+          key="specialty"
+          href="#"
+          className={linkClass}
+          onClick={isMobile ? toggleMobileMenu : undefined}
+        >
+          CHUYÊN KHOA
+        </a>
+      );
+      links.push(
+        <a
+          key="doctors"
+          href="#"
+          className={linkClass}
+          onClick={isMobile ? toggleMobileMenu : undefined}
+        >
+          ĐỘI NGŨ BÁC SĨ
+        </a>
+      );
+      links.push(
+        <a
+          key="news"
+          href="#"
+          className={linkClass}
+          onClick={isMobile ? toggleMobileMenu : undefined}
+        >
+          TIN TỨC
+        </a>
+      );
+      links.push(
+        <a
+          key="instruct"
+          href="#"
+          className={linkClass}
+          onClick={isMobile ? toggleMobileMenu : undefined}
+        >
+          HƯỚNG DẪN KHÁCH HÀNG
+        </a>
+      );
+      links.push(
+        <a
+          key="contact"
+          href="#"
+          className={linkClass}
+          onClick={isMobile ? toggleMobileMenu : undefined}
+        >
+          LIÊN HỆ
+        </a>
+      );
+    }
 
     return links;
   };
@@ -197,17 +313,27 @@ const Header = () => {
         <div className="mobile-auth-buttons">
           {user ? (
             <>
-              <span className="mobile-user-greeting">Xin chào, {user.username}</span>
+              <span className="mobile-user-greeting">
+                Xin chào, {user.username}
+              </span>
               <button className="mobile-logout-btn" onClick={handleLogout}>
                 Đăng xuất
               </button>
             </>
           ) : (
             <>
-              <Link to="/login" className="mobile-login-btn" onClick={toggleMobileMenu}>
+              <Link
+                to="/login"
+                className="mobile-login-btn"
+                onClick={toggleMobileMenu}
+              >
                 Đăng nhập
               </Link>
-              <Link to="/register" className="mobile-register-btn" onClick={toggleMobileMenu}>
+              <Link
+                to="/register"
+                className="mobile-register-btn"
+                onClick={toggleMobileMenu}
+              >
                 Đăng ký
               </Link>
             </>

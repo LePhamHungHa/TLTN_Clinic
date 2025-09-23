@@ -5,6 +5,7 @@ import com.example.clinic_backend.model.Patient;
 import com.example.clinic_backend.dto.RegisterRequest;
 import com.example.clinic_backend.service.UserService;
 import com.example.clinic_backend.service.PatientService;
+import com.example.clinic_backend.security.JwtUtil;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -21,11 +22,16 @@ public class AuthController {
     private final UserService userService;
     private final PatientService patientService;
     private final PasswordEncoder passwordEncoder;
+    private final JwtUtil jwtUtil; // ✅ thêm jwtUtil
 
-    public AuthController(UserService userService, PatientService patientService, PasswordEncoder passwordEncoder) {
+    public AuthController(UserService userService,
+                          PatientService patientService,
+                          PasswordEncoder passwordEncoder,
+                          JwtUtil jwtUtil) {
         this.userService = userService;
         this.patientService = patientService;
         this.passwordEncoder = passwordEncoder;
+        this.jwtUtil = jwtUtil;
     }
 
     // Đăng nhập username/password
@@ -35,7 +41,6 @@ public class AuthController {
             String usernameOrPhone  = body.get("username");
             String password = body.get("password");
 
-            // Tìm user theo username hoặc phone
             User user = userService.findByUsernameOrPhone(usernameOrPhone);
             if (user == null) {
                 throw new RuntimeException("Tài khoản không tồn tại");
@@ -44,14 +49,17 @@ public class AuthController {
             if (!passwordEncoder.matches(password, user.getPassword())) {
                 throw new RuntimeException("Sai mật khẩu");
             }
-            
+
+            // ✅ Tạo JWT thật
+            String token = jwtUtil.generateToken(user.getUsername(), user.getRole());
+
             Map<String, Object> response = new HashMap<>();
             response.put("id", user.getId());
             response.put("username", user.getUsername());
             response.put("role", user.getRole());
             response.put("email", user.getEmail());
             response.put("fullName", user.getFullName());
-            response.put("token", "fake-jwt-token-" + user.getUsername());
+            response.put("token", token);
 
             return ResponseEntity.ok(response);
 
@@ -72,16 +80,20 @@ public class AuthController {
             newUser.setUsername(phone);
             newUser.setPhone(phone);
             newUser.setRole("PATIENT");
-            newUser.setPassword(""); // Không cần password cho phone login
+            newUser.setPassword(""); 
             user = userService.save(newUser);
         }
+
+        // ✅ Tạo JWT thật
+        String token = jwtUtil.generateToken(user.getUsername(), user.getRole());
 
         Map<String, Object> response = new HashMap<>();
         response.put("id", user.getId());
         response.put("username", user.getUsername());
         response.put("role", user.getRole());
         response.put("phone", user.getPhone());
-        response.put("token", "fake-jwt-token-" + user.getUsername());
+        response.put("token", token);
+
         return ResponseEntity.ok(response);
     }
 
@@ -100,6 +112,8 @@ public class AuthController {
 
             User user = userService.createOrUpdateUserFromGoogle(email, name, googleId, picture);
 
+            String token = jwtUtil.generateToken(user.getUsername(), user.getRole());
+
             return ResponseEntity.ok(Map.of(
                 "id", user.getId(),
                 "username", user.getUsername(),
@@ -107,7 +121,7 @@ public class AuthController {
                 "fullName", user.getFullName(),
                 "role", user.getRole(),
                 "avatar", user.getAvatar(),
-                "token", "fake-jwt-token-" + user.getUsername()
+                "token", token
             ));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", "Lỗi đăng nhập Google: " + e.getMessage()));
@@ -121,14 +135,14 @@ public class AuthController {
             String email = body.get("email");
             String name = body.get("name");
             String accessToken = body.get("accessToken");
-            // Facebook ID có thể được lấy từ accessToken hoặc từ response
 
             if (email == null || email.isEmpty()) {
                 return ResponseEntity.badRequest().body(Map.of("error", "Email không hợp lệ"));
             }
 
-            // Sử dụng accessToken như facebookId tạm thời
             User user = userService.createOrUpdateUserFromFacebook(email, name, accessToken);
+
+            String token = jwtUtil.generateToken(user.getUsername(), user.getRole());
 
             return ResponseEntity.ok(Map.of(
                 "id", user.getId(),
@@ -136,44 +150,41 @@ public class AuthController {
                 "email", user.getEmail(),
                 "fullName", user.getFullName(),
                 "role", user.getRole(),
-                "token", "fake-jwt-token-" + user.getUsername()
+                "token", token
             ));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", "Lỗi đăng nhập Facebook: " + e.getMessage()));
         }
     }
 
-     // API đăng ký
+    // API đăng ký
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody RegisterRequest payload) {
         try {
-
-            // username use gmail or phone
             String username = (payload.getEmail() != null && !payload.getEmail().isEmpty())
-                ? payload.getEmail()
-                : payload.getPhone();
+                    ? payload.getEmail()
+                    : payload.getPhone();
 
-            // 1. Tạo User
             User user = new User();
             user.setUsername(username);
             user.setPassword(passwordEncoder.encode(payload.getPassword()));
             user.setRole("PATIENT");
-            user.setEmail(payload.getEmail()); // lưu email vào bảng user
-            user.setPhone(payload.getPhone()); // lưu phone vào bảng user
+            user.setEmail(payload.getEmail());
+            user.setPhone(payload.getPhone());
             userService.save(user);
 
-            // 2. Tạo Patient và tham chiếu User
             Patient patient = new Patient();
             patient.setUser(user);
             patient.setFullName(payload.getFullName());
-            patient.setDob(payload.getDob()); 
+            patient.setDob(payload.getDob());
             patient.setPhone(payload.getPhone());
             patient.setAddress(payload.getAddress());
             patient.setEmail(payload.getEmail());
             patient.setBhyt(payload.getBhyt());
             patientService.save(patient);
 
-            // 3. Trả về thông tin Patient
+            String token = jwtUtil.generateToken(user.getUsername(), user.getRole());
+
             Map<String, Object> response = new HashMap<>();
             response.put("id", patient.getId());
             response.put("username", user.getUsername());
@@ -181,7 +192,7 @@ public class AuthController {
             response.put("email", patient.getEmail());
             response.put("phone", patient.getPhone());
             response.put("bhyt", patient.getBhyt());
-            response.put("token", "fake-jwt-token-" + user.getUsername());
+            response.put("token", token);
 
             return ResponseEntity.ok(response);
         } catch (Exception e) {

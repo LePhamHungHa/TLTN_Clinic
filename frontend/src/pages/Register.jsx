@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { registerUser } from "../api/userAPI";
+import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import "../css/Register.css";
 import { CiUser } from "react-icons/ci";
@@ -10,9 +10,6 @@ import { IoPhonePortraitOutline } from "react-icons/io5";
 import { FaRegCalendarAlt } from "react-icons/fa";
 import { TbLockPassword } from "react-icons/tb";
 import { FaRegEye } from "react-icons/fa";
-import { FaFacebookF } from "react-icons/fa";
-import { FaGoogle } from "react-icons/fa";
-import { FaGithub } from "react-icons/fa";
 import { FaLocationDot } from "react-icons/fa6";
 
 const Register = () => {
@@ -31,6 +28,7 @@ const Register = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [showModal, setShowModal] = useState(false);
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleChange = (e) => {
@@ -49,58 +47,84 @@ const Register = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    // Kiểm tra mật khẩu khớp
     if (user.password !== user.confirmPassword) {
-      alert("Mật khẩu không khớp! Vui lòng nhập lại.");
+      alert("Mật khẩu xác nhận không khớp!");
       return;
     }
-    if (user.password.length < 6) {
-      alert("Mật khẩu phải có ít nhất 6 ký tự!");
-      return;
-    }
+
+    // Kiểm tra điều khoản
     if (!user.terms) {
       alert("Vui lòng đồng ý với điều khoản dịch vụ!");
       return;
     }
 
+    setLoading(true);
+
     try {
-      const payload = {
-        username: user.email,
-        password: user.password,
-        fullName: user.fullname,
-        dob: user.birthday || null,
-        phone: user.phone,
-        address: user.address || "",
-        email: user.email,
-        bhyt: user.bhyt || "",
-      };
+      // Đăng ký tài khoản
+      const res = await axios.post(
+        "http://localhost:8080/api/auth/register",
+        user
+      );
+      console.log("Đăng ký thành công:", res.data);
 
-      const res = await registerUser(payload);
+      // Đăng nhập để lấy token
+      const loginRes = await axios.post(
+        "http://localhost:8080/api/auth/login",
+        {
+          username: user.email,
+          password: user.password,
+        }
+      );
 
-      if (res && res.id) {
-        setShowModal(true);
-      } else {
-        console.error("Register response unexpected:", res);
-        alert("Đăng ký thất bại: phản hồi không hợp lệ từ server");
+      if (loginRes.data?.token) {
+        localStorage.setItem("token", loginRes.data.token);
+        console.log("Token lưu vào localStorage:", loginRes.data.token);
+
+        // Lưu thông tin user cơ bản nếu có
+        if (loginRes.data.id) {
+          localStorage.setItem("patientId", loginRes.data.id);
+        }
       }
+
+      // Reset form
+      setUser({
+        fullname: "",
+        email: "",
+        phone: "",
+        birthday: "",
+        gender: "male",
+        address: "",
+        bhyt: "",
+        password: "",
+        confirmPassword: "",
+        terms: false,
+      });
+
+      // Mở modal thành công
+      setShowModal(true);
     } catch (error) {
-      console.error("Lỗi đăng ký:", error);
-      alert(`Lỗi đăng ký: ${error.message}`);
+      console.error("Đăng ký thất bại:", error);
+      alert(
+        "Đăng ký thất bại: " + (error.response?.data?.message || error.message)
+      );
+    } finally {
+      setLoading(false);
     }
   };
 
   const closeModal = () => {
     setShowModal(false);
-    setUser({
-      fullname: "",
-      email: "",
-      phone: "",
-      birthday: "",
-      gender: "male",
-      address: "",
-      password: "",
-      confirmPassword: "",
-      terms: false,
-    });
+  };
+
+  const handleCreateCard = () => {
+    closeModal();
+    navigate("/create-card");
+  };
+
+  const handleGoToLogin = () => {
+    closeModal();
     navigate("/login");
   };
 
@@ -121,6 +145,7 @@ const Register = () => {
           />
         ))}
       </div>
+
       <div className="register-container">
         <div className="register-card slide-in">
           <div className="header" style={{ textAlign: "center" }}>
@@ -134,8 +159,10 @@ const Register = () => {
               Hệ thống đăng ký khám bệnh trực tuyến
             </p>
           </div>
+
           <div className="card-content">
             <form onSubmit={handleSubmit} className="form">
+              {/* Các trường form giữ nguyên */}
               <div className="form-group">
                 <label htmlFor="fullname" className="label">
                   Họ và tên
@@ -219,6 +246,7 @@ const Register = () => {
                   />
                 </div>
               </div>
+
               <div className="form-group">
                 <label htmlFor="phone" className="label">
                   Số điện thoại
@@ -239,6 +267,7 @@ const Register = () => {
                   />
                 </div>
               </div>
+
               <div className="form-group">
                 <label htmlFor="birthday" className="label">
                   Ngày sinh
@@ -258,6 +287,7 @@ const Register = () => {
                   />
                 </div>
               </div>
+
               <div className="form-group">
                 <label className="label">Giới tính</label>
                 <div
@@ -299,6 +329,7 @@ const Register = () => {
                   </label>
                 </div>
               </div>
+
               <div className="form-group">
                 <label htmlFor="password" className="label">
                   Mật khẩu
@@ -332,6 +363,7 @@ const Register = () => {
                   </button>
                 </div>
               </div>
+
               <div className="form-group">
                 <label htmlFor="confirmPassword" className="label">
                   Xác nhận mật khẩu
@@ -365,6 +397,7 @@ const Register = () => {
                   </button>
                 </div>
               </div>
+
               <div className="terms-container">
                 <input
                   id="terms"
@@ -385,60 +418,48 @@ const Register = () => {
                   </a>
                 </label>
               </div>
-              <button type="submit" className="register-button">
-                Đăng ký tài khoản
+
+              <button
+                type="submit"
+                className="register-button"
+                disabled={loading}
+              >
+                {loading ? "Đang xử lý..." : "Đăng ký tài khoản"}
               </button>
             </form>
-            <div className="social-login">
-              <div className="divider">
-                <span>Hoặc đăng ký với</span>
+
+            {/* Modal */}
+            {showModal && (
+              <div className="modal">
+                <div className="modal-content slide-in">
+                  <div className="modal-icon">
+                    <i className="fas fa-check-circle"></i>
+                  </div>
+                  <h3 className="modal-title">Đăng ký thành công!</h3>
+                  <p className="modal-message">
+                    Bạn có muốn tạo thẻ/ ví điện tử để thanh toán viện phí
+                    không?
+                  </p>
+                  <div className="modal-actions">
+                    <button
+                      onClick={handleGoToLogin}
+                      className="modal-button secondary"
+                    >
+                      Không, để sau
+                    </button>
+                    <button
+                      onClick={handleCreateCard}
+                      className="modal-button primary"
+                    >
+                      Có, tôi muốn tạo thẻ
+                    </button>
+                  </div>
+                </div>
               </div>
-              <div className="social-buttons">
-                <button className="social-button facebook">
-                  <i className="fab fa-facebook-f">
-                    <FaFacebookF />
-                  </i>
-                </button>
-                <button className="social-button google">
-                  <i className="fab fa-google">
-                    <FaGoogle />
-                  </i>
-                </button>
-                <button className="social-button github">
-                  <i className="fab fa-github">
-                    <FaGithub />
-                  </i>
-                </button>
-              </div>
-            </div>
-            <div className="register-link">
-              <p>
-                Đã có tài khoản?{" "}
-                <a href="/login" className="link">
-                  Đăng nhập ngay
-                </a>
-              </p>
-            </div>
+            )}
           </div>
         </div>
       </div>
-      {showModal && (
-        <div className="modal">
-          <div className="modal-content slide-in">
-            <div className="modal-icon">
-              <i className="fas fa-check-circle"></i>
-            </div>
-            <h3 className="modal-title">Đăng ký thành công!</h3>
-            <p className="modal-message">
-              Tài khoản của bạn đã được tạo. Vui lòng kiểm tra email để xác
-              thực.
-            </p>
-            <button onClick={closeModal} className="modal-button">
-              Đóng
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

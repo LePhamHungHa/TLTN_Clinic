@@ -10,14 +10,14 @@
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 
   .container {
-    max-width: 1280px;
+    max-width: 100%;
     margin: 0;
-    padding: 0 0 0 5rem;
+    padding: 0 0 0 6rem;
     display: flex;
     flex-wrap: nowrap;
     align-items: center;
-    height: 80px;
-    gap: 0.5rem;
+    height: 90px;
+    gap: 2rem;
 
     .logo-section {
       display: flex;
@@ -90,7 +90,7 @@
       .user-greeting {
         padding: 0.5rem 0.75rem;
         font-weight: 500;
-        color: #fde047;
+        color: green;
       }
 
       button,
@@ -126,7 +126,7 @@
       }
 
       .register-btn {
-        background: linear-gradient(45deg, #5fe2a1 1%, #2bf503);;
+        background: linear-gradient(45deg, #5fe2a1 1%, #2bf503);
         color: white;
         transition: all .3s ease-in-out;
         font-size: .875rem;
@@ -139,7 +139,7 @@
       }
 
       .logout-btn {
-        background-color: transparent;
+        background: linear-gradient(45deg, #5fe2a1 1%, #2bf503);
         color: white;
 
         &:hover {
@@ -220,7 +220,7 @@
       .mobile-user-greeting {
         padding: 0.5rem 0.5rem;
         font-weight: 500;
-        color: #fde047;
+        color: #1a56db;
         text-align: left;
       }
 

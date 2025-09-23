@@ -1,22 +1,26 @@
 import React from "react";
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+} from "react-router-dom";
+import Header from "./components/Header.jsx";
 import Home from "./components/Home.jsx";
+import Footer from "./components/Footer.jsx";
 import Patients from "./pages/Patients.jsx";
 import Appointments from "./pages/Appointments.jsx";
 import Login from "./pages/Login.jsx";
 import Register from "./pages/Register.jsx";
-import Header from "./components/Header.jsx";
 import RegisterPatient from "./pages/RegisterPatient.jsx";
-
-// Components for future use - currently commented out to avoid errors
-// import PatientDashboard from "./pages/patient/Dashboard.jsx";
-// import DoctorDashboard from "./pages/doctor/Dashboard.jsx";
-// import AdminDashboard from "./pages/admin/Dashboard.jsx";
+import CreateCard from "./pages/CreateCard.jsx";
+import WalletPage from "./pages/WalletPage.jsx"; // 👈 thêm import
 
 function App() {
   const user = JSON.parse(localStorage.getItem("user")) || null;
 
   const PrivateRoute = ({ children, role }) => {
+    const user = JSON.parse(localStorage.getItem("user")) || null;
     if (!user) return <Navigate to="/login" />;
     if (role && user.role !== role) return <Navigate to="/" />;
     return children;
@@ -36,6 +40,7 @@ function App() {
             <>
               <Header />
               <Home />
+              <Footer />
             </>
           }
         />
@@ -50,7 +55,6 @@ function App() {
           }
         />
 
-        {/* Các route khác */}
         <Route
           path="/patients"
           element={
@@ -74,44 +78,31 @@ function App() {
           }
         />
 
-        {/* Portal cho Bệnh nhân - Commented for future use */}
-        {/* <Route
-          path="/patient/*"
+        {/* Ví điện tử (chỉ dành cho bệnh nhân) */}
+        <Route
+          path="/wallet"
           element={
             <PrivateRoute role="PATIENT">
               <>
                 <Header />
-                <PatientDashboard />
+                <WalletPage />
               </>
             </PrivateRoute>
           }
-        /> */}
+        />
 
-        {/* Portal cho Bác sĩ - Commented for future use */}
-        {/* <Route
-          path="/doctor/*"
+        {/* Tạo thẻ thanh toán (role bệnh nhân) */}
+        <Route
+          path="/create-card"
           element={
-            <PrivateRoute role="DOCTOR">
+            <PrivateRoute role="PATIENT">
               <>
                 <Header />
-                <DoctorDashboard />
+                <CreateCard />
               </>
             </PrivateRoute>
           }
-        /> */}
-
-        {/* Portal cho Admin - Commented for future use */}
-        {/* <Route
-          path="/admin/*"
-          element={
-            <PrivateRoute role="ADMIN">
-              <>
-                <Header />
-                <AdminDashboard />
-              </>
-            </PrivateRoute>
-          }
-        /> */}
+        />
 
         {/* Đăng nhập / đăng ký */}
         <Route

@@ -2,7 +2,7 @@ package com.example.clinic_backend.controller;
 
 import com.example.clinic_backend.model.Patient;
 import com.example.clinic_backend.service.PatientService;
-
+import org.springframework.security.core.Authentication;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -39,6 +39,14 @@ public class PatientController {
     @GetMapping("/{id}")
     public Optional<Patient> getPatientById(@PathVariable Long id) {
         return patientService.getPatientById(id);
+    }
+
+    @GetMapping("/me")
+    public ResponseEntity<Patient> getCurrentPatient(Authentication authentication) {
+        String email = authentication.getName(); // lấy username từ token (sub)
+        return patientService.getPatientByEmail(email)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
     }
 
     @PutMapping("/{id}")
