@@ -33,20 +33,28 @@ public class SecurityConfig {
     }
 
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        http
-            .cors().and()
-            .csrf().disable()
-            .authorizeHttpRequests()
-                .requestMatchers("/api/auth/**", "/api/patient-registrations/**").permitAll()
-                .requestMatchers("/api/patients/me").hasAuthority("ROLE_PATIENT")
-                .requestMatchers("/api/wallets/**").hasAuthority("ROLE_PATIENT")
-                .anyRequest().authenticated()
-            .and()
-            .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
+public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+    http
+        .cors().and()
+        .csrf().disable()
+        .authorizeHttpRequests()
+            .requestMatchers(
+                "/api/auth/**",
+                "/api/patient-registrations/**",
+                "/api/vnpay/**",
+                "/api/wallet",
+                "/api/departments/**",
+                "/api/doctors/**"
 
-        return http.build();
-    }
+            ).permitAll()
+            .requestMatchers("/api/patients/me").hasAuthority("ROLE_PATIENT")
+            .requestMatchers("/api/wallets/**").hasAuthority("ROLE_PATIENT")
+            .anyRequest().authenticated()
+        .and()
+        .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
+
+    return http.build();
+}
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {

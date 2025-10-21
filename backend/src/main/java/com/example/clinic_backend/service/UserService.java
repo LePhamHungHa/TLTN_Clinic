@@ -4,6 +4,7 @@ import java.util.Optional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import com.example.clinic_backend.model.User;
 import com.example.clinic_backend.dto.RegisterRequest;
 import com.example.clinic_backend.repository.UserRepository;
@@ -16,15 +17,30 @@ public class UserService {
 
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
+    // Method authenticate for login
+    public User authenticate(String usernameOrPhone, String password) {
+        Optional<User> userOpt = userRepository.findByUsernameOrPhone(usernameOrPhone, usernameOrPhone);
+        if (userOpt.isPresent()) {
+            User user = userOpt.get();
+            if (passwordEncoder.matches(password, user.getPassword()) || user.getPassword().isEmpty()) {
+                if (user.getRole() == null || user.getRole().isEmpty()) {
+                    user.setRole("PATIENT");
+                    user = save(user);
+                    System.out.println("✅ AUTO SET PATIENT: " + usernameOrPhone);
+                }
+                return user;
+            }
+        }
+        throw new RuntimeException("Sai username hoặc password");
+    }
+
     public User registerUser(RegisterRequest request) {
         if (userRepository.existsByUsername(request.getUsername())) {
             throw new RuntimeException("Username đã tồn tại");
         }
-
         String encodedPassword = request.getPassword() != null && !request.getPassword().isEmpty()
                 ? passwordEncoder.encode(request.getPassword())
                 : "";
-
         User user = new User();
         user.setUsername(request.getUsername());
         user.setPassword(encodedPassword);
@@ -32,19 +48,7 @@ public class UserService {
         user.setPhone(request.getPhone());
         user.setEmail(request.getEmail());
         user.setFullName(request.getFullName());
-
         return userRepository.save(user);
-    }
-
-    public User authenticate(String username, String password) {
-        Optional<User> userOpt = userRepository.findByUsername(username);
-        if (userOpt.isPresent()) {
-            User user = userOpt.get();
-            if (passwordEncoder.matches(password, user.getPassword())) {
-                return user;
-            }
-        }
-        throw new RuntimeException("Sai username hoặc password");
     }
 
     public User findByPhoneNumber(String phone) {
@@ -60,10 +64,12 @@ public class UserService {
     }
 
     public Optional<User> findByGoogleId(String googleId) {
+        if (googleId == null) return Optional.empty();
         return userRepository.findByGoogleId(googleId);
     }
 
     public Optional<User> findByFacebookId(String facebookId) {
+        if (facebookId == null) return Optional.empty();
         return userRepository.findByFacebookId(facebookId);
     }
 
@@ -71,51 +77,102 @@ public class UserService {
         return userRepository.save(user);
     }
 
-    public User createOrUpdateUserFromGoogle(String email, String name, String googleId, String picture) {
-        Optional<User> existingUser = userRepository.findByEmail(email);
+    @Transactional
+    public User createOrUpdateUserFromGoogle(String email, String name, String uid, String picture) {
+        System.out.println("🔧 createOrUpdateUserFromGoogle: email=" + email + ", uid=" + uid);
         
-        if (existingUser.isPresent()) {
-            User user = existingUser.get();
-            user.setGoogleId(googleId);
-            if (name != null) user.setFullName(name);
-            if (picture != null) user.setAvatar(picture);
-            return userRepository.save(user);
-        } else {
-            User user = new User();
-            user.setUsername(email);
-            user.setEmail(email);
-            user.setFullName(name);
-            user.setGoogleId(googleId);
-            user.setAvatar(picture);
-            user.setRole("PATIENT");
-            user.setPassword(""); 
-            return userRepository.save(user);
+        // Kiểm tra email null hoặc rỗng
+        if (email == null || email.trim().isEmpty()) {
+            System.err.println("❌ ERROR: Email is null or empty");
+            throw new IllegalArgumentException("Email không được để trống");
+        }
+
+        try {
+            Optional<User> existingUser = findByEmail(email);
+            if (!existingUser.isPresent() && uid != null && !uid.trim().isEmpty()) {
+                existingUser = findByGoogleId(uid);
+            }
+
+            if (existingUser.isPresent()) {
+                User user = existingUser.get();
+                System.out.println("✅ UPDATE GOOGLE USER: " + email);
+                if (name != null && !name.trim().isEmpty()) {
+                    user.setFullName(name);
+                }
+                if (picture != null && !picture.trim().isEmpty()) {
+                    user.setAvatar(picture);
+                }
+                if (uid != null && !uid.trim().isEmpty()) {
+                    user.setGoogleId(uid);
+                }
+                if (user.getRole() == null || user.getRole().isEmpty()) {
+                    user.setRole("PATIENT");
+                    System.out.println("✅ SET ROLE TO PATIENT FOR EXISTING USER: " + email);
+                }
+                return save(user);
+            } else {
+                System.out.println("✅ CREATE NEW GOOGLE USER: " + email);
+                User user = new User();
+                user.setUsername(email);
+                user.setEmail(email);
+                user.setFullName(name != null && !name.trim().isEmpty() ? name : "Google User");
+                user.setGoogleId(uid != null && !uid.trim().isEmpty() ? uid : null);
+                user.setAvatar(picture != null && !picture.trim().isEmpty() ? picture : null);
+                user.setRole("PATIENT");
+                user.setPassword("");
+                return save(user);
+            }
+        } catch (Exception e) {
+            System.err.println("❌ GOOGLE SERVICE ERROR: " + e.getMessage());
+            e.printStackTrace();
+            throw new RuntimeException("Lỗi khi tạo hoặc cập nhật người dùng Google: " + e.getMessage());
         }
     }
 
-    public User createOrUpdateUserFromFacebook(String email, String name, String facebookId) {
-        Optional<User> existingUser = userRepository.findByEmail(email);
+    @Transactional
+    public User createOrUpdateUserFromFacebook(String email, String name, String uid) {
+        System.out.println("🔧 createOrUpdateUserFromFacebook: email=" + email + ", uid=" + uid);
         
-        if (existingUser.isPresent()) {
-            User user = existingUser.get();
-            user.setFacebookId(facebookId);
-            if (name != null) user.setFullName(name);
-            return userRepository.save(user);
-        } else {
-            User user = new User();
-            user.setUsername(email);
-            user.setEmail(email);
-            user.setFullName(name);
-            user.setFacebookId(facebookId);
-            user.setRole("PATIENT");
-            user.setPassword(""); 
-            return userRepository.save(user);
+        if (email == null || email.trim().isEmpty()) {
+            System.err.println("❌ ERROR: Email is null or empty");
+            throw new IllegalArgumentException("Email không được để trống");
+        }
+
+        try {
+            Optional<User> existingUser = findByEmail(email);
+            if (!existingUser.isPresent() && uid != null && !uid.trim().isEmpty()) {
+                existingUser = findByFacebookId(uid);
+            }
+
+            if (existingUser.isPresent()) {
+                User user = existingUser.get();
+                System.out.println("✅ UPDATE FB USER: " + email);
+                if (name != null && !name.trim().isEmpty()) {
+                    user.setFullName(name);
+                }
+                if (uid != null && !uid.trim().isEmpty()) {
+                    user.setFacebookId(uid);
+                }
+                if (user.getRole() == null || user.getRole().isEmpty()) {
+                    user.setRole("PATIENT");
+                    System.out.println("✅ SET ROLE TO PATIENT FOR EXISTING USER: " + email);
+                }
+                return save(user);
+            } else {
+                System.out.println("✅ CREATE NEW FB USER: " + email);
+                User user = new User();
+                user.setUsername(email);
+                user.setEmail(email);
+                user.setFullName(name != null && !name.trim().isEmpty() ? name : "Facebook User");
+                user.setFacebookId(uid != null && !uid.trim().isEmpty() ? uid : null);
+                user.setRole("PATIENT");
+                user.setPassword("");
+                return save(user);
+            }
+        } catch (Exception e) {
+            System.err.println("❌ FB SERVICE ERROR: " + e.getMessage());
+            e.printStackTrace();
+            throw new RuntimeException("Lỗi khi tạo hoặc cập nhật người dùng Facebook: " + e.getMessage());
         }
     }
-
-    public User findByUsernameOrPhone(String usernameOrPhone) {
-    // Nếu dùng JPA Repository, có thể viết query như sau
-    return userRepository.findByUsernameOrPhone(usernameOrPhone, usernameOrPhone)
-                         .orElse(null);
-}
 }

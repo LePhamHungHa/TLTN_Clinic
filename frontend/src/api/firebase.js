@@ -1,26 +1,22 @@
-// Import các hàm cần dùng từ Firebase SDK
+// src/config/firebase.js
 import { initializeApp } from "firebase/app";
-import { getAuth } from "firebase/auth";   // dùng cho Phone Auth
+import { getAuth, GoogleAuthProvider, FacebookAuthProvider } from "firebase/auth";
 import { getAnalytics } from "firebase/analytics";
 
-// Cấu hình Firebase cho project của bạn
 const firebaseConfig = {
-  apiKey: "", // nhớ xóa key này khi public code
-  authDomain: "clinicweb-8fa34.firebaseapp.com",
-  projectId: "clinicweb-8fa34",
-  storageBucket: "clinicweb-8fa34.firebasestorage.app",
-  messagingSenderId: "112307862186",
-  appId: "1:112307862186:web:442234250282e98d25aed3",
-  measurementId: "G-FNPZEELB26"
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID,
 };
 
 // Khởi tạo Firebase
 const app = initializeApp(firebaseConfig);
-
-// Export auth để dùng cho Phone Authentication
 export const auth = getAuth(app);
-
-// không bắt buộc
+export const googleProvider = new GoogleAuthProvider();
+export const facebookProvider = new FacebookAuthProvider();
 export const analytics = getAnalytics(app);
-
 export default app;

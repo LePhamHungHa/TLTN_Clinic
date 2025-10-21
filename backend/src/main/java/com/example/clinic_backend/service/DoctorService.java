@@ -21,9 +21,14 @@ public class DoctorService {
         return doctorRepository.save(doctor);
     }
 
-    // Lấy danh sách bác sĩ
+    // Lấy toàn bộ bác sĩ
     public List<Doctor> getAllDoctors() {
         return doctorRepository.findAll();
+    }
+
+    // Lấy bác sĩ theo chuyên khoa
+    public List<Doctor> getDoctorsBySpecialty(String specialty) {
+        return doctorRepository.findBySpecialtyIgnoreCase(specialty);
     }
 
     // Lấy bác sĩ theo id
@@ -31,7 +36,6 @@ public class DoctorService {
         return doctorRepository.findById(id);
     }
 
-    // Cập nhật bác sĩ
     public Doctor updateDoctor(Long id, Doctor updatedDoctor) {
         Optional<Doctor> optionalDoctor = doctorRepository.findById(id);
         if (optionalDoctor.isPresent()) {
@@ -46,7 +50,6 @@ public class DoctorService {
         return null;
     }
 
-    // Xóa bác sĩ
     public void deleteDoctor(Long id) {
         doctorRepository.deleteById(id);
     }

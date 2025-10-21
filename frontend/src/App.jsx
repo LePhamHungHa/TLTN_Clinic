@@ -14,7 +14,8 @@ import Login from "./pages/Login.jsx";
 import Register from "./pages/Register.jsx";
 import RegisterPatient from "./pages/RegisterPatient.jsx";
 import CreateCard from "./pages/CreateCard.jsx";
-import WalletPage from "./pages/WalletPage.jsx"; // 👈 thêm import
+import WalletPage from "./pages/WalletPage.jsx";
+import PaymentPage from "./pages/PaymentPage.jsx";
 
 function App() {
   const user = JSON.parse(localStorage.getItem("user")) || null;
@@ -95,12 +96,22 @@ function App() {
         <Route
           path="/create-card"
           element={
-            <PrivateRoute role="PATIENT">
-              <>
-                <Header />
-                <CreateCard />
-              </>
-            </PrivateRoute>
+            <>
+              <Header />
+              <CreateCard />
+            </>
+          }
+        />
+
+        {/* Thanh toán tiền khám bênh */}
+        <Route
+          path="/payment"
+          element={
+            <>
+              <Header />
+              <PaymentPage />
+              <Footer />
+            </>
           }
         />
 
