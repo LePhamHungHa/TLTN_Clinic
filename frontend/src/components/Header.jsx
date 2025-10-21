@@ -134,7 +134,7 @@ const Header = () => {
           className={linkClass}
           onClick={isMobile ? toggleMobileMenu : undefined}
         >
-          Dashboard
+          Trang chủ
         </Link>,
         <Link
           key="p-appointments"
@@ -145,6 +145,30 @@ const Header = () => {
           Lịch hẹn
         </Link>,
         <Link
+          key="p-health-records"
+          to="/patient/health-records"
+          className={linkClass}
+          onClick={isMobile ? toggleMobileMenu : undefined}
+        >
+          Hồ sơ sức khỏe
+        </Link>,
+        <Link
+          key="p-health-tracking"
+          to="/patient/health-tracking"
+          className={linkClass}
+          onClick={isMobile ? toggleMobileMenu : undefined}
+        >
+          BMI
+        </Link>,
+        <Link
+          key="p-results"
+          to="/patient/results"
+          className={linkClass}
+          onClick={isMobile ? toggleMobileMenu : undefined}
+        >
+          Kết quả khám
+        </Link>,
+        <Link
           key="p-wallet"
           to="/wallet"
           className={linkClass}
@@ -152,34 +176,19 @@ const Header = () => {
         >
           Ví điện tử
         </Link>,
-        <a
-          key="about"
-          href="#"
+        <Link
+          key="p-info"
+          to="/patient/info"
           className={linkClass}
           onClick={isMobile ? toggleMobileMenu : undefined}
         >
           Thông tin cá nhân
-        </a>,
-        <a
-          key="services"
-          href="#"
-          className={linkClass}
-          onClick={isMobile ? toggleMobileMenu : undefined}
-        >
-          DỊCH VỤ
-        </a>,
-        <a
-          key="contact"
-          href="#"
-          className={linkClass}
-          onClick={isMobile ? toggleMobileMenu : undefined}
-        >
-          LIÊN HỆ
-        </a>
+        </Link>
       );
+    }
 
-      // Menu doctor
-    } else if (user.role === "DOCTOR") {
+    // Menu doctor
+    else if (user.role === "DOCTOR") {
       links.push(
         <Link
           key="d-dashboard"

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useNavigate, useLocation } from "react-router-dom";
-import "../css/RegisterPatient.css";
+import "../../css/RegisterPatient.css";
 
 const RegisterClinic = () => {
   const [errors, setErrors] = useState({});

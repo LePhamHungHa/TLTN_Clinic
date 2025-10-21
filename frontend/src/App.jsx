@@ -12,10 +12,11 @@ import Patients from "./pages/Patients.jsx";
 import Appointments from "./pages/Appointments.jsx";
 import Login from "./pages/Login.jsx";
 import Register from "./pages/Register.jsx";
-import RegisterPatient from "./pages/RegisterPatient.jsx";
+import RegisterPatient from "./pages/Patient/RegisterPatient.jsx";
 import CreateCard from "./pages/CreateCard.jsx";
-import WalletPage from "./pages/WalletPage.jsx";
-import PaymentPage from "./pages/PaymentPage.jsx";
+import WalletPage from "./pages/Patient/WalletPage.jsx";
+import PaymentPage from "./pages/Patient/PaymentPage.jsx";
+import PatientInfo from "./pages/Patient/PatientInfo.jsx";
 
 function App() {
   const user = JSON.parse(localStorage.getItem("user")) || null;
@@ -111,6 +112,17 @@ function App() {
               <Header />
               <PaymentPage />
               <Footer />
+            </>
+          }
+        />
+
+        {/* Thông tin cá nhân (chỉ dành cho bệnh nhân) */}
+        <Route
+          path="/patient/info"
+          element={
+            <>
+              <Header />
+              <PatientInfo />
             </>
           }
         />

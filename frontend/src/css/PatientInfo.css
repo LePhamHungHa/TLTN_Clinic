@@ -1,0 +1,52 @@
+.patient-info-container {
+  max-width: 600px;
+  margin: 40px auto;
+  padding: 25px;
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+}
+
+.patient-info-container h2 {
+  text-align: center;
+  color: #2a7ae4;
+  margin-bottom: 20px;
+}
+
+.patient-form .form-group {
+  margin-bottom: 15px;
+}
+
+.patient-form label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 5px;
+}
+
+.patient-form input {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+}
+
+.save-btn {
+  width: 100%;
+  padding: 10px;
+  background: #2a7ae4;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.save-btn:hover {
+  background: #1a5cc4;
+}
+
+.status-message {
+  text-align: center;
+  font-weight: 600;
+  color: green;
+  margin-bottom: 10px;
+}
