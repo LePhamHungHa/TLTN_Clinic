@@ -1,6 +1,6 @@
 package com.example.clinic_backend.dto;
 
-class PatientRegistrationDTO {
+public class PatientRegistrationDTO {
     private String fullName;
     private String dob;
     private String gender;
@@ -11,26 +11,59 @@ class PatientRegistrationDTO {
     private String appointmentDate;
     private String appointmentTime;
     private String symptoms;
+    private String doctorId;
 
-    // Getters & Setters
+    // Default constructor
+    public PatientRegistrationDTO() {}
+
+    // Getters and Setters
     public String getFullName() { return fullName; }
     public void setFullName(String fullName) { this.fullName = fullName; }
+
     public String getDob() { return dob; }
     public void setDob(String dob) { this.dob = dob; }
+
     public String getGender() { return gender; }
     public void setGender(String gender) { this.gender = gender; }
+
     public String getPhone() { return phone; }
     public void setPhone(String phone) { this.phone = phone; }
+
     public String getEmail() { return email; }
     public void setEmail(String email) { this.email = email; }
+
     public String getAddress() { return address; }
     public void setAddress(String address) { this.address = address; }
+
     public String getDepartment() { return department; }
     public void setDepartment(String department) { this.department = department; }
+
     public String getAppointmentDate() { return appointmentDate; }
     public void setAppointmentDate(String appointmentDate) { this.appointmentDate = appointmentDate; }
+
     public String getAppointmentTime() { return appointmentTime; }
     public void setAppointmentTime(String appointmentTime) { this.appointmentTime = appointmentTime; }
+
     public String getSymptoms() { return symptoms; }
     public void setSymptoms(String symptoms) { this.symptoms = symptoms; }
+
+    public String getDoctorId() { return doctorId; }
+    public void setDoctorId(String doctorId) { this.doctorId = doctorId; }
+
+    @Override
+    public String toString() {
+        return "PatientRegistrationDTO{" +
+                "fullName='" + fullName + '\'' +
+                ", dob='" + dob + '\'' +
+                ", gender='" + gender + '\'' +
+                ", phone='" + phone + '\'' +
+                ", email='" + email + '\'' +
+                ", address='" + address + '\'' +
+                ", department='" + department + '\'' +
+                ", appointmentDate='" + appointmentDate + '\'' +
+                ", appointmentTime='" + appointmentTime + '\'' +
+                ", symptoms='" + symptoms + '\'' +
+                ", doctorId='" + doctorId + '\'' +
+                '}';
+    }
 }

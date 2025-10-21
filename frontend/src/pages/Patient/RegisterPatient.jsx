@@ -126,6 +126,9 @@ const RegisterClinic = () => {
 
     const token = localStorage.getItem("token");
     const user = JSON.parse(localStorage.getItem("user") || "{}");
+
+    console.log("🔍 Frontend - FormData:", formData);
+
     if (!token || !user.username) {
       alert("Bạn cần đăng nhập để đăng ký!");
       navigate("/login", { state: { from: "/register-patient" } });
@@ -135,19 +138,22 @@ const RegisterClinic = () => {
     setIsSubmitting(true);
 
     try {
+      // SỬA QUAN TRỌNG: Dùng camelCase thay vì snake_case
       const payload = {
-        full_name: formData.fullname,
+        fullName: formData.fullname, // Đổi full_name -> fullName
         dob: new Date(formData.birthdate).toISOString().split("T")[0],
         gender: formData.gender,
         phone: formData.phone,
         email: formData.email,
         address: formData.address,
         department: formData.department,
-        appointment_date: formData.appointmentDate,
-        appointment_time: formData.appointmentTime,
+        appointmentDate: formData.appointmentDate, // Đổi appointment_date -> appointmentDate
+        appointmentTime: formData.appointmentTime, // Đổi appointment_time -> appointmentTime
         symptoms: formData.symptoms || null,
-        doctor_id: formData.doctorId || null,
+        doctorId: formData.doctorId || null, // Đổi doctor_id -> doctorId
       };
+
+      console.log("📤 Frontend - Payload being sent:", payload);
 
       const res = await axios.post(
         "http://localhost:8080/api/patient-registrations",
@@ -155,13 +161,15 @@ const RegisterClinic = () => {
         {
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
+            Authorization: `Bearer ${token}`,
           },
           timeout: 10000,
         }
       );
 
+      console.log("✅ Backend response:", res.data);
       alert("Đăng ký thành công! Thông tin đã được lưu vào hệ thống.");
+
       navigate("/payment", {
         state: {
           patientId: res.data.id,
@@ -171,6 +179,7 @@ const RegisterClinic = () => {
         },
       });
 
+      // Reset form
       setFormData({
         fullname: "",
         email: "",
@@ -188,9 +197,13 @@ const RegisterClinic = () => {
       console.error("Lỗi đăng ký:", err);
       if (err.response) {
         const { status, data } = err.response;
+        console.error("Backend error response:", data);
+
         if ([400, 422].includes(status)) {
           alert(
-            `Dữ liệu không hợp lệ: ${data.message || JSON.stringify(data)}`
+            `Dữ liệu không hợp lệ: ${
+              typeof data === "string" ? data : JSON.stringify(data)
+            }`
           );
         } else if (status === 401) {
           alert("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.");
@@ -201,7 +214,9 @@ const RegisterClinic = () => {
           alert(`Có lỗi xảy ra: ${status} - ${JSON.stringify(data)}`);
         }
       } else if (err.request) {
-        alert("Không thể kết nối đến server. Vui lòng kiểm tra backend.");
+        alert(
+          "Không thể kết nối đến server. Vui lòng kiểm tra kết nối mạng và backend."
+        );
       } else {
         alert("Có lỗi xảy ra khi đăng ký. Vui lòng thử lại sau.");
       }
@@ -215,7 +230,7 @@ const RegisterClinic = () => {
     tomorrow.setDate(tomorrow.getDate() + 1);
     return tomorrow.toISOString().split("T")[0];
   };
-  // ==========================================================Giao diện==========================================================
+
   return (
     <div className="clinic-registration-container">
       <div className="clinic-registration-card">
@@ -245,6 +260,7 @@ const RegisterClinic = () => {
                   className={`clinic-form-input ${
                     errors.fullname ? "error" : ""
                   }`}
+                  placeholder="Nhập họ và tên đầy đủ"
                 />
                 {errors.fullname && (
                   <span className="clinic-error-message">
@@ -262,6 +278,7 @@ const RegisterClinic = () => {
                   value={formData.email}
                   onChange={handleChange}
                   className={`clinic-form-input ${errors.email ? "error" : ""}`}
+                  placeholder="example@email.com"
                 />
                 {errors.email && (
                   <span className="clinic-error-message">{errors.email}</span>
@@ -297,6 +314,7 @@ const RegisterClinic = () => {
                   value={formData.phone}
                   onChange={handleChange}
                   className={`clinic-form-input ${errors.phone ? "error" : ""}`}
+                  placeholder="0901234567"
                 />
                 {errors.phone && (
                   <span className="clinic-error-message">{errors.phone}</span>
@@ -335,6 +353,7 @@ const RegisterClinic = () => {
                   className={`clinic-form-input ${
                     errors.address ? "error" : ""
                   }`}
+                  placeholder="Nhập địa chỉ đầy đủ"
                 />
                 {errors.address && (
                   <span className="clinic-error-message">{errors.address}</span>
@@ -456,7 +475,7 @@ const RegisterClinic = () => {
                   id="symptoms"
                   value={formData.symptoms}
                   onChange={handleChange}
-                  placeholder="Mô tả triệu chứng của bạn..."
+                  placeholder="Mô tả triệu chứng của bạn (nếu có)..."
                   rows="3"
                   className="clinic-form-textarea"
                 />

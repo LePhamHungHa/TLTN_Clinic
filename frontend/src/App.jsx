@@ -9,7 +9,7 @@ import Header from "./components/Header.jsx";
 import Home from "./components/Home.jsx";
 import Footer from "./components/Footer.jsx";
 import Patients from "./pages/Patients.jsx";
-import Appointments from "./pages/Appointments.jsx";
+import Appointments from "./pages/Patient/Appointments.jsx";
 import Login from "./pages/Login.jsx";
 import Register from "./pages/Register.jsx";
 import RegisterPatient from "./pages/Patient/RegisterPatient.jsx";
@@ -17,6 +17,7 @@ import CreateCard from "./pages/CreateCard.jsx";
 import WalletPage from "./pages/Patient/WalletPage.jsx";
 import PaymentPage from "./pages/Patient/PaymentPage.jsx";
 import PatientInfo from "./pages/Patient/PatientInfo.jsx";
+import AppointmentsPage from "./pages/Patient/Appointments.jsx";
 
 function App() {
   const user = JSON.parse(localStorage.getItem("user")) || null;
@@ -123,6 +124,16 @@ function App() {
             <>
               <Header />
               <PatientInfo />
+            </>
+          }
+        />
+        {/* Lịch hẹn của bệnh nhân */}
+        <Route
+          path="/patient/appointments"
+          element={
+            <>
+              <Header />
+              <AppointmentsPage />
             </>
           }
         />

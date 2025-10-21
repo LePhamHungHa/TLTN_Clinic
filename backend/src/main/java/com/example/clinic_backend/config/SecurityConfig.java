@@ -32,6 +32,7 @@ public class SecurityConfig {
         return config.getAuthenticationManager();
     }
 
+
     @Bean
 public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
     http
@@ -42,7 +43,7 @@ public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
                 "/api/auth/**",
                 "/api/patient-registrations/**",
                 "/api/vnpay/**",
-                "/api/wallet",
+                "/api/wallet/**",
                 "/api/departments/**",
                 "/api/doctors/**"
 
@@ -55,6 +56,8 @@ public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 
     return http.build();
 }
+
+
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
