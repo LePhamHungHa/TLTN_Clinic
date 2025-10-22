@@ -1,7 +1,6 @@
 package com.example.clinic_backend.model;
 
 import java.time.LocalDate;
-
 import jakarta.persistence.*;
 
 @Entity
@@ -30,6 +29,19 @@ public class Patient {
     private String password;
     private String username;
     private String symptoms;
+
+    // 🆕 THÊM CÁC TRƯỜNG THÔNG TIN NGƯỜI NHÀ
+    @Column(name = "relative_name")
+    private String relativeName;
+
+    @Column(name = "relative_phone")
+    private String relativePhone;
+
+    @Column(name = "relative_address")
+    private String relativeAddress;
+
+    @Column(name = "relative_relationship")
+    private String relativeRelationship;
 
     // Getters / Setters
     public Long getId() { return id; }
@@ -64,4 +76,17 @@ public class Patient {
 
     public String getBhyt() { return bhyt; }
     public void setBhyt(String bhyt) { this.bhyt = bhyt; }
+
+    // 🆕 GETTERS VÀ SETTERS CHO THÔNG TIN NGƯỜI NHÀ
+    public String getRelativeName() { return relativeName; }
+    public void setRelativeName(String relativeName) { this.relativeName = relativeName; }
+
+    public String getRelativePhone() { return relativePhone; }
+    public void setRelativePhone(String relativePhone) { this.relativePhone = relativePhone; }
+
+    public String getRelativeAddress() { return relativeAddress; }
+    public void setRelativeAddress(String relativeAddress) { this.relativeAddress = relativeAddress; }
+
+    public String getRelativeRelationship() { return relativeRelationship; }
+    public void setRelativeRelationship(String relativeRelationship) { this.relativeRelationship = relativeRelationship; }
 }

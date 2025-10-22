@@ -50,6 +50,7 @@ public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
             ).permitAll()
             .requestMatchers("/api/patients/me").hasAuthority("ROLE_PATIENT")
             .requestMatchers("/api/wallets/**").hasAuthority("ROLE_PATIENT")
+            .requestMatchers("/api/users/change-password").authenticated()
             .anyRequest().authenticated()
         .and()
         .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);

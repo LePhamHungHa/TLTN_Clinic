@@ -1,20 +1,21 @@
-// src/pages/Login.jsx
-import { auth } from "../api/firebase";
+// Chưa login được bằng facebook (Lỗi do firebase)
+
+import { auth } from "../../api/firebase";
 import {
   signInWithCredential,
   GoogleAuthProvider,
   FacebookAuthProvider,
 } from "firebase/auth";
 import React, { useState, useEffect } from "react";
-import { loginUser } from "../api/userAPI";
+import { loginUser } from "../../api/userAPI";
 import { useNavigate, Link } from "react-router-dom";
-import "../css/Login.css";
+import "../../css/Login.css";
 import { FaUserTie } from "react-icons/fa6";
 import { IoIosLock } from "react-icons/io";
 import { FaFacebookF } from "react-icons/fa";
 import { GoogleOAuthProvider, GoogleLogin } from "@react-oauth/google";
 import { LoginSocialFacebook } from "reactjs-social-login";
-import { useToast } from "../hooks/useToast";
+import { useToast } from "../../hooks/useToast";
 
 // secret
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;

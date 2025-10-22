@@ -48,6 +48,7 @@ public class PatientService {
     public Patient updatePatient(Long id, Patient updatedPatient) {
         return patientRepository.findById(id)
                 .map(patient -> {
+                    // Cập nhật thông tin cá nhân
                     patient.setFullName(updatedPatient.getFullName());
                     patient.setDob(updatedPatient.getDob());
                     patient.setPhone(updatedPatient.getPhone());
@@ -55,6 +56,13 @@ public class PatientService {
                     patient.setEmail(updatedPatient.getEmail());
                     patient.setSymptoms(updatedPatient.getSymptoms());
                     patient.setBhyt(updatedPatient.getBhyt());
+                    
+                    // 🆕 CẬP NHẬT THÔNG TIN NGƯỜI NHÀ
+                    patient.setRelativeName(updatedPatient.getRelativeName());
+                    patient.setRelativePhone(updatedPatient.getRelativePhone());
+                    patient.setRelativeAddress(updatedPatient.getRelativeAddress());
+                    patient.setRelativeRelationship(updatedPatient.getRelativeRelationship());
+                    
                     return patientRepository.save(patient);
                 })
                 .orElse(null);
@@ -77,6 +85,12 @@ public class PatientService {
         patient.setPhone(user.getPhone() != null ? user.getPhone() : "");
         patient.setAddress("");
         patient.setBhyt("");
+        
+        // 🆕 KHỞI TẠO THÔNG TIN NGƯỜI NHÀ RỖNG
+        patient.setRelativeName("");
+        patient.setRelativePhone("");
+        patient.setRelativeAddress("");
+        patient.setRelativeRelationship("");
         
         return patientRepository.save(patient);
     }

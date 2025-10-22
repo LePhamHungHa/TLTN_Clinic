@@ -1,11 +1,12 @@
 package com.example.clinic_backend.service;
 
-import com.example.clinic_backend.model.PatientRegistration;
-import com.example.clinic_backend.repository.PatientRegistrationRepository;
-import org.springframework.stereotype.Service;
-
 import java.util.List;
 import java.util.Optional;
+
+import org.springframework.stereotype.Service;
+
+import com.example.clinic_backend.model.PatientRegistration;
+import com.example.clinic_backend.repository.PatientRegistrationRepository;
 
 @Service
 public class PatientRegistrationService {
@@ -29,7 +30,6 @@ public class PatientRegistrationService {
     // Lấy lịch hẹn theo email - ĐÃ SỬA ĐỂ JOIN VỚI DOCTOR
     public List<PatientRegistration> getByEmail(String email) {
         try {
-            // ƯU TIÊN: Dùng query có JOIN FETCH để lấy thông tin bác sĩ
             System.out.println("🔄 Fetching appointments with doctor info for email: " + email);
             List<PatientRegistration> result = repository.findByEmailWithDoctor(email);
             

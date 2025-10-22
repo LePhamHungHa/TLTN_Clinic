@@ -26,7 +26,7 @@ public class UserService {
                 if (user.getRole() == null || user.getRole().isEmpty()) {
                     user.setRole("PATIENT");
                     user = save(user);
-                    System.out.println("✅ AUTO SET PATIENT: " + usernameOrPhone);
+                    System.out.println("AUTO SET PATIENT: " + usernameOrPhone);
                 }
                 return user;
             }
@@ -49,6 +49,37 @@ public class UserService {
         user.setEmail(request.getEmail());
         user.setFullName(request.getFullName());
         return userRepository.save(user);
+    }
+
+     // Đổi mật khẩu
+    @Transactional
+    public void changePassword(String username, String currentPassword, String newPassword) {
+        System.out.println("🔐 CHANGE PASSWORD for user: " + username);
+        
+        // Tìm user
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("Người dùng không tồn tại"));
+
+        // Kiểm tra mật khẩu hiện tại
+        if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
+            throw new RuntimeException("Mật khẩu hiện tại không đúng");
+        }
+
+        // Kiểm tra mật khẩu mới không trùng với mật khẩu cũ
+        if (passwordEncoder.matches(newPassword, user.getPassword())) {
+            throw new RuntimeException("Mật khẩu mới không được trùng với mật khẩu cũ");
+        }
+
+        // Kiểm tra độ dài mật khẩu mới
+        if (newPassword.length() < 6) {
+            throw new RuntimeException("Mật khẩu mới phải có ít nhất 6 ký tự");
+        }
+
+        // Mã hóa và lưu mật khẩu mới
+        user.setPassword(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+        
+        System.out.println(" PASSWORD CHANGED SUCCESSFULLY for user: " + username);
     }
 
     public User findByPhoneNumber(String phone) {
@@ -83,7 +114,7 @@ public class UserService {
         
         // Kiểm tra email null hoặc rỗng
         if (email == null || email.trim().isEmpty()) {
-            System.err.println("❌ ERROR: Email is null or empty");
+            System.err.println("ERROR: Email is null or empty");
             throw new IllegalArgumentException("Email không được để trống");
         }
 
@@ -95,7 +126,7 @@ public class UserService {
 
             if (existingUser.isPresent()) {
                 User user = existingUser.get();
-                System.out.println("✅ UPDATE GOOGLE USER: " + email);
+                System.out.println("UPDATE GOOGLE USER: " + email);
                 if (name != null && !name.trim().isEmpty()) {
                     user.setFullName(name);
                 }
@@ -107,11 +138,11 @@ public class UserService {
                 }
                 if (user.getRole() == null || user.getRole().isEmpty()) {
                     user.setRole("PATIENT");
-                    System.out.println("✅ SET ROLE TO PATIENT FOR EXISTING USER: " + email);
+                    System.out.println("SET ROLE TO PATIENT FOR EXISTING USER: " + email);
                 }
                 return save(user);
             } else {
-                System.out.println("✅ CREATE NEW GOOGLE USER: " + email);
+                System.out.println("CREATE NEW GOOGLE USER: " + email);
                 User user = new User();
                 user.setUsername(email);
                 user.setEmail(email);
@@ -123,7 +154,7 @@ public class UserService {
                 return save(user);
             }
         } catch (Exception e) {
-            System.err.println("❌ GOOGLE SERVICE ERROR: " + e.getMessage());
+            System.err.println("GOOGLE SERVICE ERROR: " + e.getMessage());
             e.printStackTrace();
             throw new RuntimeException("Lỗi khi tạo hoặc cập nhật người dùng Google: " + e.getMessage());
         }
@@ -134,7 +165,7 @@ public class UserService {
         System.out.println("🔧 createOrUpdateUserFromFacebook: email=" + email + ", uid=" + uid);
         
         if (email == null || email.trim().isEmpty()) {
-            System.err.println("❌ ERROR: Email is null or empty");
+            System.err.println("ERROR: Email is null or empty");
             throw new IllegalArgumentException("Email không được để trống");
         }
 
@@ -146,7 +177,7 @@ public class UserService {
 
             if (existingUser.isPresent()) {
                 User user = existingUser.get();
-                System.out.println("✅ UPDATE FB USER: " + email);
+                System.out.println(" UPDATE FB USER: " + email);
                 if (name != null && !name.trim().isEmpty()) {
                     user.setFullName(name);
                 }

@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-import "../css/Register.css";
+import "../../css/Register.css";
 import { CiUser } from "react-icons/ci";
 import { FaUserTie } from "react-icons/fa6";
 import { FaRegAddressCard } from "react-icons/fa";
