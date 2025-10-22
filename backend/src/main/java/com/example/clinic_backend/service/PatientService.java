@@ -28,8 +28,9 @@ public class PatientService {
         return patientRepository.findById(id);
     }
 
+    // 🔥 QUAN TRỌNG: Tìm patient bằng user_id
     public Optional<Patient> getPatientByUserId(Long userId) {
-    return patientRepository.findByUserId(userId);
+        return patientRepository.findByUserId(userId);
     }
 
     public Optional<Patient> findByEmail(String email) {
@@ -45,19 +46,19 @@ public class PatientService {
     }
 
     public Patient updatePatient(Long id, Patient updatedPatient) {
-    return patientRepository.findById(id)
-            .map(patient -> {
-                patient.setFullName(updatedPatient.getFullName());
-                patient.setDob(updatedPatient.getDob());
-                patient.setPhone(updatedPatient.getPhone());
-                patient.setAddress(updatedPatient.getAddress());
-                patient.setEmail(updatedPatient.getEmail());
-                patient.setSymptoms(updatedPatient.getSymptoms());
-                patient.setBhyt(updatedPatient.getBhyt());
-                return patientRepository.save(patient);
-            })
-            .orElse(null);
-}
+        return patientRepository.findById(id)
+                .map(patient -> {
+                    patient.setFullName(updatedPatient.getFullName());
+                    patient.setDob(updatedPatient.getDob());
+                    patient.setPhone(updatedPatient.getPhone());
+                    patient.setAddress(updatedPatient.getAddress());
+                    patient.setEmail(updatedPatient.getEmail());
+                    patient.setSymptoms(updatedPatient.getSymptoms());
+                    patient.setBhyt(updatedPatient.getBhyt());
+                    return patientRepository.save(patient);
+                })
+                .orElse(null);
+    }
 
     public void deletePatient(Long id) {
         patientRepository.deleteById(id);
@@ -65,5 +66,18 @@ public class PatientService {
 
     public Optional<Patient> getPatientByEmail(String email) {
         return patientRepository.findByUserEmail(email); 
+    }
+
+    // 🔥 Tạo patient từ user
+    public Patient createPatientFromUser(com.example.clinic_backend.model.User user) {
+        Patient patient = new Patient();
+        patient.setUser(user);
+        patient.setFullName(user.getFullName() != null ? user.getFullName() : user.getUsername());
+        patient.setEmail(user.getEmail());
+        patient.setPhone(user.getPhone() != null ? user.getPhone() : "");
+        patient.setAddress("");
+        patient.setBhyt("");
+        
+        return patientRepository.save(patient);
     }
 }

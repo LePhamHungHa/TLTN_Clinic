@@ -155,11 +155,11 @@ public class UserService {
                 }
                 if (user.getRole() == null || user.getRole().isEmpty()) {
                     user.setRole("PATIENT");
-                    System.out.println("✅ SET ROLE TO PATIENT FOR EXISTING USER: " + email);
+                    System.out.println("SET ROLE TO PATIENT FOR EXISTING USER: " + email);
                 }
                 return save(user);
             } else {
-                System.out.println("✅ CREATE NEW FB USER: " + email);
+                System.out.println("CREATE NEW FB USER: " + email);
                 User user = new User();
                 user.setUsername(email);
                 user.setEmail(email);
@@ -170,7 +170,7 @@ public class UserService {
                 return save(user);
             }
         } catch (Exception e) {
-            System.err.println("❌ FB SERVICE ERROR: " + e.getMessage());
+            System.err.println("FB SERVICE ERROR: " + e.getMessage());
             e.printStackTrace();
             throw new RuntimeException("Lỗi khi tạo hoặc cập nhật người dùng Facebook: " + e.getMessage());
         }

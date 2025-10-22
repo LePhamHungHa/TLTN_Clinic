@@ -99,6 +99,7 @@ const LoginContent = () => {
         email: firebaseUser.email,
         uid: firebaseUser.uid,
         displayName: firebaseUser.displayName,
+        photoURL: firebaseUser.photoURL,
       });
 
       const backendRes = await fetch(
@@ -110,7 +111,7 @@ const LoginContent = () => {
             email: firebaseUser.email || "guest@gmail.com",
             provider: "google",
             uid: firebaseUser.uid,
-            name: firebaseUser.displayName,
+            name: firebaseUser.displayName || firebaseUser.email,
             picture: firebaseUser.photoURL,
           }),
         }
@@ -144,18 +145,27 @@ const LoginContent = () => {
     setLoading(true);
     try {
       const accessToken = response?.data?.accessToken;
+      console.log("FACEBOOK ACCESS TOKEN:", accessToken);
+
       const credential = FacebookAuthProvider.credential(accessToken);
       const result = await signInWithCredential(auth, credential);
       const firebaseUser = result.user;
 
-      const res = await fetch("/api/auth/social-login", {
+      console.log("FACEBOOK USER:", {
+        email: firebaseUser.email,
+        uid: firebaseUser.uid,
+        displayName: firebaseUser.displayName,
+        photoURL: firebaseUser.photoURL,
+      });
+
+      const res = await fetch("http://localhost:8080/api/auth/social-login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           email: firebaseUser.email || "guest@fb.com",
           provider: "facebook",
           uid: firebaseUser.uid,
-          name: firebaseUser.displayName,
+          name: firebaseUser.displayName || firebaseUser.email,
           picture: firebaseUser.photoURL,
         }),
       });
@@ -170,9 +180,21 @@ const LoginContent = () => {
       navigate("/patient");
     } catch (error) {
       console.error("Facebook Error:", error);
-      alert(
-        `Lỗi đăng nhập Facebook: ${error.message}. Vui lòng kiểm tra kết nối mạng và thử lại.`
-      );
+
+      // Xử lý các lỗi cụ thể
+      if (error.code === "auth/account-exists-with-different-credential") {
+        alert(
+          "Email này đã được đăng ký với phương thức đăng nhập khác. Vui lòng sử dụng phương thức đăng nhập ban đầu."
+        );
+      } else if (error.code === "auth/popup-blocked") {
+        alert(
+          "Popup đăng nhập đã bị chặn. Vui lòng cho phép popup cho trang web này."
+        );
+      } else if (error.code === "auth/popup-closed-by-user") {
+        alert("Bạn đã đóng cửa sổ đăng nhập. Vui lòng thử lại.");
+      } else {
+        alert(`Lỗi đăng nhập Facebook: ${error.message}`);
+      }
     } finally {
       setLoading(false);
     }

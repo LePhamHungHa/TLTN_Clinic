@@ -31,7 +31,6 @@ const CreateCard = () => {
     }
 
     try {
-      // Lấy thông tin patient từ token hoặc API
       await fetchPatientInfo(token);
     } catch (error) {
       console.error("Lỗi xác thực:", error);

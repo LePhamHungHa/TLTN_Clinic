@@ -1,4 +1,3 @@
-// src/config/firebase.js
 import { initializeApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider, FacebookAuthProvider } from "firebase/auth";
 import { getAnalytics } from "firebase/analytics";

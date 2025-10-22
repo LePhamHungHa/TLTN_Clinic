@@ -13,6 +13,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -77,11 +78,17 @@ public class AuthController {
                 newUser.setRole("PATIENT");
                 newUser.setPassword("");
                 user = userService.save(newUser);
-                System.out.println("✅ NEW PHONE USER: " + phone);
+                
+                // Tự động tạo patient
+                createPatientForUser(user, user.getFullName());
+                System.out.println("✅ NEW PHONE USER + PATIENT: " + phone);
             } else if (user.getRole() == null || user.getRole().isEmpty()) {
                 user.setRole("PATIENT");
                 user = userService.save(user);
-                System.out.println("✅ UPDATE PHONE ROLE: " + phone);
+                
+                // Kiểm tra và tạo patient nếu chưa có
+                createPatientIfNotExists(user);
+                System.out.println("✅ UPDATE PHONE ROLE + PATIENT: " + phone);
             }
 
             String token = jwtUtil.generateToken(user.getUsername(), user.getRole());
@@ -108,11 +115,10 @@ public class AuthController {
             String email = body.get("email");
             String provider = body.get("provider");
             String uid = body.get("uid");
+            String name = body.get("name");
+            String picture = body.get("picture");
 
-            System.out.println("🔍 RAW BODY: " + body);
-            System.out.println("🔍 EMAIL: '" + email + "'");
-            System.out.println("🔍 PROVIDER: '" + provider + "'");
-            System.out.println("🔍 UID: '" + uid + "'");
+            System.out.println("🔍 SOCIAL LOGIN: " + email + " | " + provider + " | " + name);
 
             if (email == null || email.trim().isEmpty()) {
                 System.err.println("❌ EMAIL NULL");
@@ -123,18 +129,21 @@ public class AuthController {
             try {
                 if ("google".equals(provider)) {
                     System.out.println("📞 CALL GOOGLE SERVICE");
-                    user = userService.createOrUpdateUserFromGoogle(email, null, uid, null);
+                    user = userService.createOrUpdateUserFromGoogle(email, name, uid, picture);
                 } else {
                     System.out.println("📞 CALL FACEBOOK SERVICE");
-                    user = userService.createOrUpdateUserFromFacebook(email, null, uid);
+                    user = userService.createOrUpdateUserFromFacebook(email, name, uid);
                 }
                 System.out.println("✅ SERVICE RETURN USER ID: " + user.getId());
             } catch (Exception serviceError) {
                 System.err.println("❌ SERVICE ERROR: " + serviceError.getMessage());
                 serviceError.printStackTrace();
-                user = createFallbackUser(email, provider, uid);
+                user = createFallbackUser(email, provider, uid, name);
                 System.out.println("✅ FALLBACK USER ID: " + user.getId());
             }
+
+            // 🔥 QUAN TRỌNG: Tự động tạo patient nếu chưa có
+            createPatientIfNotExists(user);
 
             if (user.getRole() == null || user.getRole().isEmpty()) {
                 user.setRole("PATIENT");
@@ -148,35 +157,86 @@ public class AuthController {
                 "id", user.getId(),
                 "username", user.getUsername(),
                 "email", user.getEmail(),
-                "fullName", user.getFullName() != null ? user.getFullName() : email,
+                "fullName", user.getFullName() != null ? user.getFullName() : name != null ? name : email,
                 "role", user.getRole(),
                 "avatar", user.getAvatar() != null ? user.getAvatar() : "",
                 "token", token
             );
 
-            System.out.println("✅ FINAL SUCCESS: " + email + " | ROLE: " + user.getRole());
+            System.out.println("✅ SOCIAL LOGIN SUCCESS: " + email + " | ROLE: " + user.getRole());
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
-            System.err.println("❌ FINAL ERROR social-login: " + e.getMessage());
+            System.err.println("❌ SOCIAL LOGIN ERROR: " + e.getMessage());
             e.printStackTrace();
             return ResponseEntity.badRequest().body(Map.of("error", "Lỗi server: " + e.getMessage()));
         }
     }
 
-    private User createFallbackUser(String email, String provider, String uid) {
+    // 🔥 PHƯƠNG THỨC QUAN TRỌNG: Tạo patient nếu chưa tồn tại
+    private void createPatientIfNotExists(User user) {
+        try {
+            Optional<Patient> existingPatient = patientService.getPatientByUserId(user.getId());
+            if (existingPatient.isEmpty()) {
+                System.out.println("🆕 Tạo mới patient cho user: " + user.getId());
+                
+                Patient newPatient = new Patient();
+                newPatient.setUser(user);
+                newPatient.setFullName(user.getFullName() != null ? user.getFullName() : user.getUsername());
+                newPatient.setEmail(user.getEmail());
+                newPatient.setPhone(user.getPhone() != null ? user.getPhone() : "");
+                newPatient.setAddress("");
+                newPatient.setBhyt("");
+                
+                patientService.save(newPatient);
+                System.out.println("✅ Đã tạo patient mới: " + newPatient.getId());
+            } else {
+                System.out.println("✅ Patient đã tồn tại: " + existingPatient.get().getId());
+            }
+        } catch (Exception patientError) {
+            System.err.println("⚠️ Lỗi khi tạo patient: " + patientError.getMessage());
+        }
+    }
+
+    // Tạo patient với thông tin cụ thể
+    private void createPatientForUser(User user, String fullName) {
+        try {
+            Patient newPatient = new Patient();
+            newPatient.setUser(user);
+            newPatient.setFullName(fullName != null ? fullName : user.getUsername());
+            newPatient.setEmail(user.getEmail());
+            newPatient.setPhone(user.getPhone() != null ? user.getPhone() : "");
+            newPatient.setAddress("");
+            newPatient.setBhyt("");
+            
+            patientService.save(newPatient);
+            System.out.println("✅ Created patient for user: " + user.getId());
+        } catch (Exception e) {
+            System.err.println("❌ Error creating patient: " + e.getMessage());
+        }
+    }
+
+    private User createFallbackUser(String email, String provider, String uid, String name) {
         System.out.println("🔧 Creating FALLBACK user: " + email);
         User fallbackUser = new User();
         fallbackUser.setUsername(email);
         fallbackUser.setEmail(email);
+        fallbackUser.setFullName(name != null ? name : email);
         fallbackUser.setRole("PATIENT");
         fallbackUser.setPassword("");
+        
         if ("google".equals(provider) && uid != null && !uid.trim().isEmpty()) {
             fallbackUser.setGoogleId(uid);
         } else if ("facebook".equals(provider) && uid != null && !uid.trim().isEmpty()) {
             fallbackUser.setFacebookId(uid);
         }
-        return userService.save(fallbackUser);
+        
+        User savedUser = userService.save(fallbackUser);
+        
+        // Tạo patient cho fallback user
+        createPatientForUser(savedUser, name);
+        
+        return savedUser;
     }
 
     @PostMapping("/register")
@@ -227,6 +287,15 @@ public class AuthController {
         } catch (Exception e) {
             System.err.println("❌ REGISTER ERROR: " + e.getMessage());
             return ResponseEntity.badRequest().body(Map.of("error", "Đăng ký thất bại: " + e.getMessage()));
+        }
+    }
+
+    @PostMapping("/ensure-patient")
+    public ResponseEntity<?> ensurePatientExists() {
+        try {
+            return ResponseEntity.ok(Map.of("message", "Patient ensured"));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
 }
