@@ -153,7 +153,7 @@ const Header = () => {
           Hồ sơ sức khỏe
         </Link>,
         <Link
-          key="p-health-tracking"
+          key="p-bmi-tracking"
           to="/patient/health-tracking"
           className={linkClass}
           onClick={isMobile ? toggleMobileMenu : undefined}
@@ -161,8 +161,8 @@ const Header = () => {
           BMI
         </Link>,
         <Link
-          key="p-results"
-          to="/patient/results"
+          key="p-health-tracking"
+          to="/patient/health-tracking"
           className={linkClass}
           onClick={isMobile ? toggleMobileMenu : undefined}
         >

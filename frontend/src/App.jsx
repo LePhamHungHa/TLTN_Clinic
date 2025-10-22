@@ -1,4 +1,3 @@
-// src/App.jsx
 import React from "react";
 import {
   BrowserRouter as Router,
@@ -20,6 +19,7 @@ import WalletPage from "./pages/Patient/WalletPage.jsx";
 import PaymentPage from "./pages/Patient/PaymentPage.jsx";
 import PatientInfo from "./pages/Patient/PatientInfo.jsx";
 import AppointmentsPage from "./pages/Patient/Appointments.jsx";
+import BMIPage from "./pages/Patient/BMIPage.jsx";
 
 function App() {
   const user = JSON.parse(localStorage.getItem("user")) || null;
@@ -138,6 +138,16 @@ function App() {
             <>
               <Header />
               <AppointmentsPage />
+            </>
+          }
+        />
+        {/* BMI của bệnh nhân */}
+        <Route
+          path="/patient/health-tracking"
+          element={
+            <>
+              <Header />
+              <BMIPage />
             </>
           }
         />

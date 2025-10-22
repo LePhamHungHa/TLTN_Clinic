@@ -1,0 +1,727 @@
+/* src/css/BMIPage.css */
+.bmi-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+  background: #f8f9fa;
+  min-height: 100vh;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.bmi-header {
+  margin-bottom: 30px;
+  padding: 30px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 16px;
+  color: white;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+  text-align: center;
+}
+
+.bmi-header h1 {
+  margin: 0 0 12px 0;
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+}
+
+.bmi-header p {
+  margin: 0;
+  opacity: 0.95;
+  font-size: 18px;
+  font-weight: 400;
+}
+
+.bmi-tabs {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 30px;
+  background: white;
+  border-radius: 16px;
+  padding: 8px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+  gap: 8px;
+}
+
+.tab-btn {
+  flex: 1;
+  padding: 14px 30px;
+  border: none;
+  background: none;
+  border-radius: 12px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 15px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  color: #495057;
+  position: relative;
+  overflow: hidden;
+}
+
+.tab-btn.active {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+}
+
+.tab-btn:hover:not(.active) {
+  background: #f8f9fa;
+  transform: translateY(-1px);
+}
+
+.bmi-calculator {
+  display: grid;
+  grid-template-columns: 1fr 400px;
+  gap: 30px;
+  align-items: start;
+}
+
+.calculator-card {
+  background: white;
+  padding: 35px;
+  border-radius: 16px;
+  box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+  border: 1px solid #f0f0f0;
+}
+
+.calculator-card h2 {
+  color: #2c3e50;
+  margin-bottom: 25px;
+  font-size: 24px;
+  border-left: 5px solid #667eea;
+  padding-left: 15px;
+  font-weight: 700;
+}
+
+.input-group {
+  margin-bottom: 25px;
+}
+
+.input-group label {
+  display: block;
+  margin-bottom: 10px;
+  font-weight: 600;
+  color: #495057;
+  font-size: 15px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.input-group label::before {
+  content: "•";
+  color: #667eea;
+  font-weight: bold;
+}
+
+.input-group input {
+  width: 100%;
+  padding: 14px 16px;
+  border: 2px solid #e1e5e9;
+  border-radius: 10px;
+  font-size: 16px;
+  transition: all 0.3s ease;
+  background: #fafbfc;
+  color: #495057;
+  font-weight: 500;
+}
+
+.input-group input:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.15);
+  background: white;
+  transform: translateY(-1px);
+}
+
+.input-group input:hover {
+  border-color: #adb5bd;
+  background: white;
+}
+
+.action-buttons {
+  margin-top: 30px;
+}
+
+.calculate-btn, .save-btn {
+  width: 100%;
+  padding: 16px;
+  border: none;
+  border-radius: 12px;
+  font-size: 17px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+  letter-spacing: 0.5px;
+  position: relative;
+  overflow: hidden;
+}
+
+.calculate-btn::before, .save-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+  transition: left 0.5s;
+}
+
+.calculate-btn:hover::before, .save-btn:hover::before {
+  left: 100%;
+}
+
+.calculate-btn {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+}
+
+.calculate-btn:hover:not(:disabled) {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 30px rgba(102, 126, 234, 0.4);
+}
+
+.calculate-btn:disabled {
+  background: linear-gradient(135deg, #a0a0a0, #c0c0c0);
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: 0 2px 8px rgba(108, 117, 125, 0.3);
+}
+
+.bmi-result {
+  margin-top: 30px;
+  padding: 30px;
+  border: 3px solid;
+  border-radius: 16px;
+  text-align: center;
+  background: white;
+  box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+  position: relative;
+  overflow: hidden;
+}
+
+.bmi-result::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: inherit;
+  opacity: 0.3;
+}
+
+.bmi-result h3 {
+  margin-bottom: 20px;
+  color: #495057;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.bmi-gender {
+  font-size: 18px;
+  margin-bottom: 15px;
+  color: #495057;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  justify-content: center;
+  background: #f8f9fa;
+  padding: 10px 20px;
+  border-radius: 25px;
+  display: inline-flex;
+  margin-bottom: 20px;
+}
+
+.bmi-value {
+  font-size: 64px;
+  font-weight: 800;
+  margin-bottom: 15px;
+  color: #2c3e50;
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+  line-height: 1;
+}
+
+.bmi-category {
+  font-size: 20px;
+  margin-bottom: 25px;
+  color: #495057;
+  font-weight: 600;
+}
+
+.bmi-category strong {
+  color: #2c3e50;
+  font-size: 22px;
+}
+
+.save-btn {
+  background: linear-gradient(135deg, #28a745, #20c997);
+  color: white;
+  max-width: 200px;
+  margin: 0 auto;
+}
+
+.save-btn:hover:not(:disabled) {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 30px rgba(40, 167, 69, 0.4);
+}
+
+.save-btn:disabled {
+  background: linear-gradient(135deg, #a0a0a0, #c0c0c0);
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: 0 2px 8px rgba(108, 117, 125, 0.3);
+}
+
+.bmi-info {
+  background: white;
+  padding: 30px;
+  border-radius: 16px;
+  box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+  border: 1px solid #f0f0f0;
+  position: sticky;
+  top: 20px;
+}
+
+.bmi-info h3 {
+  color: #2c3e50;
+  margin-bottom: 25px;
+  font-size: 20px;
+  border-left: 5px solid #667eea;
+  padding-left: 15px;
+  font-weight: 700;
+}
+
+.bmi-categories {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  margin-bottom: 30px;
+}
+
+.category-item {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  padding: 12px 15px;
+  border-radius: 10px;
+  color: #495057;
+  background: #fafbfc;
+  border: 1px solid #e9ecef;
+  transition: all 0.3s ease;
+}
+
+.category-item:hover {
+  transform: translateX(5px);
+  border-color: #667eea;
+  background: white;
+}
+
+.color-dot {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.bmi-history {
+  background: white;
+  padding: 35px;
+  border-radius: 16px;
+  box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+  border: 1px solid #f0f0f0;
+}
+
+.bmi-history h2 {
+  color: #2c3e50;
+  margin-bottom: 25px;
+  font-size: 24px;
+  border-left: 5px solid #667eea;
+  padding-left: 15px;
+  font-weight: 700;
+}
+
+.no-data {
+  text-align: center;
+  padding: 60px 40px;
+  color: #6c757d;
+  background: #fafbfc;
+  border-radius: 12px;
+  border: 3px dashed #dee2e6;
+}
+
+.no-data p {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.history-item {
+  display: grid;
+  grid-template-columns: 140px 1fr auto auto;
+  gap: 25px;
+  align-items: center;
+  padding: 25px;
+  border: 2px solid #e9ecef;
+  border-radius: 12px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  background: #fafbfc;
+  position: relative;
+  overflow: hidden;
+}
+
+.history-item::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: inherit;
+  opacity: 0.6;
+}
+
+.history-item:hover {
+  box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+  transform: translateY(-3px);
+  border-color: #667eea;
+  background: white;
+}
+
+.history-date {
+  font-weight: 700;
+  color: #495057;
+  font-size: 16px;
+  background: white;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+}
+
+.history-details {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  color: #6c757d;
+  font-size: 15px;
+}
+
+.history-details span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.history-bmi {
+  font-size: 20px;
+  font-weight: 800;
+  color: #2c3e50;
+  background: white;
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: 2px solid #e9ecef;
+}
+
+.history-category {
+  padding: 10px 20px;
+  border-radius: 25px;
+  background: white;
+  font-size: 14px;
+  font-weight: 700;
+  color: #495057;
+  border: 2px solid #dee2e6;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* 🎯 STYLE CHO GIỚI TÍNH */
+.gender-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+  margin-top: 10px;
+}
+
+.gender-option {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.gender-option input[type="radio"] {
+  display: none;
+}
+
+.gender-label {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+  border: 2px solid #e1e5e9;
+  border-radius: 12px;
+  background: #fafbfc;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  font-weight: 700;
+  color: #495057;
+  width: 100%;
+  justify-content: center;
+  font-size: 15px;
+}
+
+.gender-option input[type="radio"]:checked + .gender-label {
+  border-color: #667eea;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.3);
+  transform: translateY(-2px);
+}
+
+.gender-label:hover {
+  border-color: #adb5bd;
+  transform: translateY(-2px);
+  background: white;
+}
+
+.gender-icon {
+  font-size: 20px;
+}
+
+/* 🎯 THÔNG TIN THÊM VỀ GIỚI TÍNH */
+.gender-info {
+  margin-top: 30px;
+  padding: 25px;
+  background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+  border-radius: 12px;
+  border-left: 5px solid #667eea;
+  position: relative;
+  overflow: hidden;
+}
+
+.gender-info::before {
+  content: '💡';
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  font-size: 24px;
+  opacity: 0.1;
+}
+
+.gender-info h4 {
+  color: #2c3e50;
+  margin-bottom: 15px;
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.gender-info p {
+  color: #6c757d;
+  margin-bottom: 12px;
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.gender-info ul {
+  color: #6c757d;
+  font-size: 14px;
+  padding-left: 20px;
+  line-height: 1.6;
+}
+
+.gender-info li {
+  margin-bottom: 8px;
+  position: relative;
+}
+
+.gender-info li::before {
+  content: '▶';
+  position: absolute;
+  left: -15px;
+  color: #667eea;
+  font-size: 10px;
+}
+
+/* 🎯 PHÂN LOẠI GIỚI TÍNH */
+.gender-tabs {
+  margin-bottom: 25px;
+}
+
+.gender-tab {
+  padding: 12px 20px;
+  background: #f8f9fa;
+  border-radius: 10px;
+  margin-bottom: 15px;
+  font-weight: 700;
+  color: #495057;
+  border-left: 4px solid #667eea;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* 🎯 MÀU SẮC CHO CÁC PHÂN LOẠI BMI */
+.bmi-underweight { color: #3498db; }
+.bmi-normal { color: #27ae60; }
+.bmi-overweight { color: #f39c12; }
+.bmi-obese1 { color: #e67e22; }
+.bmi-obese2 { color: #e74c3c; }
+.bmi-obese3 { color: #c0392b; }
+
+/* 🎯 RESPONSIVE DESIGN */
+@media (max-width: 1024px) {
+  .bmi-calculator {
+    grid-template-columns: 1fr;
+    gap: 25px;
+  }
+  
+  .bmi-info {
+    position: static;
+  }
+}
+
+@media (max-width: 768px) {
+  .bmi-container {
+    padding: 15px;
+  }
+  
+  .bmi-header {
+    padding: 25px 20px;
+    border-radius: 12px;
+  }
+  
+  .bmi-header h1 {
+    font-size: 26px;
+  }
+  
+  .bmi-header p {
+    font-size: 16px;
+  }
+  
+  .calculator-card,
+  .bmi-info,
+  .bmi-history {
+    padding: 25px;
+    border-radius: 12px;
+  }
+  
+  .history-item {
+    grid-template-columns: 1fr;
+    gap: 15px;
+    text-align: center;
+    padding: 20px;
+  }
+  
+  .history-details {
+    align-items: center;
+  }
+  
+  .bmi-tabs {
+    flex-direction: column;
+    gap: 5px;
+  }
+  
+  .tab-btn {
+    width: 100%;
+    margin-bottom: 0;
+  }
+  
+  .bmi-value {
+    font-size: 48px;
+  }
+  
+  .gender-options {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .bmi-container {
+    padding: 10px;
+  }
+  
+  .calculator-card,
+  .bmi-info,
+  .bmi-history {
+    padding: 20px;
+  }
+  
+  .bmi-header {
+    padding: 20px 15px;
+  }
+  
+  .bmi-header h1 {
+    font-size: 22px;
+  }
+  
+  .input-group input {
+    padding: 12px 14px;
+    font-size: 15px;
+  }
+  
+  .calculate-btn,
+  .save-btn {
+    padding: 14px;
+    font-size: 16px;
+  }
+  
+  .bmi-value {
+    font-size: 40px;
+  }
+  
+  .history-item {
+    padding: 15px;
+  }
+  
+  .gender-label {
+    padding: 14px 16px;
+    font-size: 14px;
+  }
+}
+
+/* 🎯 ANIMATION */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.bmi-result {
+  animation: fadeInUp 0.5s ease-out;
+}
+
+.history-item {
+  animation: fadeInUp 0.4s ease-out;
+}
+
+/* 🎯 SCROLLBAR CUSTOM */
+.history-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.history-list::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.history-list::-webkit-scrollbar-thumb {
+  background: #667eea;
+  border-radius: 3px;
+}
+
+.history-list::-webkit-scrollbar-thumb:hover {
+  background: #5a6fd8;
+}
