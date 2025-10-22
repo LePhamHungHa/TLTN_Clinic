@@ -1,3 +1,4 @@
+// src/pages/Login.jsx
 import { auth } from "../api/firebase";
 import {
   signInWithCredential,
@@ -13,6 +14,7 @@ import { IoIosLock } from "react-icons/io";
 import { FaFacebookF } from "react-icons/fa";
 import { GoogleOAuthProvider, GoogleLogin } from "@react-oauth/google";
 import { LoginSocialFacebook } from "reactjs-social-login";
+import { useToast } from "../hooks/useToast";
 
 // secret
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
@@ -24,6 +26,7 @@ const LoginContent = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const toast = useToast();
 
   useEffect(() => {
     createDots();
@@ -53,7 +56,7 @@ const LoginContent = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!username || !password) {
-      alert("Vui lòng nhập đầy đủ thông tin!");
+      toast.error("Vui lòng nhập đầy đủ thông tin!");
       return;
     }
 
@@ -69,18 +72,21 @@ const LoginContent = () => {
       localStorage.setItem("token", res.token);
       localStorage.setItem("user", JSON.stringify(res));
 
-      alert("Đăng nhập thành công!");
+      toast.success("Đăng nhập thành công! 🎉");
 
-      if (res.role === "PATIENT") {
-        navigate("/patient");
-      } else if (res.role === "DOCTOR") {
-        navigate("/doctor");
-      } else {
-        navigate("/admin");
-      }
+      // Tự động chuyển hướng sau 1 giây
+      setTimeout(() => {
+        if (res.role === "PATIENT") {
+          navigate("/patient");
+        } else if (res.role === "DOCTOR") {
+          navigate("/doctor");
+        } else {
+          navigate("/admin");
+        }
+      }, 1000);
     } catch (error) {
       console.error("Login Error:", error.message);
-      alert(`Lỗi đăng nhập: ${error.message}`);
+      toast.error(`Lỗi đăng nhập: ${error.message}`);
     } finally {
       setLoading(false);
     }
@@ -129,13 +135,14 @@ const LoginContent = () => {
       localStorage.setItem("token", data.token);
 
       console.log("SAVED TO LOCALSTORAGE:", data);
-      alert("Đăng nhập Google thành công!");
-      navigate("/patient");
+      toast.success("Đăng nhập Google thành công! 🎉");
+
+      setTimeout(() => {
+        navigate("/patient");
+      }, 1000);
     } catch (error) {
       console.error("GOOGLE ERROR:", error);
-      alert(
-        `Lỗi đăng nhập Google: ${error.message}. Vui lòng kiểm tra kết nối mạng và thử lại.`
-      );
+      toast.error(`Lỗi đăng nhập Google: ${error.message}`);
     } finally {
       setLoading(false);
     }
@@ -176,24 +183,25 @@ const LoginContent = () => {
       localStorage.setItem("user", JSON.stringify(data));
       localStorage.setItem("token", data.token);
 
-      alert("Đăng nhập Facebook thành công!");
-      navigate("/patient");
+      toast.success("Đăng nhập Facebook thành công! 🎉");
+
+      setTimeout(() => {
+        navigate("/patient");
+      }, 1000);
     } catch (error) {
       console.error("Facebook Error:", error);
 
-      // Xử lý các lỗi cụ thể
+      // Xử lý các lỗi cụ thể với toast
       if (error.code === "auth/account-exists-with-different-credential") {
-        alert(
-          "Email này đã được đăng ký với phương thức đăng nhập khác. Vui lòng sử dụng phương thức đăng nhập ban đầu."
+        toast.error(
+          "Email này đã được đăng ký với phương thức đăng nhập khác."
         );
       } else if (error.code === "auth/popup-blocked") {
-        alert(
-          "Popup đăng nhập đã bị chặn. Vui lòng cho phép popup cho trang web này."
-        );
+        toast.error("Popup đăng nhập đã bị chặn. Vui lòng cho phép popup.");
       } else if (error.code === "auth/popup-closed-by-user") {
-        alert("Bạn đã đóng cửa sổ đăng nhập. Vui lòng thử lại.");
+        toast.error("Bạn đã đóng cửa sổ đăng nhập.");
       } else {
-        alert(`Lỗi đăng nhập Facebook: ${error.message}`);
+        toast.error(`Lỗi đăng nhập Facebook: ${error.message}`);
       }
     } finally {
       setLoading(false);
@@ -202,13 +210,13 @@ const LoginContent = () => {
 
   const handleGoogleError = (error) => {
     console.error("Google Error:", error);
-    alert("Lỗi đăng nhập Google. Vui lòng thử lại.");
+    toast.error("Lỗi đăng nhập Google. Vui lòng thử lại.");
     setLoading(false);
   };
 
   const handleFacebookError = (error) => {
     console.error("Facebook Error:", error);
-    alert("Lỗi đăng nhập Facebook. Vui lòng thử lại.");
+    toast.error("Lỗi đăng nhập Facebook. Vui lòng thử lại.");
     setLoading(false);
   };
 

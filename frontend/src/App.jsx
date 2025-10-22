@@ -1,3 +1,4 @@
+// src/App.jsx
 import React from "react";
 import {
   BrowserRouter as Router,
@@ -5,6 +6,7 @@ import {
   Route,
   Navigate,
 } from "react-router-dom";
+import ToastProvider from "./components/ToastProvider";
 import Header from "./components/Header.jsx";
 import Home from "./components/Home.jsx";
 import Footer from "./components/Footer.jsx";
@@ -35,6 +37,8 @@ function App() {
 
   return (
     <Router>
+      <ToastProvider />
+
       <Routes>
         {/* Trang chủ */}
         <Route
