@@ -257,7 +257,7 @@ const Header = () => {
           className={linkClass}
           onClick={isMobile ? toggleMobileMenu : undefined}
         >
-          Quản lý lịch hệ thống
+          Quản lý Lịch hẹn
         </Link>,
         <Link
           key="a-data"

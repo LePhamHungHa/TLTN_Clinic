@@ -53,6 +53,12 @@ public class Doctor {
     @Column(name = "username")
     private String username;
 
+    @Column(name = "room_number")
+    private String roomNumber;
+
+    @Column(name = "floor")
+    private String floor;
+
     // --- Getters and Setters ---
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -98,4 +104,10 @@ public class Doctor {
 
     public String getUsername() { return username; }
     public void setUsername(String username) { this.username = username; }
+
+     public String getRoomNumber() { return roomNumber; }
+    public void setRoomNumber(String roomNumber) { this.roomNumber = roomNumber; }
+
+    public String getFloor() { return floor; }
+    public void setFloor(String floor) { this.floor = floor; }
 }

@@ -210,7 +210,7 @@ public class AuthController {
             newPatient.setBhyt("");
             
             patientService.save(newPatient);
-            System.out.println("✅ Created patient for user: " + user.getId());
+            System.out.println("Created patient for user: " + user.getId());
         } catch (Exception e) {
             System.err.println("❌ Error creating patient: " + e.getMessage());
         }

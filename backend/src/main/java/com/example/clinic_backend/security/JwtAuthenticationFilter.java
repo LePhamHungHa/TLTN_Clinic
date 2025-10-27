@@ -7,11 +7,11 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.List;
 
 @Component
@@ -30,37 +30,39 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
         
         String header = request.getHeader("Authorization");
-        System.out.println("🔐 JWT Filter - Authorization Header: " + header);
-        System.out.println("🔐 JWT Filter - Request URI: " + request.getRequestURI());
+        
+        // Chỉ debug cho API admin để tránh log nhiều
+        if (request.getRequestURI().contains("/api/admin/")) {
+            System.out.println("🔐 JWT Filter - Admin Request: " + request.getRequestURI());
+        }
         
         if (header != null && header.startsWith("Bearer ")) {
             String token = header.substring(7);
-            System.out.println("🔐 JWT Filter - Token received: " + token.substring(0, Math.min(20, token.length())) + "...");
 
             try {
                 if (jwtUtil.validateToken(token)) {
                     String username = jwtUtil.extractUsername(token);
                     String role = jwtUtil.extractRole(token);
                     
-                    System.out.println("🔐 JWT Filter - Valid token for user: " + username + ", role: " + role);
-
-                    List<SimpleGrantedAuthority> authorities = List.of(new SimpleGrantedAuthority("ROLE_" + role));
+                    // Đảm bảo role có prefix ROLE_
+                    List<SimpleGrantedAuthority> authorities = Collections.singletonList(
+                        new SimpleGrantedAuthority("ROLE_" + role)
+                    );
 
                     UsernamePasswordAuthenticationToken auth =
                             new UsernamePasswordAuthenticationToken(username, null, authorities);
-                    auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 
                     SecurityContextHolder.getContext().setAuthentication(auth);
-                    System.out.println("🔐 JWT Filter - Authentication set in SecurityContext");
-                } else {
-                    System.out.println("🔐 JWT Filter - Token validation failed");
+                    
+                    // Chỉ log cho admin requests
+                    if (request.getRequestURI().contains("/api/admin/")) {
+                        System.out.println("✅ JWT Filter - Admin auth set for: " + username + " with role: " + role);
+                    }
                 }
             } catch (Exception e) {
-                System.err.println("🔐 JWT Filter - Error processing token: " + e.getMessage());
-                e.printStackTrace();
+                System.err.println("❌ JWT Filter - Error processing token: " + e.getMessage());
+                SecurityContextHolder.clearContext();
             }
-        } else {
-            System.out.println("🔐 JWT Filter - No Bearer token found");
         }
         
         filterChain.doFilter(request, response);

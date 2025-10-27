@@ -6,7 +6,7 @@ const ToastProvider = () => {
   return (
     <>
       <Toaster {...toastConfig} />
-      {/* CSS để canh giữa tuyệt đối */}
+      {/* CSS để canh giữa tuyệt đối và tùy chỉnh thêm */}
       <style jsx global>{`
         /* Container toast - canh giữa màn hình */
         .go3958317564 {
@@ -62,10 +62,41 @@ const ToastProvider = () => {
           }
         }
 
-        /* Icon size */
+        /* Icon size và styling */
         .go3958317564 .go2072408551 > div [data-icon] {
-          font-size: 18px !important;
+          font-size: 20px !important;
           margin-right: 12px !important;
+        }
+
+        /* Custom styling cho các loại toast */
+        .go3958317564 .go2072408551 > div[data-type="success"] {
+          background: #f0fdf4 !important;
+          color: #166534 !important;
+          border: 2px solid #22c55e !important;
+        }
+
+        .go3958317564 .go2072408551 > div[data-type="error"] {
+          background: #fef2f2 !important;
+          color: #991b1b !important;
+          border: 2px solid #ef4444 !important;
+        }
+
+        .go3958317564 .go2072408551 > div[data-type="warning"] {
+          background: #fffbeb !important;
+          color: #92400e !important;
+          border: 2px solid #f59e0b !important;
+        }
+
+        .go3958317564 .go2072408551 > div[data-type="info"] {
+          background: #eff6ff !important;
+          color: #1e40af !important;
+          border: 2px solid #3b82f6 !important;
+        }
+
+        .go3958317564 .go2072408551 > div[data-type="loading"] {
+          background: #f9fafb !important;
+          color: #374151 !important;
+          border: 2px solid #6b7280 !important;
         }
       `}</style>
     </>

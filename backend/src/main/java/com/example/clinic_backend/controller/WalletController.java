@@ -4,12 +4,14 @@ import com.example.clinic_backend.model.Wallet;
 import com.example.clinic_backend.service.WalletService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/wallets")
 @CrossOrigin(origins = "*")
+@PreAuthorize("hasAuthority('ROLE_PATIENT')")  // 🔥 THÊM DÒNG NÀY
 public class WalletController {
 
     @Autowired

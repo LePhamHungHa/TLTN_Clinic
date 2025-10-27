@@ -2,6 +2,7 @@ package com.example.clinic_backend.controller;
 
 import com.example.clinic_backend.model.Patient;
 import com.example.clinic_backend.service.PatientService;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -11,6 +12,7 @@ import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/patients")
+@PreAuthorize("hasAuthority('ROLE_PATIENT')")  // 🔥 THÊM DÒNG NÀY
 public class PatientController {
 
     private final PatientService patientService;

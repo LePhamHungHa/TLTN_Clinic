@@ -1,6 +1,7 @@
 package com.example.clinic_backend.model;
 
 import jakarta.persistence.*;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -38,32 +39,64 @@ public class PatientRegistration {
     @Column(name = "appointment_date", nullable = false)
     private LocalDate appointmentDate;
 
-    @Column(name = "appointment_time", nullable = false, length = 50)
-    private String appointmentTime;
-
     @Column(nullable = false, length = 100)
     private String department;
 
     @Column(name = "doctor_id")
     private Long doctorId;
 
-    // THÊM QUAN HỆ VỚI BÁC SĨ
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "doctor_id", referencedColumnName = "id", insertable = false, updatable = false)
     private Doctor doctor;
 
-    @Column(length = 20)
-    private String status;
+    @Column(name = "registration_number")
+    private String registrationNumber;
+    
+    @Column(name = "transaction_number")
+    private String transactionNumber;
+    
+    @Column(name = "room_number")
+    private String roomNumber;
+    
+    @Column(name = "queue_number")
+    private Integer queueNumber;
+    
+    @Column(name = "expected_time_slot")
+    private String expectedTimeSlot;
+    
+    @Column(name = "examination_fee")
+    private BigDecimal examinationFee;
+    
+    @Column(name = "insurance_type")
+    private String insuranceType;
+    
+    @Column(name = "patient_code")
+    private String patientCode;
+    
+    @Column(name = "approved_at")
+    private LocalDateTime approvedAt;
+    
+    @Column(name = "approved_by")
+    private Long approvedBy;
+    
+    @Column(name = "auto_approved")
+    private Boolean autoApproved = false;
+    
+    @Column(name = "status")
+    private String status = "PENDING";
+
+    @Column(name = "assigned_session")
+    private String assignedSession;
 
     // Constructors
     public PatientRegistration() {
         this.createdAt = LocalDateTime.now();
-        this.status = "Chưa giải quyết";
+        this.status = "PENDING";
     }
 
     public PatientRegistration(String fullName, LocalDate dob, String gender, String phone, 
                              String email, String address, String department, 
-                             LocalDate appointmentDate, String appointmentTime) {
+                             LocalDate appointmentDate) {
         this();
         this.fullName = fullName;
         this.dob = dob;
@@ -73,7 +106,6 @@ public class PatientRegistration {
         this.address = address;
         this.department = department;
         this.appointmentDate = appointmentDate;
-        this.appointmentTime = appointmentTime;
     }
 
     // Getters and Setters
@@ -107,26 +139,53 @@ public class PatientRegistration {
     public LocalDate getAppointmentDate() { return appointmentDate; }
     public void setAppointmentDate(LocalDate appointmentDate) { this.appointmentDate = appointmentDate; }
 
-    public String getAppointmentTime() { return appointmentTime; }
-    public void setAppointmentTime(String appointmentTime) { this.appointmentTime = appointmentTime; }
-
     public String getDepartment() { return department; }
     public void setDepartment(String department) { this.department = department; }
 
     public Long getDoctorId() { return doctorId; }
     public void setDoctorId(Long doctorId) { this.doctorId = doctorId; }
 
-    // GETTER VÀ SETTER MỚI CHO DOCTOR
-    public Doctor getDoctor() {
-        return doctor;
-    }
+    public Doctor getDoctor() { return doctor; }
+    public void setDoctor(Doctor doctor) { this.doctor = doctor; }
 
-    public void setDoctor(Doctor doctor) {
-        this.doctor = doctor;
-    }
-
+    public String getRegistrationNumber() { return registrationNumber; }
+    public void setRegistrationNumber(String registrationNumber) { this.registrationNumber = registrationNumber; }
+    
+    public String getTransactionNumber() { return transactionNumber; }
+    public void setTransactionNumber(String transactionNumber) { this.transactionNumber = transactionNumber; }
+    
+    public String getRoomNumber() { return roomNumber; }
+    public void setRoomNumber(String roomNumber) { this.roomNumber = roomNumber; }
+    
+    public Integer getQueueNumber() { return queueNumber; }
+    public void setQueueNumber(Integer queueNumber) { this.queueNumber = queueNumber; }
+    
+    public String getExpectedTimeSlot() { return expectedTimeSlot; }
+    public void setExpectedTimeSlot(String expectedTimeSlot) { this.expectedTimeSlot = expectedTimeSlot; }
+    
+    public BigDecimal getExaminationFee() { return examinationFee; }
+    public void setExaminationFee(BigDecimal examinationFee) { this.examinationFee = examinationFee; }
+    
+    public String getInsuranceType() { return insuranceType; }
+    public void setInsuranceType(String insuranceType) { this.insuranceType = insuranceType; }
+    
+    public String getPatientCode() { return patientCode; }
+    public void setPatientCode(String patientCode) { this.patientCode = patientCode; }
+    
+    public LocalDateTime getApprovedAt() { return approvedAt; }
+    public void setApprovedAt(LocalDateTime approvedAt) { this.approvedAt = approvedAt; }
+    
+    public Long getApprovedBy() { return approvedBy; }
+    public void setApprovedBy(Long approvedBy) { this.approvedBy = approvedBy; }
+    
+    public Boolean getAutoApproved() { return autoApproved; }
+    public void setAutoApproved(Boolean autoApproved) { this.autoApproved = autoApproved; }
+    
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
+
+    public String getAssignedSession() { return assignedSession; }
+    public void setAssignedSession(String assignedSession) { this.assignedSession = assignedSession; }
 
     @Override
     public String toString() {
@@ -140,9 +199,8 @@ public class PatientRegistration {
                 ", address='" + address + '\'' +
                 ", department='" + department + '\'' +
                 ", appointmentDate=" + appointmentDate +
-                ", appointmentTime='" + appointmentTime + '\'' +
                 ", doctorId=" + doctorId +
-                ", doctor=" + (doctor != null ? doctor.getFullName() : "null") +
+                ", assignedSession='" + assignedSession + '\'' +
                 ", status='" + status + '\'' +
                 '}';
     }

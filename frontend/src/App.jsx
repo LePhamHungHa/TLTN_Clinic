@@ -21,6 +21,9 @@ import PatientInfo from "./pages/Patient/PatientInfo.jsx";
 import AppointmentsPage from "./pages/Patient/Appointments.jsx";
 import BMIPage from "./pages/Patient/BMIPage.jsx";
 
+// CHỈ THÊM TRANG ADMIN QUẢN LÝ LỊCH HẸN
+import AdminAppointments from "./pages/Admin/AdminAppointments.jsx";
+
 function App() {
   const user = JSON.parse(localStorage.getItem("user")) || null;
 
@@ -148,6 +151,20 @@ function App() {
             <>
               <Header />
               <BMIPage />
+            </>
+          }
+        />
+
+        {/* ==================== ADMIN ==================== */}
+
+        {/* Quản lý lịch hẹn - Admin */}
+        <Route
+          path="/admin/appointments"
+          element={
+            <>
+              <Header />
+              <AdminAppointments />
+              <Footer />
             </>
           }
         />

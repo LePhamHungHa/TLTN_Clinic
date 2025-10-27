@@ -1,0 +1,444 @@
+.admin-appointments-container {
+  padding: 20px;
+  min-width: 100vw;
+  min-height: 100vh;
+  margin: 0 auto;
+  font-family: 'Segoe UI', Arial, sans-serif;
+  color: #000000; 
+}
+
+.admin-header {
+  text-align: center;
+  margin-bottom: 30px;
+  background: linear-gradient(135deg, #1e5eb3 0%, #2c75d1 100%);
+  color: white;
+  padding: 30px;
+  border-radius: 15px;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
+.admin-header h1 {
+  margin: 0 0 10px 0;
+  font-size: 32px;
+  font-weight: 700;
+  color: white; /* Giữ màu trắng cho tiêu đề header */
+}
+
+.admin-header p {
+  margin: 0;
+  font-size: 16px;
+  opacity: 0.9;
+  color: white; /* Giữ màu trắng cho mô tả header */
+}
+
+/* Thống kê */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+  margin-bottom: 30px;
+}
+
+.stat-card {
+  background: white;
+  padding: 25px;
+  border-radius: 12px;
+  text-align: center;
+  box-shadow: 0 3px 10px rgba(0,0,0,0.08);
+  border-left: 5px solid #1e5eb3;
+  transition: transform 0.3s ease;
+  color: #000000; /* Màu chữ đen */
+}
+
+.stat-card:hover {
+  transform: translateY(-3px);
+}
+
+.stat-card.total { border-left-color: #1e5eb3; }
+.stat-card.approved { border-left-color: #48bb78; }
+.stat-card.pending { border-left-color: #ed8936; }
+.stat-card.rejected { border-left-color: #e53e3e; }
+
+.stat-card h3 {
+  margin: 0 0 10px 0;
+  font-size: 14px;
+  color: #4a5568; /* Đổi từ xám nhạt sang xám đậm hơn */
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.stat-number {
+  font-size: 32px;
+  font-weight: 700;
+  margin: 0;
+  color: #000000; /* Màu đen cho số thống kê */
+}
+
+/* Bộ lọc */
+.filters-section {
+  background: white;
+  padding: 25px;
+  border-radius: 12px;
+  box-shadow: 0 3px 10px rgba(0,0,0,0.08);
+  margin-bottom: 30px;
+  display: flex;
+  gap: 20px;
+  align-items: end;
+  flex-wrap: wrap;
+  color: #000000; /* Màu chữ đen */
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 180px;
+}
+
+.filter-group label {
+  font-weight: 600;
+  color: #000000; /* Màu đen cho label */
+  font-size: 14px;
+}
+
+.filter-group select,
+.filter-group input {
+  padding: 10px 12px;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 14px;
+  transition: border-color 0.3s;
+  color: #000000; /* Màu đen cho text trong input */
+  background: white; /* Đảm bảo nền trắng */
+}
+
+.filter-group select:focus,
+.filter-group input:focus {
+  outline: none;
+  border-color: #1e5eb3;
+  color: #000000; /* Màu đen khi focus */
+}
+
+.clear-filters {
+  background: #a0aec0;
+  color: white; /* Giữ màu trắng cho chữ trên nút */
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background 0.3s;
+}
+
+.clear-filters:hover {
+  background: #718096;
+}
+
+/* Danh sách lịch hẹn */
+.appointments-list {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 3px 10px rgba(0,0,0,0.08);
+  overflow: hidden;
+  color: #000000; /* Màu chữ đen */
+}
+
+.list-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 25px;
+  border-bottom: 2px solid #f7fafc;
+  background: #f8fafc;
+}
+
+.list-header h2 {
+  margin: 0;
+  color: #000000; /* Màu đen cho tiêu đề danh sách */
+  font-size: 24px;
+}
+
+.refresh-btn {
+  background: #1e5eb3;
+  color: white; /* Giữ màu trắng cho chữ trên nút */
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background 0.3s;
+}
+
+.refresh-btn:hover {
+  background: #164a94;
+}
+
+.no-data {
+  text-align: center;
+  padding: 60px 20px;
+  color: #4a5568; /* Đổi sang màu xám đậm hơn */
+}
+
+.no-data p {
+  font-size: 18px;
+  margin: 0;
+  color: #4a5568; /* Đổi sang màu xám đậm hơn */
+}
+
+/* Grid lịch hẹn */
+.appointments-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+  gap: 20px;
+  padding: 25px;
+}
+
+.appointment-card {
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  transition: all 0.3s ease;
+  color: #000000; /* Màu chữ đen */
+}
+
+.appointment-card:hover {
+  box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+  transform: translateY(-2px);
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.card-header h3 {
+  margin: 0;
+  color: #000000; /* Màu đen cho tên bệnh nhân */
+  font-size: 18px;
+  font-weight: 600;
+}
+
+/* Status badges */
+.status-badge {
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.status-approved {
+  background: #c6f6d5;
+  color: #22543d; /* Giữ màu xanh đậm cho chữ */
+}
+
+.status-pending {
+  background: #fed7d7;
+  color: #742a2a; /* Giữ màu đỏ đậm cho chữ */
+}
+
+.status-manual {
+  background: #feebc8;
+  color: #744210; /* Giữ màu cam đậm cho chữ */
+}
+
+.status-rejected {
+  background: #fed7d7;
+  color: #c53030; /* Giữ màu đỏ đậm cho chữ */
+}
+
+.status-default {
+  background: #e2e8f0;
+  color: #4a5568; /* Màu xám đậm */
+}
+
+/* Card content */
+.card-content {
+  margin-bottom: 20px;
+}
+
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  padding: 4px 0;
+  color: #000000; /* Màu chữ đen */
+}
+
+.info-row .label {
+  font-weight: 600;
+  color: #000000; /* Màu đen cho label */
+  min-width: 100px;
+}
+
+.info-row.highlight {
+  background: #f0fff4;
+  padding: 8px 12px;
+  border-radius: 6px;
+  margin: 5px -12px;
+  color: #000000; /* Màu chữ đen */
+}
+
+.queue-number {
+  background: #1e5eb3;
+  color: white; /* Giữ màu trắng cho số thứ tự */
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-weight: bold;
+}
+
+.approved-details {
+  background: #f0f9ff;
+  padding: 15px;
+  border-radius: 8px;
+  margin: 15px -15px;
+  border-left: 4px solid #1e5eb3;
+  color: #000000; /* Màu chữ đen */
+}
+
+.symptoms {
+  margin-top: 15px;
+  padding-top: 15px;
+  border-top: 1px dashed #e2e8f0;
+}
+
+.symptoms .label {
+  font-weight: 600;
+  color: #000000; /* Màu đen cho label triệu chứng */
+  display: block;
+  margin-bottom: 5px;
+}
+
+.symptoms p {
+  margin: 0;
+  color: #4a5568; /* Màu xám đậm cho mô tả triệu chứng */
+  font-style: italic;
+  line-height: 1.4;
+}
+
+/* Card actions */
+.card-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding-top: 15px;
+  border-top: 1px solid #f1f5f9;
+}
+
+.btn-approve {
+  background: #48bb78;
+  color: white; /* Giữ màu trắng cho chữ trên nút */
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 13px;
+  transition: background 0.3s;
+}
+
+.btn-approve:hover {
+  background: #38a169;
+}
+
+.btn-reject {
+  background: #e53e3e;
+  color: white; /* Giữ màu trắng cho chữ trên nút */
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 13px;
+  transition: background 0.3s;
+}
+
+.btn-reject:hover {
+  background: #c53030;
+}
+
+.btn-manual {
+  background: #ed8936;
+  color: white; /* Giữ màu trắng cho chữ trên nút */
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 13px;
+  transition: background 0.3s;
+}
+
+.btn-manual:hover {
+  background: #dd6b20;
+}
+
+.approved-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.success-text {
+  color: #22543d; /* Đổi sang màu xanh đậm thay vì xanh nhạt */
+  font-weight: 600;
+}
+
+.auto-badge {
+  background: #90cdf4;
+  color: #2c5282; /* Giữ màu xanh đậm cho chữ */
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.rejected-text {
+  color: #c53030; /* Đổi sang màu đỏ đậm hơn */
+  font-weight: 600;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .admin-appointments-container {
+    padding: 10px;
+  }
+
+  .filters-section {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .filter-group {
+    min-width: auto;
+  }
+
+  .appointments-grid {
+    grid-template-columns: 1fr;
+    padding: 15px;
+  }
+
+  .list-header {
+    flex-direction: column;
+    gap: 15px;
+    align-items: stretch;
+  }
+
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.loading {
+  text-align: center;
+  padding: 60px 20px;
+  font-size: 18px;
+  color: #4a5568;
+}

@@ -58,7 +58,7 @@ export const toastConfig = {
         minWidth: '320px',
         textAlign: 'center',
       },
-      icon: '❌', // 👈 Icon chữ X đỏ
+      icon: '❌', 
       iconTheme: {
         primary: '#dc2626',
         secondary: '#fef2f2',
@@ -79,7 +79,7 @@ export const toastConfig = {
         minWidth: '320px',
         textAlign: 'center',
       },
-      icon: '⚠️', // 👈 Icon cảnh báo
+      icon: '⚠️',
       iconTheme: {
         primary: '#d97706',
         secondary: '#fffbeb',
@@ -100,7 +100,7 @@ export const toastConfig = {
         minWidth: '320px',
         textAlign: 'center',
       },
-      icon: 'ℹ️', // 👈 Icon thông tin
+      icon: 'ℹ️', 
       iconTheme: {
         primary: '#2563eb',
         secondary: '#eff6ff',
@@ -121,7 +121,7 @@ export const toastConfig = {
         minWidth: '320px',
         textAlign: 'center',
       },
-      icon: '⏳', // 👈 Icon đồng hồ cát
+      icon: '⏳', 
       iconTheme: {
         primary: '#6b7280',
         secondary: '#f9fafb',
