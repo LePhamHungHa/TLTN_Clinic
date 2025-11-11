@@ -1,7 +1,7 @@
 package com.example.clinic_backend.model;
 
-import java.time.LocalDate;
 import jakarta.persistence.*;
+import java.time.LocalDate;
 
 @Entity
 @Table(name = "patients")
@@ -18,7 +18,7 @@ public class Patient {
     private String fullName;
 
     @Column(name = "dob")
-    private LocalDate dob;
+    private LocalDate dob; // GIỮ LocalDate
 
     @Column(name = "bhyt")
     private String bhyt;
@@ -30,7 +30,6 @@ public class Patient {
     private String username;
     private String symptoms;
 
-    // 🆕 THÊM CÁC TRƯỜNG THÔNG TIN NGƯỜI NHÀ
     @Column(name = "relative_name")
     private String relativeName;
 
@@ -42,6 +41,9 @@ public class Patient {
 
     @Column(name = "relative_relationship")
     private String relativeRelationship;
+
+    // Constructors
+    public Patient() {}
 
     // Getters / Setters
     public Long getId() { return id; }
@@ -77,7 +79,6 @@ public class Patient {
     public String getBhyt() { return bhyt; }
     public void setBhyt(String bhyt) { this.bhyt = bhyt; }
 
-    // 🆕 GETTERS VÀ SETTERS CHO THÔNG TIN NGƯỜI NHÀ
     public String getRelativeName() { return relativeName; }
     public void setRelativeName(String relativeName) { this.relativeName = relativeName; }
 

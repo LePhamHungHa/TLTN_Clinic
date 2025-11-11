@@ -5,7 +5,7 @@ import com.example.clinic_backend.service.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
@@ -27,9 +27,6 @@ public class UserManagementController {
 
     @Autowired
     private DoctorService doctorService;
-
-    @Autowired
-    private PasswordEncoder passwordEncoder;
 
     @Autowired
     private DepartmentService departmentService;
@@ -68,8 +65,9 @@ public class UserManagementController {
         }
     }
 
-    // API 3: Lấy tất cả bác sĩ
+    // API 3: Lấy tất cả bác sĩ - ĐÃ SỬA
     @GetMapping("/doctors")
+    @Transactional(readOnly = true)
     public ResponseEntity<List<Doctor>> getAllDoctors() {
         System.out.println("=== 👨‍⚕️ USER MANAGEMENT - GET ALL DOCTORS ===");
         
@@ -79,10 +77,11 @@ public class UserManagementController {
             
             // Debug: kiểm tra dữ liệu department
             for (Doctor doctor : doctors) {
-                System.out.println("Doctor: " + doctor.getFullName() + 
+                System.out.println("📋 Final Doctor Data: " + doctor.getFullName() + 
                     ", Department ID: " + doctor.getDepartmentId() +
-                    ", Department Name: " + (doctor.getDepartment() != null ? 
-                    doctor.getDepartment().getDepartmentName() : "NULL"));
+                    ", Department Object: " + (doctor.getDepartment() != null ? 
+                    doctor.getDepartment().getDepartmentName() : "NULL") +
+                    ", Department Name via getter: " + doctor.getDepartmentName());
             }
             
             return ResponseEntity.ok(doctors);
@@ -105,8 +104,8 @@ public class UserManagementController {
                 return ResponseEntity.badRequest().body("Username đã tồn tại");
             }
             
-            // Mã hóa password
-            user.setPassword(passwordEncoder.encode(user.getPassword()));
+            // DEBUG: In thông tin password
+            System.out.println("🔐 Original password: " + user.getPassword());
             
             User createdUser = userService.createUser(user);
             
@@ -119,11 +118,10 @@ public class UserManagementController {
         }
     }
 
-    // API 5: Tạo bác sĩ mới - ĐÃ SỬA
+    // API 5: Tạo bác sĩ mới
     @PostMapping("/doctors")
     public ResponseEntity<?> createDoctor(@RequestBody Map<String, Object> doctorData) {
         System.out.println("=== 👨‍⚕️ USER MANAGEMENT - CREATE DOCTOR ===");
-        System.out.println("📥 Received doctor data: " + doctorData);
         
         try {
             // Extract data từ request
@@ -160,7 +158,7 @@ public class UserManagementController {
             // Tạo user trước
             User user = new User();
             user.setUsername(username);
-            user.setPassword(passwordEncoder.encode(password));
+            user.setPassword(password);
             user.setRole("DOCTOR");
             user.setPhone(phone);
             user.setEmail(email);
@@ -173,7 +171,18 @@ public class UserManagementController {
             Doctor doctor = new Doctor();
             doctor.setUserId(createdUser.getId());
             doctor.setFullName(fullName);
-            doctor.setDateOfBirth(dateOfBirth != null ? java.sql.Date.valueOf(dateOfBirth) : null);
+            
+            if (dateOfBirth != null && !dateOfBirth.isEmpty()) {
+                try {
+                    doctor.setDateOfBirth(java.time.LocalDate.parse(dateOfBirth));
+                } catch (Exception e) {
+                    System.err.println("⚠️ Invalid date format for doctor: " + dateOfBirth);
+                    doctor.setDateOfBirth(null);
+                }
+            } else {
+                doctor.setDateOfBirth(null);
+            }
+            
             doctor.setGender(gender);
             doctor.setCitizenId(citizenId);
             doctor.setAddress(address);
@@ -197,7 +206,82 @@ public class UserManagementController {
         }
     }
 
-    // API 6: Xóa người dùng
+    // API 6: Tạo bệnh nhân mới
+    @PostMapping("/patients")
+    public ResponseEntity<?> createPatient(@RequestBody Map<String, Object> patientData) {
+        System.out.println("=== 🏥 USER MANAGEMENT - CREATE PATIENT ===");
+        
+        try {
+            // Extract data từ request
+            String username = (String) patientData.get("username");
+            String password = (String) patientData.get("password");
+            String fullName = (String) patientData.get("full_name");
+            String dob = (String) patientData.get("dob");
+            String phone = (String) patientData.get("phone");
+            String address = (String) patientData.get("address");
+            String email = (String) patientData.get("email");
+            String symptoms = (String) patientData.get("symptoms");
+            String bhyt = (String) patientData.get("bhyt");
+            String relativeName = (String) patientData.get("relative_name");
+            String relativePhone = (String) patientData.get("relative_phone");
+            String relativeAddress = (String) patientData.get("relative_address");
+            String relativeRelationship = (String) patientData.get("relative_relationship");
+
+            // Kiểm tra username đã tồn tại chưa
+            if (userService.findByUsername(username).isPresent()) {
+                return ResponseEntity.badRequest().body("Username đã tồn tại");
+            }
+
+            // Tạo user trước
+            User user = new User();
+            user.setUsername(username);
+            user.setPassword(password);
+            user.setRole("PATIENT");
+            user.setPhone(phone);
+            user.setEmail(email);
+            user.setFullName(fullName);
+            
+            User createdUser = userService.createUser(user);
+            System.out.println("✅ Created user with ID: " + createdUser.getId());
+            
+            Patient patient = new Patient();
+            patient.setUser(createdUser);
+            patient.setFullName(fullName);
+            
+            if (dob != null && !dob.isEmpty()) {
+                try {
+                    patient.setDob(java.time.LocalDate.parse(dob));
+                } catch (Exception e) {
+                    System.err.println("⚠️ Invalid date format: " + dob);
+                    patient.setDob(null);
+                }
+            } else {
+                patient.setDob(null);
+            }
+            
+            patient.setPhone(phone);
+            patient.setAddress(address);
+            patient.setEmail(email);
+            patient.setSymptoms(symptoms);
+            patient.setBhyt(bhyt);
+            patient.setRelativeName(relativeName);
+            patient.setRelativePhone(relativePhone);
+            patient.setRelativeAddress(relativeAddress);
+            patient.setRelativeRelationship(relativeRelationship);
+            
+            Patient createdPatient = patientService.createPatient(patient);
+            System.out.println("✅ Successfully created patient: " + createdPatient.getFullName());
+            
+            return ResponseEntity.ok(createdPatient);
+            
+        } catch (Exception e) {
+            System.err.println("❌ Error in createPatient: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.badRequest().body("Lỗi khi tạo bệnh nhân: " + e.getMessage());
+        }
+    }
+
+    // API 7: Xóa người dùng
     @DeleteMapping("/{userId}")
     public ResponseEntity<?> deleteUser(@PathVariable Long userId) {
         System.out.println("=== 🗑️ USER MANAGEMENT - DELETE USER ===");
@@ -213,7 +297,7 @@ public class UserManagementController {
         }
     }
 
-    // API 7: Lấy thống kê người dùng
+    // API 8: Lấy thống kê người dùng
     @GetMapping("/stats")
     public ResponseEntity<Map<String, Object>> getUserStats() {
         System.out.println("=== 📊 USER MANAGEMENT - GET USER STATS ===");
@@ -238,7 +322,7 @@ public class UserManagementController {
         }
     }
 
-    // API 8: Cập nhật thông tin người dùng
+    // API 9: Cập nhật thông tin người dùng
     @PutMapping("/{userId}")
     public ResponseEntity<?> updateUser(@PathVariable Long userId, @RequestBody User user) {
         System.out.println("=== ✏️ USER MANAGEMENT - UPDATE USER ===");
@@ -259,7 +343,7 @@ public class UserManagementController {
         }
     }
 
-    // API 9: Lấy tất cả departments
+    // API 10: Lấy tất cả departments
     @GetMapping("/departments")
     public ResponseEntity<List<Department>> getAllDepartments() {
         System.out.println("=== 🏥 USER MANAGEMENT - GET ALL DEPARTMENTS ===");

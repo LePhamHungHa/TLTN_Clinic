@@ -1,13 +1,12 @@
 package com.example.clinic_backend.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
-import java.sql.Date;
-import java.sql.Timestamp;
+import java.time.LocalDate;
 
 @Entity
 @Table(name = "doctors")
 public class Doctor {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -19,64 +18,46 @@ public class Doctor {
     private String fullName;
 
     @Column(name = "date_of_birth")
-    private Date dateOfBirth;
+    private LocalDate dateOfBirth;
 
-    @Column(name = "gender")
     private String gender;
-
+    
     @Column(name = "citizen_id")
     private String citizenId;
-
-    @Column(name = "address")
+    
     private String address;
-
-    @Column(name = "phone")
     private String phone;
-
-    @Column(name = "email")
     private String email;
-
+    
     @Column(name = "department_id")
     private Long departmentId;
-
-    @Column(name = "degree")
+    
     private String degree;
-
-    @Column(name = "position")
     private String position;
-
+    
     @Column(name = "room_number")
     private String roomNumber;
-
-    @Column(name = "floor")
+    
     private String floor;
 
-    @Column(name = "created_at")
-    private Timestamp createdAt;
-
-    // Thêm quan hệ với Department để lấy tên khoa
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "department_id", insertable = false, updatable = false)
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     private Department department;
 
-    // --- Constructors ---
+    // Constructors
     public Doctor() {}
 
-    public Doctor(String fullName, String degree, String position, String phone, String email, Long departmentId) {
-        this.fullName = fullName;
-        this.degree = degree;
-        this.position = position;
-        this.phone = phone;
-        this.email = email;
-        this.departmentId = departmentId;
+    // Phương thức helper để lấy tên khoa
+    @Transient
+    public String getDepartmentName() {
+        if (department != null) {
+            return department.getDepartmentName();
+        }
+        return null;
     }
 
-    @PrePersist
-    protected void onCreate() {
-        createdAt = new Timestamp(System.currentTimeMillis());
-    }
-
-    // --- Getters and Setters ---
+    // Getters and Setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
@@ -86,8 +67,8 @@ public class Doctor {
     public String getFullName() { return fullName; }
     public void setFullName(String fullName) { this.fullName = fullName; }
 
-    public Date getDateOfBirth() { return dateOfBirth; }
-    public void setDateOfBirth(Date dateOfBirth) { this.dateOfBirth = dateOfBirth; }
+    public LocalDate getDateOfBirth() { return dateOfBirth; }
+    public void setDateOfBirth(LocalDate dateOfBirth) { this.dateOfBirth = dateOfBirth; }
 
     public String getGender() { return gender; }
     public void setGender(String gender) { this.gender = gender; }
@@ -119,14 +100,6 @@ public class Doctor {
     public String getFloor() { return floor; }
     public void setFloor(String floor) { this.floor = floor; }
 
-    public Timestamp getCreatedAt() { return createdAt; }
-    public void setCreatedAt(Timestamp createdAt) { this.createdAt = createdAt; }
-
     public Department getDepartment() { return department; }
     public void setDepartment(Department department) { this.department = department; }
-
-    // Method để lấy tên khoa
-    public String getDepartmentName() {
-        return department != null ? department.getDepartmentName() : null;
-    }
 }

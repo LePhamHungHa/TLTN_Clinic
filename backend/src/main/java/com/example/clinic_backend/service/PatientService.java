@@ -28,7 +28,7 @@ public class PatientService {
         return patientRepository.findById(id);
     }
 
-    // 🔥 QUAN TRỌNG: Tìm patient bằng user_id
+    // Tìm patient bằng user_id
     public Optional<Patient> getPatientByUserId(Long userId) {
         return patientRepository.findByUserId(userId);
     }
@@ -57,7 +57,7 @@ public class PatientService {
                     patient.setSymptoms(updatedPatient.getSymptoms());
                     patient.setBhyt(updatedPatient.getBhyt());
                     
-                    // 🆕 CẬP NHẬT THÔNG TIN NGƯỜI NHÀ
+                    // Cập nhật thông tin người nhà
                     patient.setRelativeName(updatedPatient.getRelativeName());
                     patient.setRelativePhone(updatedPatient.getRelativePhone());
                     patient.setRelativeAddress(updatedPatient.getRelativeAddress());
@@ -72,11 +72,17 @@ public class PatientService {
         patientRepository.deleteById(id);
     }
 
-    public Optional<Patient> getPatientByEmail(String email) {
+    public Optional<Patient> getPatientByUserEmail(String email) {
         return patientRepository.findByUserEmail(email); 
     }
 
-    // 🔥 Tạo patient từ user
+    // THÊM METHOD NÀY - Fix lỗi compilation
+    public Optional<Patient> getPatientByEmail(String email) {
+        // Sử dụng method có sẵn trong repository
+        return patientRepository.findByEmail(email);
+    }
+
+    // Tạo patient từ user
     public Patient createPatientFromUser(com.example.clinic_backend.model.User user) {
         Patient patient = new Patient();
         patient.setUser(user);
@@ -86,7 +92,7 @@ public class PatientService {
         patient.setAddress("");
         patient.setBhyt("");
         
-        // 🆕 KHỞI TẠO THÔNG TIN NGƯỜI NHÀ RỖNG
+        // Khởi tạo thông tin người nhà rỗng
         patient.setRelativeName("");
         patient.setRelativePhone("");
         patient.setRelativeAddress("");

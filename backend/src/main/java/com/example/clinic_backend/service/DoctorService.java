@@ -3,6 +3,7 @@ package com.example.clinic_backend.service;
 import com.example.clinic_backend.model.Doctor;
 import com.example.clinic_backend.repository.DoctorRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
@@ -39,34 +40,61 @@ public class DoctorService {
         }
     }
 
-    // Lấy toàn bộ bác sĩ
+    // Lấy toàn bộ bác sĩ với department
+    @Transactional(readOnly = true)
     public List<Doctor> getAllDoctors() {
-        List<Doctor> doctors = doctorRepository.findAllWithDepartment();
-        System.out.println("📋 Retrieved " + doctors.size() + " doctors with department info");
-        return doctors;
+        try {
+            System.out.println("🔄 DoctorService: Loading all doctors with departments...");
+            
+            // Sử dụng phương thức có JOIN FETCH
+            List<Doctor> doctors = doctorRepository.findAllWithDepartment();
+            
+            // Debug chi tiết từng doctor
+            for (Doctor doctor : doctors) {
+                System.out.println("🔍 Doctor Debug - ID: " + doctor.getId() + 
+                    ", Name: " + doctor.getFullName() +
+                    ", Dept ID: " + doctor.getDepartmentId() + 
+                    ", Dept Object: " + (doctor.getDepartment() != null ? 
+                    doctor.getDepartment().getDepartmentName() : "NULL") +
+                    ", Dept Name via getter: " + doctor.getDepartmentName());
+            }
+            
+            System.out.println("✅ DoctorService: Successfully loaded " + doctors.size() + " doctors");
+            return doctors;
+            
+        } catch (Exception e) {
+            System.err.println("❌ DoctorService Error: " + e.getMessage());
+            e.printStackTrace();
+            throw new RuntimeException("Lỗi khi lấy danh sách bác sĩ: " + e.getMessage());
+        }
     }
 
     // Lấy bác sĩ theo id
+    @Transactional(readOnly = true)
     public Optional<Doctor> getDoctorById(Long id) {
         return doctorRepository.findById(id);
     }
 
     // Tìm bác sĩ theo tên
+    @Transactional(readOnly = true)
     public List<Doctor> getDoctorsByName(String name) {
         return doctorRepository.findByFullNameContainingIgnoreCase(name);
     }
 
     // Tìm bác sĩ theo tên khoa
+    @Transactional(readOnly = true)
     public List<Doctor> getDoctorsByDepartmentName(String departmentName) {
         return doctorRepository.findByDepartmentNameContaining(departmentName);
     }
 
     // Tìm bác sĩ theo departmentId
+    @Transactional(readOnly = true)
     public List<Doctor> getDoctorsByDepartmentId(Long departmentId) {
         return doctorRepository.findByDepartmentId(departmentId);
     }
 
     // Tìm bác sĩ theo userId
+    @Transactional(readOnly = true)
     public Optional<Doctor> getDoctorByUserId(Long userId) {
         return doctorRepository.findByUserId(userId);
     }
