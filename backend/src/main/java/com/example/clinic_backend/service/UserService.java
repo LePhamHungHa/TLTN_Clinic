@@ -1,5 +1,6 @@
 package com.example.clinic_backend.service;
 
+import java.util.List;
 import java.util.Optional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -17,6 +18,110 @@ public class UserService {
 
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
+    // ========== CÁC PHƯƠNG THỨC QUẢN LÝ NGƯỜI DÙNG ==========
+    
+    // Lấy tất cả người dùng
+    public List<User> getAllUsers() {
+        return userRepository.findAll();
+    }
+    
+    // Lấy người dùng theo ID
+    public Optional<User> getUserById(Long userId) {
+        return userRepository.findById(userId);
+    }
+    
+    // Tạo người dùng mới
+    public User createUser(User user) {
+        // Kiểm tra username đã tồn tại chưa
+        if (userRepository.existsByUsername(user.getUsername())) {
+            throw new RuntimeException("Username đã tồn tại");
+        }
+        
+        // Mã hóa password nếu có
+        if (user.getPassword() != null && !user.getPassword().isEmpty()) {
+            user.setPassword(passwordEncoder.encode(user.getPassword()));
+        }
+        
+        // Đảm bảo role không null
+        if (user.getRole() == null || user.getRole().isEmpty()) {
+            user.setRole("PATIENT");
+        }
+        
+        return userRepository.save(user);
+    }
+    
+    // Cập nhật người dùng
+    @Transactional
+    public User updateUser(Long userId, User userDetails) {
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng với ID: " + userId));
+        
+        // Cập nhật các trường (chỉ cập nhật các trường không null)
+        if (userDetails.getUsername() != null && !userDetails.getUsername().isEmpty()) {
+            // Kiểm tra username mới không trùng với người dùng khác
+            Optional<User> existingUser = userRepository.findByUsername(userDetails.getUsername());
+            if (existingUser.isPresent() && !existingUser.get().getId().equals(userId)) {
+                throw new RuntimeException("Username đã được sử dụng bởi người dùng khác");
+            }
+            user.setUsername(userDetails.getUsername());
+        }
+        
+        if (userDetails.getEmail() != null) {
+            user.setEmail(userDetails.getEmail());
+        }
+        
+        if (userDetails.getPhone() != null) {
+            user.setPhone(userDetails.getPhone());
+        }
+        
+        if (userDetails.getFullName() != null) {
+            user.setFullName(userDetails.getFullName());
+        }
+        
+        if (userDetails.getRole() != null) {
+            user.setRole(userDetails.getRole());
+        }
+        
+        if (userDetails.getAvatar() != null) {
+            user.setAvatar(userDetails.getAvatar());
+        }
+        
+        return userRepository.save(user);
+    }
+    
+    // Xóa người dùng
+    @Transactional
+    public void deleteUser(Long userId) {
+        if (!userRepository.existsById(userId)) {
+            throw new RuntimeException("Không tìm thấy người dùng với ID: " + userId);
+        }
+        userRepository.deleteById(userId);
+    }
+    
+    // Tìm người dùng theo username
+    public Optional<User> findByUsername(String username) {
+        return userRepository.findByUsername(username);
+    }
+    
+    // ========== CÁC PHƯƠNG THỨC TÌM KIẾM & LỌC ==========
+    
+    // Tìm người dùng theo role
+    public List<User> getUsersByRole(String role) {
+        return userRepository.findByRole(role);
+    }
+    
+    // Tìm kiếm người dùng
+    public List<User> searchUsers(String keyword) {
+        return userRepository.searchUsers(keyword);
+    }
+    
+    // Lấy người dùng theo tên
+    public List<User> findByFullNameContaining(String name) {
+        return userRepository.findByFullNameContaining(name);
+    }
+    
+    // ========== CÁC PHƯƠNG THỨC XÁC THỰC ==========
+    
     // Method authenticate for login
     public User authenticate(String usernameOrPhone, String password) {
         Optional<User> userOpt = userRepository.findByUsernameOrPhone(usernameOrPhone, usernameOrPhone);
@@ -34,6 +139,7 @@ public class UserService {
         throw new RuntimeException("Sai username hoặc password");
     }
 
+    // Đăng ký người dùng mới
     public User registerUser(RegisterRequest request) {
         if (userRepository.existsByUsername(request.getUsername())) {
             throw new RuntimeException("Username đã tồn tại");
@@ -51,7 +157,7 @@ public class UserService {
         return userRepository.save(user);
     }
 
-     // Đổi mật khẩu
+    // Đổi mật khẩu
     @Transactional
     public void changePassword(String username, String currentPassword, String newPassword) {
         System.out.println("🔐 CHANGE PASSWORD for user: " + username);
@@ -79,9 +185,11 @@ public class UserService {
         user.setPassword(passwordEncoder.encode(newPassword));
         userRepository.save(user);
         
-        System.out.println(" PASSWORD CHANGED SUCCESSFULLY for user: " + username);
+        System.out.println("✅ PASSWORD CHANGED SUCCESSFULLY for user: " + username);
     }
 
+    // ========== CÁC PHƯƠNG THỨC TÌM KIẾM ==========
+    
     public User findByPhoneNumber(String phone) {
         return userRepository.findByPhone(phone).orElse(null);
     }
@@ -107,7 +215,24 @@ public class UserService {
     public User save(User user) {
         return userRepository.save(user);
     }
+    
+    // Kiểm tra username đã tồn tại
+    public boolean usernameExists(String username) {
+        return userRepository.existsByUsername(username);
+    }
+    
+    // Kiểm tra email đã tồn tại
+    public boolean emailExists(String email) {
+        return userRepository.existsByEmail(email);
+    }
+    
+    // Kiểm tra số điện thoại đã tồn tại
+    public boolean phoneExists(String phone) {
+        return userRepository.existsByPhone(phone);
+    }
 
+    // ========== CÁC PHƯƠNG THỨC SOCIAL LOGIN ==========
+    
     @Transactional
     public User createOrUpdateUserFromGoogle(String email, String name, String uid, String picture) {
         System.out.println("🔧 createOrUpdateUserFromGoogle: email=" + email + ", uid=" + uid);
@@ -126,7 +251,7 @@ public class UserService {
 
             if (existingUser.isPresent()) {
                 User user = existingUser.get();
-                System.out.println("UPDATE GOOGLE USER: " + email);
+                System.out.println("🔄 UPDATE GOOGLE USER: " + email);
                 if (name != null && !name.trim().isEmpty()) {
                     user.setFullName(name);
                 }
@@ -142,7 +267,7 @@ public class UserService {
                 }
                 return save(user);
             } else {
-                System.out.println("CREATE NEW GOOGLE USER: " + email);
+                System.out.println("🆕 CREATE NEW GOOGLE USER: " + email);
                 User user = new User();
                 user.setUsername(email);
                 user.setEmail(email);
@@ -154,7 +279,7 @@ public class UserService {
                 return save(user);
             }
         } catch (Exception e) {
-            System.err.println("GOOGLE SERVICE ERROR: " + e.getMessage());
+            System.err.println("❌ GOOGLE SERVICE ERROR: " + e.getMessage());
             e.printStackTrace();
             throw new RuntimeException("Lỗi khi tạo hoặc cập nhật người dùng Google: " + e.getMessage());
         }
@@ -177,7 +302,7 @@ public class UserService {
 
             if (existingUser.isPresent()) {
                 User user = existingUser.get();
-                System.out.println(" UPDATE FB USER: " + email);
+                System.out.println("🔄 UPDATE FB USER: " + email);
                 if (name != null && !name.trim().isEmpty()) {
                     user.setFullName(name);
                 }
@@ -190,7 +315,7 @@ public class UserService {
                 }
                 return save(user);
             } else {
-                System.out.println("CREATE NEW FB USER: " + email);
+                System.out.println("🆕 CREATE NEW FB USER: " + email);
                 User user = new User();
                 user.setUsername(email);
                 user.setEmail(email);
@@ -201,9 +326,19 @@ public class UserService {
                 return save(user);
             }
         } catch (Exception e) {
-            System.err.println("FB SERVICE ERROR: " + e.getMessage());
+            System.err.println("❌ FB SERVICE ERROR: " + e.getMessage());
             e.printStackTrace();
             throw new RuntimeException("Lỗi khi tạo hoặc cập nhật người dùng Facebook: " + e.getMessage());
         }
+    }
+    
+    // ========== CÁC PHƯƠNG THỨC THỐNG KÊ ==========
+    
+    public long countUsers() {
+        return userRepository.count();
+    }
+    
+    public long countUsersByRole(String role) {
+        return userRepository.findByRole(role).size();
     }
 }

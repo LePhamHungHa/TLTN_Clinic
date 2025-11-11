@@ -2,6 +2,7 @@ package com.example.clinic_backend.model;
 
 import jakarta.persistence.*;
 import java.sql.Date;
+import java.sql.Timestamp;
 
 @Entity
 @Table(name = "doctors")
@@ -29,9 +30,6 @@ public class Doctor {
     @Column(name = "address")
     private String address;
 
-    @Column(name = "specialty")
-    private String specialty;
-
     @Column(name = "phone")
     private String phone;
 
@@ -47,17 +45,36 @@ public class Doctor {
     @Column(name = "position")
     private String position;
 
-    @Column(name = "password")
-    private String password;
-
-    @Column(name = "username")
-    private String username;
-
     @Column(name = "room_number")
     private String roomNumber;
 
     @Column(name = "floor")
     private String floor;
+
+    @Column(name = "created_at")
+    private Timestamp createdAt;
+
+    // Thêm quan hệ với Department để lấy tên khoa
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "department_id", insertable = false, updatable = false)
+    private Department department;
+
+    // --- Constructors ---
+    public Doctor() {}
+
+    public Doctor(String fullName, String degree, String position, String phone, String email, Long departmentId) {
+        this.fullName = fullName;
+        this.degree = degree;
+        this.position = position;
+        this.phone = phone;
+        this.email = email;
+        this.departmentId = departmentId;
+    }
+
+    @PrePersist
+    protected void onCreate() {
+        createdAt = new Timestamp(System.currentTimeMillis());
+    }
 
     // --- Getters and Setters ---
     public Long getId() { return id; }
@@ -81,9 +98,6 @@ public class Doctor {
     public String getAddress() { return address; }
     public void setAddress(String address) { this.address = address; }
 
-    public String getSpecialty() { return specialty; }
-    public void setSpecialty(String specialty) { this.specialty = specialty; }
-
     public String getPhone() { return phone; }
     public void setPhone(String phone) { this.phone = phone; }
 
@@ -99,15 +113,20 @@ public class Doctor {
     public String getPosition() { return position; }
     public void setPosition(String position) { this.position = position; }
 
-    public String getPassword() { return password; }
-    public void setPassword(String password) { this.password = password; }
-
-    public String getUsername() { return username; }
-    public void setUsername(String username) { this.username = username; }
-
-     public String getRoomNumber() { return roomNumber; }
+    public String getRoomNumber() { return roomNumber; }
     public void setRoomNumber(String roomNumber) { this.roomNumber = roomNumber; }
 
     public String getFloor() { return floor; }
     public void setFloor(String floor) { this.floor = floor; }
+
+    public Timestamp getCreatedAt() { return createdAt; }
+    public void setCreatedAt(Timestamp createdAt) { this.createdAt = createdAt; }
+
+    public Department getDepartment() { return department; }
+    public void setDepartment(Department department) { this.department = department; }
+
+    // Method để lấy tên khoa
+    public String getDepartmentName() {
+        return department != null ? department.getDepartmentName() : null;
+    }
 }
