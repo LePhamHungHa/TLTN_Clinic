@@ -61,3 +61,28 @@
 .payment-back:hover {
   background: #e5b308;
 }
+
+.status-badge {
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 14px;
+  margin: 10px 0;
+}
+
+.status-badge.success {
+  background-color: #e8f5e8;
+  color: #2e7d32;
+  border: 1px solid #2e7d32;
+}
+
+.status-badge.error {
+  background-color: #ffebee;
+  color: #c62828;
+  border: 1px solid #c62828;
+}
+
+.status-badge.pending {
+  background-color: #fff3e0;
+  color: #ef6c00;
+  border: 1px solid #ef6c00;
+}

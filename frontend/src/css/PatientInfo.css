@@ -1,6 +1,6 @@
 /* src/css/PatientInfo.css */
 .patient-info-container {
-  max-width: 800px;
+  min-width: 100vw;
   margin: 0 auto;
   padding: 20px;
   background: #f8f9fa;

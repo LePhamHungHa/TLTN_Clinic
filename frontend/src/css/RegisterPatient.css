@@ -327,11 +327,6 @@
   font-size: 1.1rem;
 }
 
-.payment-info p {
-  margin: 0;
-  color: #7f8c8d;
-  font-size: 0.9rem;
-}
 
 .registration-summary {
   background: #f8f9fa;
@@ -543,8 +538,7 @@
 .department-description,
 .registration-summary,
 .payment-method-content,
-.payment-info h4,
-.payment-info p {
+.payment-info h4 {
   color: #000000 !important;
 }
 

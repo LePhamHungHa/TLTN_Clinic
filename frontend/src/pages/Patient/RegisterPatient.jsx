@@ -271,7 +271,7 @@ const RegisterClinic = () => {
     if (method === "online") {
       navigate("/payment", {
         state: {
-          patientId: registrationResult.id,
+          patientRegistrationId: registrationResult.id,
           amount: registrationResult.examinationFee || 150000,
           fullname: formData.fullname,
           phone: formData.phone,

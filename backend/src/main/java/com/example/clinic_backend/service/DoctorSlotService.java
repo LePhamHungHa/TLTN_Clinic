@@ -1,9 +1,11 @@
 package com.example.clinic_backend.service;
 
 import com.example.clinic_backend.dto.DoctorSlotDTO;
+import com.example.clinic_backend.model.PatientRegistration;
 import com.example.clinic_backend.repository.PatientRegistrationRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -23,7 +25,6 @@ public class DoctorSlotService {
         };
         
         for (String timeSlot : timeSlots) {
-            // Đếm số đăng ký đã APPROVED cho bác sĩ, ngày và khung giờ này
             Integer currentPatients = patientRegistrationRepository
                 .countByDoctorIdAndAppointmentDateAndAssignedSessionAndStatus(
                     doctorId, 
@@ -36,7 +37,7 @@ public class DoctorSlotService {
             slot.setDoctorId(doctorId);
             slot.setAppointmentDate(appointmentDate);
             slot.setTimeSlot(timeSlot);
-            slot.setMaxPatients(10); // Mỗi khung giờ tối đa 10 bệnh nhân
+            slot.setMaxPatients(10);
             slot.setCurrentPatients(currentPatients != null ? currentPatients : 0);
             slot.setAvailable(currentPatients == null || currentPatients < 10);
             
@@ -58,21 +59,52 @@ public class DoctorSlotService {
         return currentPatients == null || currentPatients < 10;
     }
     
-    // Method để lấy số thứ tự tiếp theo
-    public Integer getNextQueueNumber(Long doctorId, LocalDate appointmentDate, String timeSlot) {
-    Integer currentCount = patientRegistrationRepository
-        .countByDoctorIdAndAppointmentDateAndAssignedSessionAndStatus(
-            doctorId, 
-            appointmentDate,
-            timeSlot,
-            "APPROVED"
-        );
-    return (currentCount != null ? currentCount : 0) + 1;
-}
+    // QUAN TRỌNG: Method mới với LOCK để tránh race condition
+    @Transactional
+    public Integer getNextQueueNumberWithLock(Long doctorId, LocalDate appointmentDate, String timeSlot) {
+        try {
+            System.out.println("🔒 Getting next queue number WITH LOCK for doctor: " + doctorId + 
+                             ", date: " + appointmentDate + ", session: " + timeSlot);
+            
+            // Sử dụng method có LOCK để tránh trùng số
+            Integer currentCount = patientRegistrationRepository.countApprovedRegistrationsWithLock(
+                doctorId, appointmentDate, timeSlot
+            );
+            
+            int nextQueue = (currentCount != null ? currentCount : 0) + 1;
+            
+            System.out.println("🎯 Current count: " + currentCount + ", Next queue: " + nextQueue);
+            
+            // DEBUG: Kiểm tra xem có đơn trùng không
+            List<PatientRegistration> existingRegistrations = patientRegistrationRepository
+                .findByDoctorAndDateAndSession(doctorId, appointmentDate, timeSlot);
+            
+            if (!existingRegistrations.isEmpty()) {
+                System.out.println("📋 Existing registrations in this slot:");
+                existingRegistrations.forEach(reg -> {
+                    System.out.println("   - ID: " + reg.getId() + ", Queue: " + reg.getQueueNumber() + 
+                                     ", Name: " + reg.getFullName());
+                });
+            }
+            
+            return nextQueue;
+        } catch (Exception e) {
+            System.err.println("❌ Error getting next queue number with lock: " + e.getMessage());
+            e.printStackTrace();
+            // Fallback: sử dụng method không lock
+            return getNextQueueNumber(doctorId, appointmentDate, timeSlot);
+        }
+    }
     
-    // // Method cũ - giữ lại để không break code hiện tại, nhưng sẽ không dùng đến
-    // public void incrementSlotPatients(Long doctorId, String appointmentDate, String timeSlot) {
-    //     // Không làm gì cả vì giờ dùng patient_registrations trực tiếp
-    //     System.out.println("⚠️ incrementSlotPatients is deprecated - using patient_registrations directly");
-    // }
+    // Method fallback không dùng lock
+    public Integer getNextQueueNumber(Long doctorId, LocalDate appointmentDate, String timeSlot) {
+        Integer currentCount = patientRegistrationRepository
+            .countByDoctorIdAndAppointmentDateAndAssignedSessionAndStatus(
+                doctorId, 
+                appointmentDate,
+                timeSlot,
+                "APPROVED"
+            );
+        return (currentCount != null ? currentCount : 0) + 1;
+    }
 }

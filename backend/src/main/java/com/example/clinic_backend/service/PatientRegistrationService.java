@@ -25,12 +25,10 @@ public class PatientRegistrationService {
         this.autoApprovalService = autoApprovalService;
     }
 
-    // METHOD CŨ: Lấy toàn bộ lịch hẹn (không fetch doctor) - DÙNG CHO STATS
     public List<PatientRegistration> getAll() {
         return repository.findAll();
     }
 
-    // METHOD MỚI: Lấy toàn bộ lịch hẹn với doctor - DÙNG CHO ADMIN
     public List<PatientRegistration> getAllWithDoctor() {
         System.out.println("🔍 Service - Getting all registrations WITH DOCTOR info");
         List<PatientRegistration> result = repository.findAllWithDoctor();
@@ -38,12 +36,10 @@ public class PatientRegistrationService {
         return result;
     }
 
-    // Lấy lịch hẹn theo ID
     public Optional<PatientRegistration> getById(Long id) {
         return repository.findById(id);
     }
 
-    // Lấy lịch hẹn theo email
     public List<PatientRegistration> getByEmail(String email) {
         try {
             System.out.println("🔄 Fetching appointments with doctor info for email: " + email);
@@ -71,14 +67,13 @@ public class PatientRegistrationService {
         }
     }
 
-    // METHOD QUAN TRỌNG: Tạo đăng ký với tự động duyệt và kiểm tra slot
     @Transactional
     public PatientRegistration createRegistration(PatientRegistration registration) {
         System.out.println("🚀 Starting auto-approval process for: " + registration.getFullName());
         System.out.println("📋 Initial status: " + registration.getStatus());
         System.out.println("📋 Initial queue number: " + registration.getQueueNumber());
         
-        // Kiểm tra slot trước khi xử lý
+        // Check slots before processing
         if (registration.getDoctorId() != null && registration.getAssignedSession() != null) {
             boolean slotAvailable = doctorSlotService.isSlotAvailable(
                 registration.getDoctorId(),
@@ -94,7 +89,7 @@ public class PatientRegistrationService {
             }
         }
         
-        // QUAN TRỌNG: Chỉ gọi autoApprovalService một lần - nó sẽ tự xử lý số thứ tự
+        // IMPORTANT: Call autoApprovalService only once
         PatientRegistration processedRegistration = autoApprovalService.processNewRegistration(registration);
         
         System.out.println("🎉 Auto-approval completed!");
@@ -104,12 +99,10 @@ public class PatientRegistrationService {
         return processedRegistration;
     }
 
-    // Lấy đơn cần xử lý thủ công
     public List<PatientRegistration> getRegistrationsNeedingManualReview() {
         return repository.findByStatusOrderByCreatedAtAsc("NEEDS_MANUAL_REVIEW");
     }
 
-    // Thử duyệt đơn thủ công - ĐÃ SỬA
     @Transactional
     public PatientRegistration tryApproveRegistration(Long registrationId) {
         Optional<PatientRegistration> registrationOpt = repository.findById(registrationId);
@@ -119,7 +112,6 @@ public class PatientRegistrationService {
 
         PatientRegistration registration = registrationOpt.get();
         
-        // Kiểm tra slot từ patient_registrations
         boolean hasSlot = doctorSlotService.isSlotAvailable(
             registration.getDoctorId(),
             registration.getAppointmentDate().toString(),
@@ -127,16 +119,13 @@ public class PatientRegistrationService {
         );
 
         if (hasSlot) {
-            // QUAN TRỌNG: Không gán số thứ tự ở đây - để autoApprovalService xử lý
             System.out.println("🎯 Manual approval - Letting AutoApprovalService handle queue number");
-            
             return autoApprovalService.autoApproveRegistration(registration, registration.getAssignedSession());
         } else {
             throw new RuntimeException("No available slots for this appointment session");
         }
     }
 
-    // Từ chối đơn
     @Transactional
     public PatientRegistration rejectRegistration(Long registrationId, String reason) {
         Optional<PatientRegistration> registrationOpt = repository.findById(registrationId);
@@ -150,7 +139,7 @@ public class PatientRegistrationService {
         return repository.save(registration);
     }
 
-    // Các method cũ giữ nguyên
+    // Other methods remain the same
     public PatientRegistration save(PatientRegistration registration) {
         return repository.save(registration);
     }

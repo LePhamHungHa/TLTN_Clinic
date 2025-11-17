@@ -6,23 +6,21 @@ const AdminAppointments = () => {
   const [appointments, setAppointments] = useState([]);
   const [filteredAppointments, setFilteredAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState({});
   const [filters, setFilters] = useState({
     status: "ALL",
     date: "",
     search: "",
+    paymentStatus: "ALL",
   });
 
   useEffect(() => {
     fetchAppointments();
-    fetchStats();
   }, []);
 
   useEffect(() => {
     filterAppointments();
   }, [appointments, filters]);
 
-  // Hàm lấy token từ user object trong localStorage
   const getToken = () => {
     try {
       const userData = localStorage.getItem("user");
@@ -30,15 +28,12 @@ const AdminAppointments = () => {
         console.error("❌ Không tìm thấy user data");
         return null;
       }
-
       const user = JSON.parse(userData);
       const token = user?.token;
-
       if (!token) {
         console.error("❌ Không tìm thấy token");
         return null;
       }
-
       return token;
     } catch (error) {
       console.error("❌ Lỗi khi lấy token:", error);
@@ -65,10 +60,51 @@ const AdminAppointments = () => {
         }
       );
 
-      setAppointments(response.data);
+      // Thêm thông tin thanh toán vào mỗi appointment
+      const appointmentsWithPayment = await Promise.all(
+        response.data.map(async (appointment) => {
+          try {
+            const paymentResponse = await axios.get(
+              `http://localhost:8080/api/admin/registrations/${appointment.id}/payment-status`,
+              {
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                  "Content-Type": "application/json",
+                },
+              }
+            );
+
+            // CHUYỂN ĐỔI "Thành công" THÀNH "Đã thanh toán"
+            let paymentStatus =
+              paymentResponse.data.paymentStatus || "Chưa thanh toán";
+            if (paymentStatus === "Thành công") {
+              paymentStatus = "Đã thanh toán";
+            }
+
+            return {
+              ...appointment,
+              paymentStatus: paymentStatus,
+              paymentAmount: paymentResponse.data.amount,
+              paymentDate: paymentResponse.data.paymentDate,
+            };
+          } catch (error) {
+            console.error(
+              `Lỗi khi lấy trạng thái thanh toán cho đơn ${appointment.id}:`,
+              error
+            );
+            return {
+              ...appointment,
+              paymentStatus: "Chưa thanh toán",
+              paymentAmount: null,
+              paymentDate: null,
+            };
+          }
+        })
+      );
+
+      setAppointments(appointmentsWithPayment);
     } catch (error) {
       console.error("❌ Lỗi tải danh sách lịch hẹn:", error);
-
       if (error.response?.status === 403) {
         alert("❌ Bạn không có quyền ADMIN để truy cập tính năng này");
       } else if (error.response?.status === 401) {
@@ -81,31 +117,17 @@ const AdminAppointments = () => {
     }
   };
 
-  const fetchStats = async () => {
-    try {
-      const token = getToken();
-      if (!token) return;
-
-      const response = await axios.get(
-        "http://localhost:8080/api/admin/registrations/stats",
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
-      setStats(response.data);
-    } catch (error) {
-      console.error("❌ Lỗi tải thống kê:", error);
-    }
-  };
-
   const filterAppointments = () => {
     let filtered = appointments;
 
     if (filters.status !== "ALL") {
       filtered = filtered.filter((app) => app.status === filters.status);
+    }
+
+    if (filters.paymentStatus !== "ALL") {
+      filtered = filtered.filter(
+        (app) => app.paymentStatus === filters.paymentStatus
+      );
     }
 
     if (filters.date) {
@@ -145,7 +167,6 @@ const AdminAppointments = () => {
 
       alert("✅ Đã duyệt đơn thành công!");
       fetchAppointments();
-      fetchStats();
     } catch (error) {
       alert(
         `❌ ${
@@ -176,7 +197,6 @@ const AdminAppointments = () => {
 
       alert("✅ Đã từ chối đơn!");
       fetchAppointments();
-      fetchStats();
     } catch (error) {
       alert(
         "❌ Lỗi khi từ chối đơn: " + (error.response?.data || error.message)
@@ -202,7 +222,6 @@ const AdminAppointments = () => {
 
       alert("✅ Đã chuyển sang chờ xử lý thủ công!");
       fetchAppointments();
-      fetchStats();
     } catch (error) {
       alert(
         "❌ Lỗi khi cập nhật trạng thái: " +
@@ -211,20 +230,33 @@ const AdminAppointments = () => {
     }
   };
 
-  const getStatusBadge = (status) => {
-    const statusConfig = {
-      APPROVED: { label: "ĐÃ DUYỆT", class: "status-approved" },
-      PENDING: { label: "CHỜ DUYỆT", class: "status-pending" },
-      NEEDS_MANUAL_REVIEW: { label: "CẦN XỬ LÝ", class: "status-manual" },
-      REJECTED: { label: "ĐÃ TỪ CHỐI", class: "status-rejected" },
+  const getPaymentStatusBadge = (paymentStatus) => {
+    const paymentConfig = {
+      "Đã thanh toán": {
+        label: "ĐÃ THANH TOÁN",
+        class: "payment-status-paid",
+      },
+      "Chưa thanh toán": {
+        label: "CHƯA THANH TOÁN",
+        class: "payment-status-unpaid",
+      },
+      "Đang chờ xử lý": {
+        label: "ĐANG XỬ LÝ",
+        class: "payment-status-pending",
+      },
+      "Thất bại": {
+        label: "THẤT BẠI",
+        class: "payment-status-failed",
+      },
     };
 
-    const config = statusConfig[status] || {
-      label: status,
-      class: "status-default",
+    const config = paymentConfig[paymentStatus] || {
+      label: paymentStatus,
+      class: "payment-status-default",
     };
+
     return (
-      <span className={`status-badge ${config.class}`}>{config.label}</span>
+      <span className={`payment-badge ${config.class}`}>{config.label}</span>
     );
   };
 
@@ -232,6 +264,30 @@ const AdminAppointments = () => {
     if (!dateString) return "Chưa có";
     return new Date(dateString).toLocaleDateString("vi-VN");
   };
+
+  const formatDateTime = (dateTimeString) => {
+    if (!dateTimeString) return "Chưa có";
+    return new Date(dateTimeString).toLocaleString("vi-VN");
+  };
+
+  // Tính toán thống kê chính xác
+  const calculateStats = () => {
+    const total = appointments.length;
+    const approved = appointments.filter(
+      (app) =>
+        app.status === "APPROVED" || app.paymentStatus === "Đã thanh toán"
+    ).length;
+    const pending = appointments.filter(
+      (app) => app.status === "NEEDS_MANUAL_REVIEW" || app.status === "PENDING"
+    ).length;
+    const paid = appointments.filter(
+      (app) => app.paymentStatus === "Đã thanh toán"
+    ).length;
+
+    return { total, approved, pending, paid };
+  };
+
+  const statsData = calculateStats();
 
   if (loading) {
     return (
@@ -248,23 +304,23 @@ const AdminAppointments = () => {
         <p>Quản lý và xử lý các đơn đăng ký khám bệnh</p>
       </div>
 
-      {/* Thống kê */}
+      {/* Thống kê - SỬA LẠI ĐỂ TÍNH TOÁN CHÍNH XÁC */}
       <div className="stats-grid">
         <div className="stat-card total">
           <h3>Tổng đơn</h3>
-          <p className="stat-number">{appointments.length}</p>
+          <p className="stat-number">{statsData.total}</p>
         </div>
         <div className="stat-card approved">
           <h3>Đã duyệt</h3>
-          <p className="stat-number">{stats.APPROVED || 0}</p>
+          <p className="stat-number">{statsData.approved}</p>
         </div>
         <div className="stat-card pending">
           <h3>Chờ xử lý</h3>
-          <p className="stat-number">{stats.NEEDS_MANUAL_REVIEW || 0}</p>
+          <p className="stat-number">{statsData.pending}</p>
         </div>
-        <div className="stat-card rejected">
-          <h3>Từ chối</h3>
-          <p className="stat-number">{stats.REJECTED || 0}</p>
+        <div className="stat-card payment-stats">
+          <h3>Đã thanh toán</h3>
+          <p className="stat-number">{statsData.paid}</p>
         </div>
       </div>
 
@@ -281,6 +337,21 @@ const AdminAppointments = () => {
             <option value="PENDING">Chờ duyệt</option>
             <option value="NEEDS_MANUAL_REVIEW">Cần xử lý</option>
             <option value="REJECTED">Đã từ chối</option>
+          </select>
+        </div>
+
+        <div className="filter-group">
+          <label>Thanh toán:</label>
+          <select
+            value={filters.paymentStatus}
+            onChange={(e) =>
+              setFilters({ ...filters, paymentStatus: e.target.value })
+            }
+          >
+            <option value="ALL">Tất cả</option>
+            <option value="Đã thanh toán">Đã thanh toán</option>
+            <option value="Chưa thanh toán">Chưa thanh toán</option>
+            <option value="Đang chờ xử lý">Đang xử lý</option>
           </select>
         </div>
 
@@ -305,7 +376,14 @@ const AdminAppointments = () => {
 
         <button
           className="clear-filters"
-          onClick={() => setFilters({ status: "ALL", date: "", search: "" })}
+          onClick={() =>
+            setFilters({
+              status: "ALL",
+              paymentStatus: "ALL",
+              date: "",
+              search: "",
+            })
+          }
         >
           Xóa bộ lọc
         </button>
@@ -330,7 +408,28 @@ const AdminAppointments = () => {
               <div key={appointment.id} className="appointment-card">
                 <div className="card-header">
                   <h3>{appointment.fullName || "Chưa có tên"}</h3>
-                  {getStatusBadge(appointment.status)}
+                  <div className="status-group">
+                    {/* HIỂN THỊ TRẠNG THÁI THỰC TẾ */}
+                    {appointment.status === "APPROVED" ||
+                    appointment.paymentStatus === "Đã thanh toán" ? (
+                      <span className="status-badge status-approved">
+                        ĐÃ DUYỆT
+                      </span>
+                    ) : (
+                      <span
+                        className={`status-badge status-${
+                          appointment.status?.toLowerCase() || "default"
+                        }`}
+                      >
+                        {appointment.status === "PENDING" && "CHỜ DUYỆT"}
+                        {appointment.status === "NEEDS_MANUAL_REVIEW" &&
+                          "CẦN XỬ LÝ"}
+                        {appointment.status === "REJECTED" && "ĐÃ TỪ CHỐI"}
+                        {!appointment.status && "CHƯA XÁC ĐỊNH"}
+                      </span>
+                    )}
+                    {getPaymentStatusBadge(appointment.paymentStatus)}
+                  </div>
                 </div>
 
                 <div className="card-content">
@@ -351,19 +450,45 @@ const AdminAppointments = () => {
                     <span>{formatDate(appointment.appointmentDate)}</span>
                   </div>
 
-                  {appointment.status === "APPROVED" && (
-                    <div className="approved-details">
-                      <div className="info-row highlight">
+                  <div className="info-row">
+                    <span className="label">💰 Phí khám:</span>
+                    <span
+                      className={
+                        appointment.paymentStatus === "Đã thanh toán"
+                          ? "paid-amount"
+                          : ""
+                      }
+                    >
+                      {appointment.examinationFee?.toLocaleString() || "0"} VND
+                    </span>
+                  </div>
+
+                  {/* Chỉ hiển thị ngày thanh toán nếu đã thanh toán */}
+                  {appointment.paymentStatus === "Đã thanh toán" &&
+                    appointment.paymentDate && (
+                      <div className="info-row">
+                        <span className="label">⏰ Ngày thanh toán:</span>
+                        <span>{formatDateTime(appointment.paymentDate)}</span>
+                      </div>
+                    )}
+
+                  {/* HIỂN THỊ THÔNG TIN BUỔI KHÁM CHO CẢ ĐƠN ĐÃ THANH TOÁN VÀ CHƯA THANH TOÁN */}
+                  {(appointment.assignedSession ||
+                    appointment.queueNumber ||
+                    appointment.expectedTimeSlot ||
+                    appointment.roomNumber) && (
+                    <>
+                      <div className="info-row">
                         <span className="label">🕒 Buổi khám:</span>
                         <span>{appointment.assignedSession || "Chưa có"}</span>
                       </div>
-                      <div className="info-row highlight">
+                      <div className="info-row">
                         <span className="label">🎯 Số TT:</span>
                         <span className="queue-number">
                           {appointment.queueNumber || "Chưa có"}
                         </span>
                       </div>
-                      <div className="info-row highlight">
+                      <div className="info-row">
                         <span className="label">⏰ Khung giờ:</span>
                         <span>{appointment.expectedTimeSlot || "Chưa có"}</span>
                       </div>
@@ -371,14 +496,7 @@ const AdminAppointments = () => {
                         <span className="label">🚪 Phòng:</span>
                         <span>{appointment.roomNumber || "Chưa có"}</span>
                       </div>
-                      <div className="info-row">
-                        <span className="label">💰 Phí khám:</span>
-                        <span>
-                          {appointment.examinationFee?.toLocaleString() || "0"}{" "}
-                          VND
-                        </span>
-                      </div>
-                    </div>
+                    </>
                   )}
 
                   {appointment.symptoms && (
@@ -390,6 +508,18 @@ const AdminAppointments = () => {
                 </div>
 
                 <div className="card-actions">
+                  {/* CHỈ HIỂN THỊ "ĐÃ DUYỆT" NẾU THỰC SỰ ĐÃ DUYỆT */}
+                  {(appointment.status === "APPROVED" ||
+                    appointment.paymentStatus === "Đã thanh toán") && (
+                    <div className="approved-info">
+                      <span className="success-text">✅ Đã duyệt</span>
+                      {appointment.autoApproved && (
+                        <span className="auto-badge">🤖 Tự động</span>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Actions chỉ cho các trạng thái cần xử lý */}
                   {appointment.status === "NEEDS_MANUAL_REVIEW" && (
                     <>
                       <button
@@ -414,15 +544,6 @@ const AdminAppointments = () => {
                     >
                       🔄 Chuyển xử lý thủ công
                     </button>
-                  )}
-
-                  {appointment.status === "APPROVED" && (
-                    <div className="approved-info">
-                      <span className="success-text">✅ Đã duyệt</span>
-                      {appointment.autoApproved && (
-                        <span className="auto-badge">🤖 Tự động</span>
-                      )}
-                    </div>
                   )}
 
                   {appointment.status === "REJECTED" && (

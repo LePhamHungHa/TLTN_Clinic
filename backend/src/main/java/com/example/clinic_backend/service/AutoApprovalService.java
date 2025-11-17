@@ -12,7 +12,6 @@ import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Date;
-import java.util.Map;
 import java.util.Random;
 
 @Service
@@ -25,20 +24,20 @@ public class AutoApprovalService {
     @Autowired
     private DoctorRepository doctorRepository;
     
-    // Config khung giờ mới (7h-17h)
+    @Autowired
+    private DoctorSlotService doctorSlotService;
+    
     private static final String[] TIME_SLOTS = {
         "07:00-08:00", "08:00-09:00", "09:00-10:00", "10:00-11:00", 
         "11:00-12:00", "13:00-14:00", "14:00-15:00", "15:00-16:00", "16:00-17:00"
     };
     
-    // Số bệnh nhân tối đa mỗi khung giờ
     private static final int MAX_PATIENTS_PER_SLOT = 10;
     
     public boolean checkAvailableSlots(Long doctorId, LocalDate appointmentDate, String timeSlot) {
         try {
             System.out.println("🔍 Kiểm tra slot cho bác sĩ: " + doctorId + ", ngày: " + appointmentDate + ", khung giờ: " + timeSlot);
             
-            // Đếm số đơn đã được duyệt cho bác sĩ, ngày và khung giờ này
             Integer approvedCount = repository.countByDoctorIdAndAppointmentDateAndAssignedSessionAndStatus(
                 doctorId, appointmentDate, timeSlot, "APPROVED"
             );
@@ -49,7 +48,6 @@ public class AutoApprovalService {
             
             System.out.println("📊 Kiểm tra slot - " + timeSlot + ": " + approvedCount + "/" + MAX_PATIENTS_PER_SLOT + " đơn được duyệt");
             
-            // Trả về true nếu còn slot
             return approvedCount < MAX_PATIENTS_PER_SLOT;
         } catch (Exception e) {
             System.err.println("❌ Lỗi khi kiểm tra slot: " + e.getMessage());
@@ -58,6 +56,7 @@ public class AutoApprovalService {
         }
     }
     
+    @Transactional
     public PatientRegistration processNewRegistration(PatientRegistration registration) {
         System.out.println("🚀 AutoApprovalService - Xử lý đăng ký mới: " + registration.getFullName());
         
@@ -106,13 +105,14 @@ public class AutoApprovalService {
         return null;
     }
     
-    // QUAN TRỌNG: SỬA LẠI METHOD NÀY - GÁN SỐ THỨ TỰ ĐÚNG CÁCH
+    // QUAN TRỌNG: METHOD CHÍNH ĐÃ ĐƯỢC SỬA - SỬ DỤNG LOCK
+    @Transactional
     public PatientRegistration autoApproveRegistration(PatientRegistration registration, String timeSlot) {
         System.out.println("🚀 Bắt đầu tự động duyệt đơn - Khung giờ: " + timeSlot);
         
         try {
-            // QUAN TRỌNG: Gán số thứ tự TRƯỚC KHI set status APPROVED
-            assignQueueAndTimeSlot(registration, timeSlot);
+            // QUAN TRỌNG: Sử dụng method có LOCK để lấy số thứ tự
+            assignQueueAndTimeSlotWithLock(registration, timeSlot);
             
             // Generate các thông tin khác
             registration.setRegistrationNumber(generateRegistrationNumber(registration));
@@ -154,40 +154,29 @@ public class AutoApprovalService {
         }
     }
     
-    // QUAN TRỌNG: SỬA LẠI METHOD NÀY - ĐẾM TRƯỚC KHI CÓ ĐƠN HIỆN TẠI
-    private void assignQueueAndTimeSlot(PatientRegistration registration, String timeSlot) {
+    // QUAN TRỌNG: METHOD MỚI SỬ DỤNG LOCK để tránh trùng số thứ tự
+    private void assignQueueAndTimeSlotWithLock(PatientRegistration registration, String timeSlot) {
         LocalDate appointmentDate = registration.getAppointmentDate();
         Long doctorId = registration.getDoctorId();
         
-        System.out.println("🔍 Đang đếm số đơn approved TRƯỚC KHI đơn hiện tại được duyệt:");
+        System.out.println("🔒 Đang lấy số thứ tự với LOCK:");
         System.out.println("   - Bác sĩ: " + doctorId);
         System.out.println("   - Ngày: " + appointmentDate);
         System.out.println("   - Khung giờ: " + timeSlot);
         
-        // QUAN TRỌNG: Đếm số đã approved TRƯỚC KHI đơn hiện tại được approve
-        // Đơn hiện tại vẫn đang có status = null hoặc PROCESSING
-        Integer approvedCount = repository.countByDoctorIdAndAppointmentDateAndAssignedSessionAndStatus(
-            doctorId, appointmentDate, timeSlot, "APPROVED"
-        );
+        // QUAN TRỌNG: Sử dụng method có LOCK
+        int queueNumber = doctorSlotService.getNextQueueNumberWithLock(doctorId, appointmentDate, timeSlot);
         
-        if (approvedCount == null) {
-            approvedCount = 0;
-        }
-        
-        // Số thứ tự = số đã approved + 1
-        int queueNumber = approvedCount + 1;
         registration.setQueueNumber(queueNumber);
         registration.setExpectedTimeSlot(timeSlot);
         
-        System.out.println("🎯 Đã có " + approvedCount + " đơn approved trước đó");
         System.out.println("🎯 Số thứ tự của đơn hiện tại: " + queueNumber);
         
-        // DEBUG: Kiểm tra xem có đơn nào đã approved không
-        if (approvedCount > 0) {
-            System.out.println("⚠️ CÓ " + approvedCount + " ĐƠN ĐÃ APPROVED TRƯỚC ĐÓ!");
-        } else {
-            System.out.println("✅ Đây là đơn đầu tiên - số thứ tự sẽ là 1");
-        }
+        // Kiểm tra lại sau khi có lock
+        Integer finalCheck = repository.countByDoctorIdAndAppointmentDateAndAssignedSessionAndStatus(
+            doctorId, appointmentDate, timeSlot, "APPROVED"
+        );
+        System.out.println("✅ Final check - Số đơn approved: " + finalCheck);
     }
     
     private String generateRegistrationNumber(PatientRegistration reg) {

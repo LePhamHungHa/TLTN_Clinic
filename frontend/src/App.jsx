@@ -20,6 +20,7 @@ import PaymentPage from "./pages/Patient/PaymentPage.jsx";
 import PatientInfo from "./pages/Patient/PatientInfo.jsx";
 import AppointmentsPage from "./pages/Patient/Appointments.jsx";
 import BMIPage from "./pages/Patient/BMIPage.jsx";
+import PaymentResult from "./pages/Patient/PaymentResult.jsx";
 
 // Import Admin
 import AdminUsers from "./pages/Admin/AdminUsers.jsx";
@@ -152,6 +153,17 @@ function App() {
             <>
               <Header />
               <BMIPage />
+            </>
+          }
+        />
+
+        <Route
+          path="/payment-result"
+          element={
+            <>
+              <Header />
+              <PaymentResult />
+              <Footer />
             </>
           }
         />

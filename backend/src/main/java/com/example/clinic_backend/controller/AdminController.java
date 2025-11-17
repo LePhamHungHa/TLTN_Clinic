@@ -2,6 +2,8 @@
 package com.example.clinic_backend.controller;
 
 import com.example.clinic_backend.model.PatientRegistration;
+import com.example.clinic_backend.model.Payment;
+import com.example.clinic_backend.repository.PaymentRepository;
 import com.example.clinic_backend.service.PatientRegistrationService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -13,6 +15,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/admin")
@@ -22,6 +25,9 @@ public class AdminController {
     
     @Autowired
     private PatientRegistrationService registrationService;
+
+    @Autowired
+    private PaymentRepository paymentRepository; // Thêm dependency này
 
     // API 1: Lấy tất cả đơn đăng ký VỚI DOCTOR INFO
     @GetMapping("/registrations")
@@ -164,6 +170,49 @@ public class AdminController {
         } catch (Exception e) {
             System.err.println("❌ Error in markForManualReview: " + e.getMessage());
             return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    // API 6: Lấy trạng thái thanh toán của đơn đăng ký - THÊM VÀO ĐÂY
+    @GetMapping("/registrations/{registrationId}/payment-status")
+    public ResponseEntity<Map<String, Object>> getPaymentStatus(@PathVariable Long registrationId) {
+        System.out.println("=== 💰 ADMIN GET PAYMENT STATUS ===");
+        System.out.println("🔍 Registration ID: " + registrationId);
+        
+        try {
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            System.out.println("👤 Admin: " + auth.getName() + " | Getting payment status");
+            
+            // Tìm payment theo patient_registration_id
+            Optional<Payment> paymentOpt = paymentRepository.findByPatientRegistrationId(registrationId);
+            
+            Map<String, Object> result = new HashMap<>();
+            
+            if (paymentOpt.isPresent()) {
+                Payment payment = paymentOpt.get();
+                result.put("paymentStatus", payment.getStatus());
+                result.put("amount", payment.getAmount());
+                result.put("paymentDate", payment.getUpdatedAt());
+                
+                System.out.println("💰 Payment found - Status: " + payment.getStatus() + 
+                                 ", Amount: " + payment.getAmount());
+            } else {
+                result.put("paymentStatus", "Chưa thanh toán");
+                result.put("amount", null);
+                result.put("paymentDate", null);
+                
+                System.out.println("💰 No payment found for registration: " + registrationId);
+            }
+            
+            return ResponseEntity.ok(result);
+            
+        } catch (Exception e) {
+            System.err.println("❌ Error in getPaymentStatus: " + e.getMessage());
+            Map<String, Object> errorResult = new HashMap<>();
+            errorResult.put("paymentStatus", "Chưa thanh toán");
+            errorResult.put("amount", null);
+            errorResult.put("paymentDate", null);
+            return ResponseEntity.ok(errorResult);
         }
     }
 
