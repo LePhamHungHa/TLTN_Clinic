@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import QRCode from "react-qr-code";
 import "../../css/AppointmentsPage.css";
 
 const AppointmentsPage = () => {
@@ -10,11 +11,14 @@ const AppointmentsPage = () => {
   const [errorMessage, setErrorMessage] = useState(null);
   const [filters, setFilters] = useState({
     status: "ALL",
-    paymentStatus: "ALL", // 🆕 Thêm filter payment status
+    paymentStatus: "ALL",
     date: "",
     search: "",
   });
   const [expandedCard, setExpandedCard] = useState(null);
+  const [showQRModal, setShowQRModal] = useState(false);
+  const [selectedQRData, setSelectedQRData] = useState(null);
+  const [downloading, setDownloading] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -24,6 +28,16 @@ const AppointmentsPage = () => {
   useEffect(() => {
     filterAppointments();
   }, [appointments, filters]);
+
+  // Hàm chuyển tiếng Việt có dấu thành không dấu
+  const removeAccents = (str) => {
+    if (!str) return "";
+    return str
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/đ/g, "d")
+      .replace(/Đ/g, "D");
+  };
 
   const fetchAppointments = async () => {
     try {
@@ -93,13 +107,13 @@ const AppointmentsPage = () => {
 
       setAppointments(appointmentsWithPayment);
       setErrorMessage(null);
-    } catch (err) {
-      console.error("❌ Lỗi tải lịch hẹn:", err);
-      if (err.response?.status === 403) {
+    } catch (error) {
+      console.error("❌ Lỗi tải lịch hẹn:", error);
+      if (error.response?.status === 403) {
         setErrorMessage("Không có quyền truy cập. Vui lòng đăng nhập lại.");
-      } else if (err.response?.status === 404) {
+      } else if (error.response?.status === 404) {
         setErrorMessage("Không tìm thấy lịch hẹn nào.");
-      } else if (err.response?.status === 500) {
+      } else if (error.response?.status === 500) {
         setErrorMessage("Lỗi server. Vui lòng thử lại sau.");
       } else {
         setErrorMessage(
@@ -114,12 +128,10 @@ const AppointmentsPage = () => {
   const filterAppointments = () => {
     let filtered = appointments;
 
-    // Filter theo trạng thái đơn
     if (filters.status !== "ALL") {
       filtered = filtered.filter((app) => app.status === filters.status);
     }
 
-    // 🆕 Filter theo trạng thái thanh toán
     if (filters.paymentStatus !== "ALL") {
       filtered = filtered.filter(
         (app) => app.paymentStatus === filters.paymentStatus
@@ -160,6 +172,207 @@ const AppointmentsPage = () => {
     setExpandedCard(expandedCard === appointmentId ? null : appointmentId);
   };
 
+  const generateQRData = (appointment) => {
+    // Format đơn giản, chỉ dùng chữ không dấu và số để tránh lỗi font
+    const qrText = `MEDICAL_CHECKIN
+ID:${appointment.registrationNumber || appointment.id}
+NAME:${removeAccents(appointment.fullName)}
+DEPT:${removeAccents(appointment.department)}
+DATE:${formatDateForQR(appointment.appointmentDate)}
+STATUS:${getStatusForQR(appointment.status)}`;
+
+    return qrText;
+  };
+
+  // Hàm format date cho QR (dùng format số đơn giản)
+  const formatDateForQR = (dateString) => {
+    if (!dateString) return "NULL";
+    const date = new Date(dateString);
+    return date.toISOString().split("T")[0]; // YYYY-MM-DD
+  };
+
+  // Hàm chuyển status sang format cho QR (không dấu)
+  const getStatusForQR = (status) => {
+    const statusMap = {
+      APPROVED: "DA_DUYET",
+      PENDING: "CHO_DUYET",
+      NEEDS_MANUAL_REVIEW: "CHUA_DUYET",
+      REJECTED: "DA_TU_CHOI",
+    };
+    return statusMap[status] || status;
+  };
+
+  const handleShowQR = (appointment) => {
+    const qrData = generateQRData(appointment);
+    setSelectedQRData({
+      data: qrData,
+      appointment: appointment,
+    });
+    setShowQRModal(true);
+  };
+
+  const downloadQRCode = () => {
+    setDownloading(true);
+
+    setTimeout(() => {
+      try {
+        // Tạo canvas với thiết kế đẹp
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
+
+        // Kích thước ảnh (tỷ lệ 3:4)
+        canvas.width = 600;
+        canvas.height = 800;
+
+        // ===== VẼ NỀN =====
+        // Nền chính
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Header với gradient
+        const gradient = ctx.createLinearGradient(0, 0, canvas.width, 0);
+        gradient.addColorStop(0, "#1890ff");
+        gradient.addColorStop(1, "#096dd9");
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, canvas.width, 120);
+
+        // ===== TIÊU ĐỀ =====
+        ctx.fillStyle = "#ffffff";
+        ctx.font = "bold 28px Arial, sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText("🏥 Mã QR Check-in", canvas.width / 2, 50);
+
+        ctx.font = "16px Arial, sans-serif";
+        ctx.fillText("Bệnh viện Đa khoa Quốc tế", canvas.width / 2, 80);
+
+        // ===== THÔNG TIN ĐƠN =====
+        ctx.fillStyle = "#2c3e50";
+        ctx.font = "bold 20px Arial, sans-serif";
+        ctx.textAlign = "left";
+        ctx.fillText("THÔNG TIN LỊCH HẸN", 40, 160);
+
+        // Đường kẻ ngang
+        ctx.strokeStyle = "#e8e8e8";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(40, 175);
+        ctx.lineTo(canvas.width - 40, 175);
+        ctx.stroke();
+
+        // Chi tiết thông tin
+        ctx.font = "16px Arial, sans-serif";
+        ctx.fillStyle = "#555";
+
+        const details = [
+          `📋 Đơn #: ${
+            selectedQRData.appointment.registrationNumber ||
+            selectedQRData.appointment.id
+          }`,
+          `👤 Bệnh nhân: ${selectedQRData.appointment.fullName}`,
+          `🏥 Khoa: ${selectedQRData.appointment.department}`,
+          `📅 Ngày khám: ${formatDate(
+            selectedQRData.appointment.appointmentDate
+          )}`,
+          `✅ Trạng thái: ${getStatusDisplay(
+            selectedQRData.appointment.status
+          )}`,
+        ];
+
+        details.forEach((detail, index) => {
+          ctx.fillText(detail, 40, 210 + index * 35);
+        });
+
+        // ===== VẼ QR CODE =====
+        const svg = document.getElementById("qrcode-svg");
+        if (svg) {
+          const svgData = new XMLSerializer().serializeToString(svg);
+          const img = new Image();
+
+          img.onload = () => {
+            // Khung QR code
+            const qrSize = 280;
+            const qrX = (canvas.width - qrSize) / 2;
+            const qrY = 400;
+
+            // Vẽ nền QR
+            ctx.fillStyle = "#f8f9fa";
+            ctx.fillRect(qrX - 10, qrY - 10, qrSize + 20, qrSize + 20);
+
+            // Vẽ border QR
+            ctx.strokeStyle = "#dee2e6";
+            ctx.lineWidth = 2;
+            ctx.strokeRect(qrX - 10, qrY - 10, qrSize + 20, qrSize + 20);
+
+            // Vẽ QR code
+            ctx.drawImage(img, qrX, qrY, qrSize, qrSize);
+
+            // ===== HƯỚNG DẪN =====
+            ctx.fillStyle = "#d35400";
+            ctx.font = "bold 18px Arial, sans-serif";
+            ctx.textAlign = "center";
+            ctx.fillText("📍 HƯỚNG DẪN SỬ DỤNG", canvas.width / 2, 720);
+
+            ctx.fillStyle = "#666";
+            ctx.font = "14px Arial, sans-serif";
+            ctx.fillText(
+              "Quét mã QR này tại quầy lễ tân để check-in",
+              canvas.width / 2,
+              750
+            );
+            ctx.fillText(
+              "Vui lòng đến trước 15 phút để làm thủ tục",
+              canvas.width / 2,
+              775
+            );
+
+            // ===== TẢI VỀ =====
+            const pngUrl = canvas.toDataURL("image/png");
+            const downloadLink = document.createElement("a");
+            downloadLink.href = pngUrl;
+            downloadLink.download = `qr-checkin-${
+              selectedQRData.appointment.registrationNumber
+            }-${new Date().getTime()}.png`;
+            document.body.appendChild(downloadLink);
+            downloadLink.click();
+            document.body.removeChild(downloadLink);
+            setDownloading(false);
+          };
+
+          img.src = "data:image/svg+xml;base64," + btoa(svgData);
+        } else {
+          setDownloading(false);
+        }
+      } catch (error) {
+        console.error("Lỗi tạo QR image:", error);
+        setDownloading(false);
+      }
+    }, 100);
+  };
+
+  const shareQRCode = async () => {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: `QR Check-in - ${selectedQRData.appointment.fullName}`,
+          text: `Mã QR check-in lịch hẹn khám\nKhoa: ${
+            selectedQRData.appointment.department
+          }\nNgày: ${formatDate(selectedQRData.appointment.appointmentDate)}`,
+        });
+      } catch {
+        console.log("Chia sẻ bị hủy");
+      }
+    } else {
+      const shareText = `QR Check-in - ${
+        selectedQRData.appointment.fullName
+      }\nKhoa: ${selectedQRData.appointment.department}\nNgày: ${formatDate(
+        selectedQRData.appointment.appointmentDate
+      )}`;
+      alert(
+        `Chia sẻ thông tin:\n${shareText}\n\nVui lòng tải QR code về và chia sẻ thủ công.`
+      );
+    }
+  };
+
   const getDoctorInfo = (appointment) => {
     if (appointment.doctor) {
       const doctor = appointment.doctor;
@@ -177,6 +390,17 @@ const AppointmentsPage = () => {
     return "Chưa chỉ định bác sĩ";
   };
 
+  // Hàm chuyển status sang tiếng Việt để hiển thị
+  const getStatusDisplay = (status) => {
+    const statusMap = {
+      APPROVED: "ĐÃ DUYỆT",
+      PENDING: "CHỜ DUYỆT",
+      NEEDS_MANUAL_REVIEW: "CHƯA DUYỆT",
+      REJECTED: "ĐÃ TỪ CHỐI",
+    };
+    return statusMap[status] || status;
+  };
+
   const getStatusBadge = (status) => {
     const statusConfig = {
       APPROVED: {
@@ -184,7 +408,7 @@ const AppointmentsPage = () => {
         class: "status-approved",
       },
       NEEDS_MANUAL_REVIEW: {
-        label: "CẦN XỬ LÝ",
+        label: "CHƯA DUYỆT",
         class: "status-pending",
       },
       PENDING: {
@@ -198,7 +422,7 @@ const AppointmentsPage = () => {
     };
 
     const config = statusConfig[status] || {
-      label: status || "CHỜ DUYỆT",
+      label: getStatusDisplay(status),
       class: "status-default",
     };
 
@@ -328,7 +552,6 @@ const AppointmentsPage = () => {
           </select>
         </div>
 
-        {/* 🆕 Filter trạng thái thanh toán */}
         <div className="filter-group">
           <label>Trạng thái thanh toán:</label>
           <select
@@ -384,7 +607,8 @@ const AppointmentsPage = () => {
           <h2>
             Danh sách Lịch hẹn ({filteredAppointments.length})
             {filters.paymentStatus !== "ALL" && ` - ${filters.paymentStatus}`}
-            {filters.status !== "ALL" && ` - ${filters.status}`}
+            {filters.status !== "ALL" &&
+              ` - ${getStatusDisplay(filters.status)}`}
           </h2>
           <button className="refresh-btn" onClick={fetchAppointments}>
             🔄 Làm mới
@@ -426,12 +650,21 @@ const AppointmentsPage = () => {
                       {getPaymentStatusBadge(appointment.paymentStatus)}
                     </div>
                   </div>
-                  <button
-                    className="expand-btn"
-                    onClick={() => toggleCardExpand(appointment.id)}
-                  >
-                    {expandedCard === appointment.id ? "▼" : "▶"}
-                  </button>
+                  <div className="card-actions-header">
+                    <button
+                      className="qr-btn"
+                      onClick={() => handleShowQR(appointment)}
+                      title="Mã QR Check-in"
+                    >
+                      📱 QR
+                    </button>
+                    <button
+                      className="expand-btn"
+                      onClick={() => toggleCardExpand(appointment.id)}
+                    >
+                      {expandedCard === appointment.id ? "▼" : "▶"}
+                    </button>
+                  </div>
                 </div>
 
                 {/* Basic Info - Luôn hiển thị */}
@@ -468,6 +701,33 @@ const AppointmentsPage = () => {
                 {/* Expanded Details - Chỉ hiển thị khi expanded */}
                 {expandedCard === appointment.id && (
                   <div className="card-expanded-details">
+                    {/* QR Code Mini - Chỉ hiển thị với đơn đã duyệt */}
+                    {appointment.status === "APPROVED" && (
+                      <div className="details-section qr-section">
+                        <h4>📱 Mã QR Check-in</h4>
+                        <div className="qr-mini-container">
+                          <div className="qr-code-mini">
+                            <QRCode
+                              value={generateQRData(appointment)}
+                              size={80}
+                              bgColor="#FFFFFF"
+                              fgColor="#000000"
+                              level="M"
+                            />
+                          </div>
+                          <div className="qr-info">
+                            <p>Quét mã QR này khi đến phòng khám để check-in</p>
+                            <button
+                              className="btn-show-qr"
+                              onClick={() => handleShowQR(appointment)}
+                            >
+                              🔍 Xem mã QR lớn
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
                     <div className="details-section">
                       <h4>Thông tin chi tiết</h4>
                       <div className="details-grid">
@@ -582,6 +842,81 @@ const AppointmentsPage = () => {
           </div>
         )}
       </div>
+
+      {/* Modal hiển thị QR Code lớn */}
+      {showQRModal && selectedQRData && (
+        <div className="modal-overlay">
+          <div className="modal-content qr-modal">
+            <div className="modal-header">
+              <h3>📱 Mã QR Check-in</h3>
+              <button
+                className="close-btn"
+                onClick={() => setShowQRModal(false)}
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="modal-body">
+              <div className="qr-info-section">
+                <h4>
+                  Đơn #
+                  {selectedQRData.appointment.registrationNumber ||
+                    selectedQRData.appointment.id}
+                </h4>
+                <p>
+                  <strong>Bệnh nhân:</strong>{" "}
+                  {selectedQRData.appointment.fullName}
+                </p>
+                <p>
+                  <strong>Khoa:</strong> {selectedQRData.appointment.department}
+                </p>
+                <p>
+                  <strong>Ngày khám:</strong>{" "}
+                  {formatDate(selectedQRData.appointment.appointmentDate)}
+                </p>
+                <p>
+                  <strong>Trạng thái:</strong>{" "}
+                  {getStatusDisplay(selectedQRData.appointment.status)}
+                </p>
+              </div>
+
+              <div className="qr-code-container">
+                <QRCode
+                  id="qrcode-svg"
+                  value={selectedQRData.data}
+                  size={200}
+                  bgColor="#FFFFFF"
+                  fgColor="#000000"
+                  level="H"
+                />
+                <p className="qr-instruction">
+                  📍 Quét mã QR này tại quầy lễ tân để check-in
+                </p>
+              </div>
+
+              <div className="qr-actions">
+                <button
+                  className="btn-download-qr"
+                  onClick={downloadQRCode}
+                  disabled={downloading}
+                >
+                  {downloading ? "⏳ Đang tải..." : "💾 Tải QR Code"}
+                </button>
+                <button className="btn-share-qr" onClick={shareQRCode}>
+                  📤 Chia sẻ thông tin
+                </button>
+                <button
+                  className="btn-close-qr"
+                  onClick={() => setShowQRModal(false)}
+                >
+                  Đóng
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
