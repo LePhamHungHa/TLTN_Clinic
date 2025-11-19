@@ -500,6 +500,20 @@
   margin-top: 3px;
 }
 
+.doctor-selection-info {
+  background-color: #e3f2fd;
+  border: 1px solid #2196f3;
+  border-radius: 4px;
+  padding: 8px 12px;
+  margin-top: 8px;
+  font-size: 14px;
+  color: #1976d2;
+}
+
+.doctor-selection-info p {
+  margin: 0;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .time-slots-grid {
@@ -524,6 +538,7 @@
   .clinic-notice-box, .clinic-form-section {
     padding: 15px;
   }
+  
 }
 
 /* Đảm bảo tất cả chữ đều màu đen */
@@ -537,8 +552,7 @@
 .clinic-error-message,
 .department-description,
 .registration-summary,
-.payment-method-content,
-.payment-info h4 {
+.payment-method-content {
   color: #000000 !important;
 }
 

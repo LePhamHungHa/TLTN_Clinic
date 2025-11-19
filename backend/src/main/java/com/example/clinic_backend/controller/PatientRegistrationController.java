@@ -62,12 +62,8 @@ public class PatientRegistrationController {
             if (dto.getPhone() == null || dto.getPhone().trim().isEmpty()) {
                 return ResponseEntity.badRequest().body("Phone is required");
             }
-            if (dto.getDoctorId() == null) {
-                return ResponseEntity.badRequest().body("Doctor selection is required");
-            }
-            if (dto.getTimeSlot() == null || dto.getTimeSlot().trim().isEmpty()) {
-                return ResponseEntity.badRequest().body("Time slot selection is required");
-            }
+            // QUAN TRỌNG: Bỏ validation cho doctorId - có thể null
+            // QUAN TRỌNG: Bỏ validation cho timeSlot - có thể null
 
             PatientRegistration registration = new PatientRegistration();
             registration.setFullName(dto.getFullName().trim());
@@ -101,23 +97,23 @@ public class PatientRegistrationController {
                 return ResponseEntity.badRequest().body("Appointment date is required");
             }
 
-            // Xử lý doctor ID - QUAN TRỌNG: Giờ là Long, không phải String
+            // QUAN TRỌNG: doctorId có thể là null nếu người dùng không chọn bác sĩ
             registration.setDoctorId(dto.getDoctorId());
 
-            // Xử lý time slot - GÁN VÀO assignedSession
+            // Xử lý time slot - có thể là null nếu không chọn bác sĩ
             registration.setAssignedSession(dto.getTimeSlot());
 
             // Set thời gian tạo và status
             registration.setCreatedAt(LocalDateTime.now());
             registration.setStatus("PROCESSING");
 
-            System.out.println("🔄 Gọi service tự động duyệt với tích hợp slot...");
-            System.out.println("📋 Thông tin slot:");
+            System.out.println("🔄 Gọi service xử lý đăng ký...");
+            System.out.println("📋 Thông tin đăng ký:");
             System.out.println("   - Doctor ID: " + registration.getDoctorId());
             System.out.println("   - Appointment Date: " + registration.getAppointmentDate());
             System.out.println("   - Time Slot: " + registration.getAssignedSession());
             
-            // GỌI SERVICE TỰ ĐỘNG DUYỆT VỚI TÍCH HỢP SLOT
+            // GỌI SERVICE XỬ LÝ ĐĂNG KÝ
             PatientRegistration savedRegistration = registrationService.createRegistration(registration);
             
             System.out.println("✅ Registration processed successfully with status: " + savedRegistration.getStatus());
@@ -201,9 +197,8 @@ public class PatientRegistrationController {
             if (dto.getSymptoms() != null) existing.setSymptoms(dto.getSymptoms());
             
             // Cập nhật doctor ID và time slot nếu có
-            if (dto.getDoctorId() != null) {
-                existing.setDoctorId(dto.getDoctorId());
-            }
+            // QUAN TRỌNG: doctorId có thể là null
+            existing.setDoctorId(dto.getDoctorId());
             if (dto.getTimeSlot() != null) {
                 existing.setAssignedSession(dto.getTimeSlot());
             }

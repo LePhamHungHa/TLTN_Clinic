@@ -1,9 +1,11 @@
-// AdminController.java
 package com.example.clinic_backend.controller;
 
+import com.example.clinic_backend.model.Doctor;
 import com.example.clinic_backend.model.PatientRegistration;
 import com.example.clinic_backend.model.Payment;
+import com.example.clinic_backend.repository.PatientRegistrationRepository;
 import com.example.clinic_backend.repository.PaymentRepository;
+import com.example.clinic_backend.service.DoctorService;
 import com.example.clinic_backend.service.PatientRegistrationService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -12,10 +14,13 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/admin")
@@ -27,7 +32,21 @@ public class AdminController {
     private PatientRegistrationService registrationService;
 
     @Autowired
-    private PaymentRepository paymentRepository; // Thêm dependency này
+    private DoctorService doctorService;
+
+    @Autowired
+    private PaymentRepository paymentRepository;
+
+    @Autowired
+    private PatientRegistrationRepository patientRegistrationRepository;
+
+    // Thêm các constant
+    private static final String[] TIME_SLOTS = {
+        "07:00-08:00", "08:00-09:00", "09:00-10:00", "10:00-11:00", 
+        "11:00-12:00", "13:00-14:00", "14:00-15:00", "15:00-16:00", "16:00-17:00"
+    };
+
+    private static final int MAX_PATIENTS_PER_SLOT = 10;
 
     // API 1: Lấy tất cả đơn đăng ký VỚI DOCTOR INFO
     @GetMapping("/registrations")
@@ -96,31 +115,7 @@ public class AdminController {
         }
     }
 
-    // API 3: Thử duyệt đơn thủ công
-    @PostMapping("/registrations/{id}/try-approve")
-    public ResponseEntity<?> tryApproveRegistration(@PathVariable Long id) {
-        System.out.println("=== ✅ ADMIN TRY APPROVE ===");
-        System.out.println("🔍 Registration ID: " + id);
-        
-        try {
-            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-            System.out.println("👤 Admin: " + auth.getName());
-            
-            PatientRegistration approved = registrationService.tryApproveRegistration(id);
-            
-            System.out.println("✅ Successfully approved: ID=" + approved.getId() + 
-                             ", Status=" + approved.getStatus() + 
-                             ", Queue=" + approved.getQueueNumber());
-            
-            return ResponseEntity.ok(approved);
-            
-        } catch (Exception e) {
-            System.err.println("❌ Error in tryApproveRegistration: " + e.getMessage());
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
-    }
-
-    // API 4: Từ chối đơn
+    // API 3: Từ chối đơn
     @PostMapping("/registrations/{id}/reject")
     public ResponseEntity<?> rejectRegistration(@PathVariable Long id, @RequestBody String reason) {
         System.out.println("=== ❌ ADMIN REJECT ===");
@@ -143,7 +138,7 @@ public class AdminController {
         }
     }
 
-    // API 5: Đánh dấu cần xử lý thủ công
+    // API 4: Đánh dấu cần xử lý thủ công
     @PutMapping("/registrations/{id}/manual-review")
     public ResponseEntity<?> markForManualReview(@PathVariable Long id) {
         System.out.println("=== 🔄 ADMIN MANUAL REVIEW ===");
@@ -173,7 +168,7 @@ public class AdminController {
         }
     }
 
-    // API 6: Lấy trạng thái thanh toán của đơn đăng ký - THÊM VÀO ĐÂY
+    // API 5: Lấy trạng thái thanh toán của đơn đăng ký
     @GetMapping("/registrations/{registrationId}/payment-status")
     public ResponseEntity<Map<String, Object>> getPaymentStatus(@PathVariable Long registrationId) {
         System.out.println("=== 💰 ADMIN GET PAYMENT STATUS ===");
@@ -216,6 +211,207 @@ public class AdminController {
         }
     }
 
+    // API MỚI: Lấy danh sách bác sĩ theo khoa
+    @GetMapping("/doctors/by-department")
+    public ResponseEntity<List<Doctor>> getDoctorsByDepartment(@RequestParam String department) {
+        System.out.println("=== 👨‍⚕️ ADMIN GET DOCTORS BY DEPARTMENT ===");
+        System.out.println("🔍 Department: " + department);
+        
+        try {
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            System.out.println("👤 Admin: " + auth.getName() + " | Getting doctors for department");
+            
+            List<Doctor> doctors = doctorService.getDoctorsByDepartmentName(department);
+            
+            System.out.println("✅ Found " + doctors.size() + " doctors in department: " + department);
+            
+            return ResponseEntity.ok(doctors);
+            
+        } catch (Exception e) {
+            System.err.println("❌ Error in getDoctorsByDepartment: " + e.getMessage());
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    // API MỚI: Lấy danh sách khung giờ khả dụng theo bác sĩ và ngày
+    @GetMapping("/doctors/{doctorId}/available-slots")
+    public ResponseEntity<List<String>> getAvailableSlots(@PathVariable Long doctorId, 
+                                                         @RequestParam String appointmentDate) {
+        System.out.println("=== 🕒 ADMIN GET AVAILABLE SLOTS ===");
+        System.out.println("🔍 Doctor ID: " + doctorId + ", Date: " + appointmentDate);
+        
+        try {
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            System.out.println("👤 Admin: " + auth.getName() + " | Getting available slots");
+            
+            LocalDate date = LocalDate.parse(appointmentDate);
+            List<String> availableSlots = new ArrayList<>();
+            
+            // Kiểm tra từng khung giờ
+            for (String timeSlot : TIME_SLOTS) {
+                boolean slotAvailable = checkAvailableSlots(doctorId, date, timeSlot);
+                if (slotAvailable) {
+                    availableSlots.add(timeSlot);
+                }
+            }
+            
+            System.out.println("✅ Found " + availableSlots.size() + " available slots for doctor " + doctorId);
+            
+            return ResponseEntity.ok(availableSlots);
+            
+        } catch (Exception e) {
+            System.err.println("❌ Error in getAvailableSlots: " + e.getMessage());
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    // API MỚI: Duyệt đơn với phân công bác sĩ và khung giờ
+    @PostMapping("/registrations/{id}/approve-with-assignment")
+    public ResponseEntity<?> approveWithAssignment(@PathVariable Long id,
+                                                 @RequestParam Long doctorId,
+                                                 @RequestParam String timeSlot) {
+        System.out.println("=== ✅ APPROVE WITH ASSIGNMENT ===");
+        System.out.println("🔍 Registration ID: " + id + ", Doctor ID: " + doctorId + ", Time Slot: " + timeSlot);
+        
+        try {
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            System.out.println("👤 Admin: " + auth.getName());
+            
+            Optional<PatientRegistration> registrationOpt = registrationService.getById(id);
+            if (registrationOpt.isEmpty()) {
+                return ResponseEntity.notFound().build();
+            }
+
+            // Kiểm tra bác sĩ có tồn tại không
+            Optional<Doctor> doctorOpt = doctorService.getDoctorById(doctorId);
+            if (doctorOpt.isEmpty()) {
+                return ResponseEntity.badRequest().body("Bác sĩ không tồn tại");
+            }
+
+            PatientRegistration registration = registrationOpt.get();
+            Doctor doctor = doctorOpt.get();
+            
+            // Kiểm tra xem bác sĩ có cùng khoa không
+            if (!registration.getDepartment().equals(doctor.getDepartmentName())) {
+                return ResponseEntity.badRequest().body("Bác sĩ không thuộc khoa " + registration.getDepartment());
+            }
+
+            // Kiểm tra khung giờ có khả dụng không
+            boolean slotAvailable = checkAvailableSlots(doctorId, registration.getAppointmentDate(), timeSlot);
+            if (!slotAvailable) {
+                return ResponseEntity.badRequest().body("Khung giờ " + timeSlot + " đã hết slot");
+            }
+
+            // QUAN TRỌNG: Phân công VÀ duyệt luôn
+            registration.setDoctorId(doctorId);
+            registration.setAssignedSession(timeSlot);
+            
+            // Gọi service để duyệt (set status APPROVED và queue number)
+            PatientRegistration approved = registrationService.tryApproveRegistration(registration.getId());
+            
+            System.out.println("✅ Successfully approved with assignment:");
+            System.out.println("   - Doctor: " + doctor.getFullName());
+            System.out.println("   - Time Slot: " + timeSlot);
+            System.out.println("   - Queue: " + approved.getQueueNumber());
+            
+            return ResponseEntity.ok(approved);
+            
+        } catch (Exception e) {
+            System.err.println("❌ Error in approveWithAssignment: " + e.getMessage());
+            return ResponseEntity.internalServerError().body("Lỗi khi duyệt đơn: " + e.getMessage());
+        }
+    }
+
+    // API MỚI: Duyệt nhanh với random bác sĩ và khung giờ
+    @PostMapping("/registrations/{id}/quick-approve")
+    public ResponseEntity<?> quickApprove(@PathVariable Long id) {
+        System.out.println("=== ⚡ QUICK APPROVE ===");
+        System.out.println("🔍 Registration ID: " + id);
+        
+        try {
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            System.out.println("👤 Admin: " + auth.getName());
+            
+            Optional<PatientRegistration> registrationOpt = registrationService.getById(id);
+            if (registrationOpt.isEmpty()) {
+                return ResponseEntity.notFound().build();
+            }
+
+            PatientRegistration registration = registrationOpt.get();
+            
+            // Lấy danh sách bác sĩ theo khoa
+            List<Doctor> doctors = doctorService.getDoctorsByDepartmentName(registration.getDepartment());
+            
+            if (doctors.isEmpty()) {
+                return ResponseEntity.badRequest().body("Không có bác sĩ nào trong khoa " + registration.getDepartment());
+            }
+
+            // Tìm bác sĩ và khung giờ có slot trống
+            Doctor selectedDoctor = null;
+            String selectedTimeSlot = null;
+            
+            for (Doctor doctor : doctors) {
+                for (String timeSlot : TIME_SLOTS) {
+                    boolean slotAvailable = checkAvailableSlots(
+                        doctor.getId(),
+                        registration.getAppointmentDate(),
+                        timeSlot
+                    );
+                    
+                    if (slotAvailable) {
+                        selectedDoctor = doctor;
+                        selectedTimeSlot = timeSlot;
+                        break;
+                    }
+                }
+                if (selectedDoctor != null) break;
+            }
+
+            if (selectedDoctor == null) {
+                return ResponseEntity.badRequest().body("Không tìm thấy bác sĩ và khung giờ nào còn slot trống");
+            }
+
+            // Phân công VÀ duyệt luôn
+            registration.setDoctorId(selectedDoctor.getId());
+            registration.setAssignedSession(selectedTimeSlot);
+            
+            // Gọi service để duyệt
+            PatientRegistration approved = registrationService.tryApproveRegistration(registration.getId());
+            
+            System.out.println("✅ Successfully quick approved:");
+            System.out.println("   - Random Doctor: " + selectedDoctor.getFullName());
+            System.out.println("   - Random Time Slot: " + selectedTimeSlot);
+            System.out.println("   - Queue: " + approved.getQueueNumber());
+            
+            return ResponseEntity.ok(approved);
+            
+        } catch (Exception e) {
+            System.err.println("❌ Error in quickApprove: " + e.getMessage());
+            return ResponseEntity.internalServerError().body("Lỗi khi duyệt đơn nhanh: " + e.getMessage());
+        }
+    }
+
+    // Method kiểm tra slot khả dụng - SỬ DỤNG SERVICE THAY VÌ TỰ IMPLEMENT
+    private boolean checkAvailableSlots(Long doctorId, LocalDate appointmentDate, String timeSlot) {
+        try {
+            System.out.println("🔍 AdminController - Checking available slots:");
+            System.out.println("   - Doctor ID: " + doctorId);
+            System.out.println("   - Date: " + appointmentDate);
+            System.out.println("   - Session: " + timeSlot);
+            
+            // SỬ DỤNG SERVICE để kiểm tra slot
+            boolean available = registrationService.checkAvailableSlots(doctorId, appointmentDate, timeSlot);
+            
+            System.out.println("✅ Slot available: " + available);
+            return available;
+            
+        } catch (Exception e) {
+            System.err.println("❌ Lỗi khi kiểm tra slot: " + e.getMessage());
+            e.printStackTrace();
+            return false;
+        }
+    }
+
     // DEBUG ENDPOINT: Kiểm tra kết nối
     @GetMapping("/debug/test")
     public ResponseEntity<Map<String, String>> debugTest() {
@@ -228,5 +424,46 @@ public class AdminController {
         
         System.out.println("🔍 Debug Response: " + response);
         return ResponseEntity.ok(response);
+    }
+
+    // DEBUG ENDPOINT MỚI: Kiểm tra slot chi tiết
+    @GetMapping("/debug/slots/{doctorId}")
+    public ResponseEntity<Map<String, Object>> debugSlots(@PathVariable Long doctorId, 
+                                                         @RequestParam String appointmentDate,
+                                                         @RequestParam String timeSlot) {
+        try {
+            LocalDate date = LocalDate.parse(appointmentDate);
+            
+            Map<String, Object> result = new HashMap<>();
+            result.put("doctorId", doctorId);
+            result.put("appointmentDate", appointmentDate);
+            result.put("timeSlot", timeSlot);
+            
+            // Đếm số lượng đơn APPROVED
+            Integer approvedCount = registrationService.countByDoctorIdAndAppointmentDateAndAssignedSessionAndStatus(
+                doctorId, date, timeSlot, "APPROVED"
+            );
+            result.put("approvedCount", approvedCount);
+            result.put("maxPatientsPerSlot", MAX_PATIENTS_PER_SLOT);
+            result.put("available", approvedCount < MAX_PATIENTS_PER_SLOT);
+            
+            // Lấy danh sách các đơn APPROVED để debug
+            List<PatientRegistration> approvedRegistrations = patientRegistrationRepository.findByDoctorAndDateAndSession(
+                doctorId, date, timeSlot
+            );
+            result.put("approvedRegistrations", approvedRegistrations.stream()
+                .map(r -> Map.of(
+                    "id", r.getId(),
+                    "fullName", r.getFullName(),
+                    "status", r.getStatus(),
+                    "queueNumber", r.getQueueNumber()
+                ))
+                .collect(Collectors.toList()));
+            
+            return ResponseEntity.ok(result);
+            
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
+        }
     }
 }

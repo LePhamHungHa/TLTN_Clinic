@@ -125,8 +125,9 @@ const RegisterClinic = () => {
     if (!formData.department) newErrors.department = "Chuyên khoa là bắt buộc";
     if (!formData.appointmentDate)
       newErrors.appointmentDate = "Ngày khám là bắt buộc";
-    if (!formData.doctorId) newErrors.doctorId = "Vui lòng chọn bác sĩ";
-    if (!formData.timeSlot) newErrors.timeSlot = "Vui lòng chọn khung giờ";
+
+    // QUAN TRỌNG: Bỏ validation cho doctorId và timeSlot
+    // Người dùng có thể không chọn bác sĩ
 
     if (formData.appointmentDate) {
       const today = new Date();
@@ -199,8 +200,8 @@ const RegisterClinic = () => {
         department: formData.department,
         appointmentDate: formData.appointmentDate,
         symptoms: formData.symptoms || null,
-        doctorId: formData.doctorId,
-        timeSlot: formData.timeSlot,
+        doctorId: formData.doctorId || null, // QUAN TRỌNG: có thể là null
+        timeSlot: formData.timeSlot || null, // QUAN TRỌNG: có thể là null
       };
 
       console.log("📤 Frontend - Payload being sent:", payload);
@@ -225,9 +226,15 @@ const RegisterClinic = () => {
       if (result.status === "APPROVED") {
         setShowPaymentMethod(true);
       } else if (result.status === "NEEDS_MANUAL_REVIEW") {
-        alert(
-          "⏳ Đơn của bạn đã được ghi nhận. Hiện tại khung giờ này đã đầy, chúng tôi sẽ xem xét và liên hệ lại với bạn trong vòng 24h."
-        );
+        if (!formData.doctorId) {
+          alert(
+            "✅ Đơn của bạn đã được ghi nhận!. Chúng tôi sẽ liên hệ với bạn trong vòng 24h để xác nhận lịch hẹn."
+          );
+        } else {
+          alert(
+            "⏳ Đơn của bạn đã được ghi nhận. Hiện tại khung giờ này đã đầy, chúng tôi sẽ xem xét và liên hệ lại với bạn trong vòng 24h."
+          );
+        }
         navigate("/appointments");
       } else {
         alert(
@@ -472,17 +479,15 @@ const RegisterClinic = () => {
 
               {/* Bác sĩ */}
               <div className="clinic-form-group full-width">
-                <label htmlFor="doctorId">Chọn bác sĩ *</label>
+                <label htmlFor="doctorId">Chọn bác sĩ</label>
                 <select
                   id="doctorId"
                   value={formData.doctorId}
                   onChange={handleChange}
-                  className={`clinic-form-input ${
-                    errors.doctorId ? "error" : ""
-                  }`}
+                  className="clinic-form-input"
                   disabled={!formData.department}
                 >
-                  <option value="">Chọn bác sĩ</option>
+                  <option value="">-- Không chọn bác sĩ cụ thể --</option>
                   {doctors.map((d) => (
                     <option key={d.id} value={d.id}>
                       {d.fullName} - {d.degree} - {d.position} - {d.specialty} -
@@ -490,6 +495,16 @@ const RegisterClinic = () => {
                     </option>
                   ))}
                 </select>
+
+                {/* Hiển thị thông báo khi không chọn bác sĩ */}
+                {!formData.doctorId && (
+                  <div className="doctor-selection-info">
+                    <p>
+                      ℹ️ Bạn có thể chọn bác sĩ khám cho bạn (Bỏ qua nếu bạn
+                      không muốn).
+                    </p>
+                  </div>
+                )}
 
                 {/* Hiển thị thông tin chi tiết bác sĩ khi chọn */}
                 {selectedDoctor && (
@@ -517,12 +532,6 @@ const RegisterClinic = () => {
                     </div>
                   </div>
                 )}
-
-                {errors.doctorId && (
-                  <span className="clinic-error-message">
-                    {errors.doctorId}
-                  </span>
-                )}
               </div>
 
               {/* Ngày khám */}
@@ -537,7 +546,6 @@ const RegisterClinic = () => {
                   className={`clinic-form-input ${
                     errors.appointmentDate ? "error" : ""
                   }`}
-                  disabled={!formData.doctorId}
                 />
                 {errors.appointmentDate && (
                   <span className="clinic-error-message">
@@ -546,58 +554,58 @@ const RegisterClinic = () => {
                 )}
               </div>
 
-              {/* Khung giờ */}
-              <div className="clinic-form-group full-width">
-                <label>Chọn khung giờ khám *</label>
+              {/* Khung giờ - Chỉ hiển thị khi có chọn bác sĩ */}
+              {formData.doctorId && (
+                <div className="clinic-form-group full-width">
+                  <label>Chọn khung giờ khám</label>
 
-                <div className="time-slots-container">
-                  {timeSlots.length > 0 ? (
-                    <div className="time-slots-grid">
-                      {timeSlots.map((slot) => (
-                        <button
-                          key={slot.timeSlot}
-                          type="button"
-                          className={`time-slot-btn ${
-                            formData.timeSlot === slot.timeSlot
-                              ? "selected"
-                              : ""
-                          } ${
-                            slot.currentPatients >= slot.maxPatients
-                              ? "full"
-                              : ""
-                          } ${slot.currentPatients >= 8 ? "warning" : ""}`}
-                          onClick={() => handleTimeSlotSelect(slot)}
-                          disabled={slot.currentPatients >= slot.maxPatients}
-                        >
-                          <div className="time-slot-time">{slot.timeSlot}</div>
-                          <div className="time-slot-info">
-                            {slot.currentPatients}/{slot.maxPatients} bệnh nhân
-                          </div>
-                          {slot.currentPatients >= slot.maxPatients && (
-                            <div className="slot-full">HẾT CHỖ</div>
-                          )}
-                          {slot.currentPatients >= 8 &&
-                            slot.currentPatients < 10 && (
-                              <div className="slot-warning">SẮP HẾT CHỖ</div>
+                  <div className="time-slots-container">
+                    {timeSlots.length > 0 ? (
+                      <div className="time-slots-grid">
+                        {timeSlots.map((slot) => (
+                          <button
+                            key={slot.timeSlot}
+                            type="button"
+                            className={`time-slot-btn ${
+                              formData.timeSlot === slot.timeSlot
+                                ? "selected"
+                                : ""
+                            } ${
+                              slot.currentPatients >= slot.maxPatients
+                                ? "full"
+                                : ""
+                            } ${slot.currentPatients >= 8 ? "warning" : ""}`}
+                            onClick={() => handleTimeSlotSelect(slot)}
+                            disabled={slot.currentPatients >= slot.maxPatients}
+                          >
+                            <div className="time-slot-time">
+                              {slot.timeSlot}
+                            </div>
+                            <div className="time-slot-info">
+                              {slot.currentPatients}/{slot.maxPatients} bệnh
+                              nhân
+                            </div>
+                            {slot.currentPatients >= slot.maxPatients && (
+                              <div className="slot-full">HẾT CHỖ</div>
                             )}
-                        </button>
-                      ))}
-                    </div>
-                  ) : (
-                    formData.doctorId &&
-                    formData.appointmentDate && (
-                      <div className="no-slots-message">
-                        Đang tải khung giờ...
+                            {slot.currentPatients >= 8 &&
+                              slot.currentPatients < 10 && (
+                                <div className="slot-warning">SẮP HẾT CHỖ</div>
+                              )}
+                          </button>
+                        ))}
                       </div>
-                    )
-                  )}
+                    ) : (
+                      formData.doctorId &&
+                      formData.appointmentDate && (
+                        <div className="no-slots-message">
+                          Đang tải khung giờ...
+                        </div>
+                      )
+                    )}
+                  </div>
                 </div>
-                {errors.timeSlot && (
-                  <span className="clinic-error-message">
-                    {errors.timeSlot}
-                  </span>
-                )}
-              </div>
+              )}
 
               {/* Triệu chứng */}
               <div className="clinic-form-group full-width">
@@ -628,7 +636,7 @@ const RegisterClinic = () => {
         </div>
       </div>
 
-      {/* Popup chọn phương thức thanh toán (giữ nguyên) */}
+      {/* Popup chọn phương thức thanh toán */}
       {showPaymentMethod && (
         <div className="payment-method-modal">
           <div className="payment-method-content">

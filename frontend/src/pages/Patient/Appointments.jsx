@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import "../../css/AppointmentsPage.css";
 
@@ -9,9 +10,12 @@ const AppointmentsPage = () => {
   const [errorMessage, setErrorMessage] = useState(null);
   const [filters, setFilters] = useState({
     status: "ALL",
+    paymentStatus: "ALL", // 🆕 Thêm filter payment status
     date: "",
     search: "",
   });
+  const [expandedCard, setExpandedCard] = useState(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchAppointments();
@@ -32,8 +36,6 @@ const AppointmentsPage = () => {
         return;
       }
 
-      console.log("🔍 Fetching appointments for email:", user.email);
-
       const response = await axios.get(
         `http://localhost:8080/api/patient-registrations/by-email?email=${encodeURIComponent(
           user.email
@@ -47,9 +49,6 @@ const AppointmentsPage = () => {
         }
       );
 
-      console.log("✅ Appointments data received:", response.data);
-
-      // 🆕 SỬA: SỬ DỤNG API PUBLIC MỚI - KHÔNG CẦN TOKEN
       const appointmentsWithPayment = await Promise.all(
         response.data.map(async (appointment) => {
           let paymentStatus = "Chưa thanh toán";
@@ -57,29 +56,14 @@ const AppointmentsPage = () => {
           let paymentDate = null;
 
           try {
-            console.log(
-              `🔍 Checking payment for appointment ${appointment.id}`
-            );
-
-            // ✅ ĐÚNG: Gọi API PUBLIC mới
             const paymentResponse = await axios.get(
               `http://localhost:8080/api/vnpay/public/registrations/${appointment.id}/payment-status`,
-              // ❌ KHÔNG CẦN HEADERS AUTHORIZATION
-              {
-                timeout: 5000, // Timeout ngắn hơn cho API public
-              }
+              { timeout: 5000 }
             );
 
-            console.log(
-              `💰 PUBLIC API Response for ${appointment.id}:`,
-              paymentResponse.data
-            );
-
-            // ⚡ LOGIC CHUẨN HÓA GIỐNG ADMIN
             paymentStatus =
               paymentResponse.data.paymentStatus || "Chưa thanh toán";
 
-            // CHUYỂN ĐỔI TRẠNG THÁI VNPay THÀNH TRẠNG THÁI THÂN THIỆN
             if (paymentStatus === "Thành công" || paymentStatus === "SUCCESS") {
               paymentStatus = "Đã thanh toán";
             } else if (
@@ -93,18 +77,8 @@ const AppointmentsPage = () => {
 
             paymentAmount = paymentResponse.data.amount || paymentAmount;
             paymentDate = paymentResponse.data.paymentDate;
-
-            console.log(`✅ Final payment status for ${appointment.id}:`, {
-              raw: paymentResponse.data.paymentStatus,
-              converted: paymentStatus,
-              amount: paymentAmount,
-              date: paymentDate,
-            });
           } catch (error) {
-            console.error(
-              `💥 PUBLIC Payment API failed for ${appointment.id}:`,
-              error
-            );
+            console.error(`Payment API failed for ${appointment.id}:`, error);
             paymentStatus = "Chưa thanh toán";
           }
 
@@ -121,7 +95,6 @@ const AppointmentsPage = () => {
       setErrorMessage(null);
     } catch (err) {
       console.error("❌ Lỗi tải lịch hẹn:", err);
-
       if (err.response?.status === 403) {
         setErrorMessage("Không có quyền truy cập. Vui lòng đăng nhập lại.");
       } else if (err.response?.status === 404) {
@@ -141,8 +114,16 @@ const AppointmentsPage = () => {
   const filterAppointments = () => {
     let filtered = appointments;
 
+    // Filter theo trạng thái đơn
     if (filters.status !== "ALL") {
       filtered = filtered.filter((app) => app.status === filters.status);
+    }
+
+    // 🆕 Filter theo trạng thái thanh toán
+    if (filters.paymentStatus !== "ALL") {
+      filtered = filtered.filter(
+        (app) => app.paymentStatus === filters.paymentStatus
+      );
     }
 
     if (filters.date) {
@@ -161,7 +142,24 @@ const AppointmentsPage = () => {
     setFilteredAppointments(filtered);
   };
 
-  // Hàm hiển thị thông tin bác sĩ
+  const handlePayment = (appointment) => {
+    navigate("/payment", {
+      state: {
+        patientRegistrationId: appointment.id,
+        registrationId: appointment.id,
+        fullname: appointment.fullName,
+        phone: appointment.phone,
+        amount: appointment.examinationFee || 200000,
+        department: appointment.department,
+        appointmentDate: appointment.appointmentDate,
+      },
+    });
+  };
+
+  const toggleCardExpand = (appointmentId) => {
+    setExpandedCard(expandedCard === appointmentId ? null : appointmentId);
+  };
+
   const getDoctorInfo = (appointment) => {
     if (appointment.doctor) {
       const doctor = appointment.doctor;
@@ -210,7 +208,6 @@ const AppointmentsPage = () => {
   };
 
   const getPaymentStatusBadge = (paymentStatus) => {
-    // ✅ SỬA: ĐẢM BẢO HIỂN THỊ ĐÚNG VỚI TRẠNG THÁI ĐÃ CHUYỂN ĐỔI
     const paymentConfig = {
       "Đã thanh toán": {
         label: "ĐÃ THANH TOÁN",
@@ -246,7 +243,6 @@ const AppointmentsPage = () => {
     return new Date(dateTimeString).toLocaleString("vi-VN");
   };
 
-  // Tính toán thống kê - SỬA: SỬ DỤNG TRẠNG THÁI ĐÃ CHUYỂN ĐỔI
   const calculateStats = () => {
     const total = appointments.length;
     const approved = appointments.filter(
@@ -256,10 +252,14 @@ const AppointmentsPage = () => {
       (app) => app.status === "NEEDS_MANUAL_REVIEW" || app.status === "PENDING"
     ).length;
     const paid = appointments.filter(
-      (app) => app.paymentStatus === "Đã thanh toán" // ✅ SỬA: Dùng trạng thái đã chuẩn hóa
+      (app) => app.paymentStatus === "Đã thanh toán"
+    ).length;
+    const unpaid = appointments.filter(
+      (app) =>
+        app.paymentStatus === "Chưa thanh toán" && app.status === "APPROVED"
     ).length;
 
-    return { total, approved, pending, paid };
+    return { total, approved, pending, paid, unpaid };
   };
 
   const statsData = calculateStats();
@@ -279,7 +279,6 @@ const AppointmentsPage = () => {
         <p>Quản lý và theo dõi các lịch hẹn khám bệnh của bạn</p>
       </div>
 
-      {/* Hiển thị lỗi nếu có */}
       {errorMessage && (
         <div className="error-message">
           <p>{errorMessage}</p>
@@ -307,21 +306,41 @@ const AppointmentsPage = () => {
           <h3>Đã thanh toán</h3>
           <p className="stat-number">{statsData.paid}</p>
         </div>
+        <div className="stat-card unpaid-stats">
+          <h3>Chờ thanh toán</h3>
+          <p className="stat-number">{statsData.unpaid}</p>
+        </div>
       </div>
 
       {/* Bộ lọc */}
       <div className="filters-section">
         <div className="filter-group">
-          <label>Trạng thái:</label>
+          <label>Trạng thái đơn:</label>
           <select
             value={filters.status}
             onChange={(e) => setFilters({ ...filters, status: e.target.value })}
           >
-            <option value="ALL">Tất cả</option>
+            <option value="ALL">Tất cả trạng thái</option>
             <option value="APPROVED">Đã duyệt</option>
             <option value="PENDING">Chờ duyệt</option>
             <option value="NEEDS_MANUAL_REVIEW">Cần xử lý</option>
             <option value="REJECTED">Đã từ chối</option>
+          </select>
+        </div>
+
+        {/* 🆕 Filter trạng thái thanh toán */}
+        <div className="filter-group">
+          <label>Trạng thái thanh toán:</label>
+          <select
+            value={filters.paymentStatus}
+            onChange={(e) =>
+              setFilters({ ...filters, paymentStatus: e.target.value })
+            }
+          >
+            <option value="ALL">Tất cả thanh toán</option>
+            <option value="Đã thanh toán">Đã thanh toán</option>
+            <option value="Chưa thanh toán">Chưa thanh toán</option>
+            <option value="Đang chờ xử lý">Đang xử lý</option>
           </select>
         </div>
 
@@ -349,6 +368,7 @@ const AppointmentsPage = () => {
           onClick={() =>
             setFilters({
               status: "ALL",
+              paymentStatus: "ALL",
               date: "",
               search: "",
             })
@@ -361,7 +381,11 @@ const AppointmentsPage = () => {
       {/* Danh sách lịch hẹn */}
       <div className="appointments-list">
         <div className="list-header">
-          <h2>Danh sách Lịch hẹn ({filteredAppointments.length})</h2>
+          <h2>
+            Danh sách Lịch hẹn ({filteredAppointments.length})
+            {filters.paymentStatus !== "ALL" && ` - ${filters.paymentStatus}`}
+            {filters.status !== "ALL" && ` - ${filters.status}`}
+          </h2>
           <button className="refresh-btn" onClick={fetchAppointments}>
             🔄 Làm mới
           </button>
@@ -384,126 +408,175 @@ const AppointmentsPage = () => {
         ) : (
           <div className="appointments-grid">
             {filteredAppointments.map((appointment) => (
-              <div key={appointment.id} className="appointment-card">
+              <div
+                key={appointment.id}
+                className={`appointment-card ${
+                  expandedCard === appointment.id ? "expanded" : ""
+                }`}
+                id={`appointment-${appointment.id}`}
+              >
+                {/* Card Header - Luôn hiển thị */}
                 <div className="card-header">
-                  <h3>
-                    Đơn đăng ký #
-                    {appointment.registrationNumber || appointment.id}
-                  </h3>
-                  <div className="status-group">
-                    {getStatusBadge(appointment.status)}
-                    {getPaymentStatusBadge(appointment.paymentStatus)}
+                  <div className="card-main-info">
+                    <h3>
+                      Đơn #{appointment.registrationNumber || appointment.id}
+                    </h3>
+                    <div className="status-group">
+                      {getStatusBadge(appointment.status)}
+                      {getPaymentStatusBadge(appointment.paymentStatus)}
+                    </div>
+                  </div>
+                  <button
+                    className="expand-btn"
+                    onClick={() => toggleCardExpand(appointment.id)}
+                  >
+                    {expandedCard === appointment.id ? "▼" : "▶"}
+                  </button>
+                </div>
+
+                {/* Basic Info - Luôn hiển thị */}
+                <div className="card-basic-info">
+                  <div className="basic-info-grid">
+                    <div className="info-item">
+                      <span className="label">👤 Bệnh nhân:</span>
+                      <span>{appointment.fullName || "Chưa có"}</span>
+                    </div>
+                    <div className="info-item">
+                      <span className="label">🏥 Khoa:</span>
+                      <span>{appointment.department || "Chưa có"}</span>
+                    </div>
+                    <div className="info-item">
+                      <span className="label">📅 Ngày khám:</span>
+                      <span>{formatDate(appointment.appointmentDate)}</span>
+                    </div>
+                    <div className="info-item">
+                      <span className="label">💰 Phí khám:</span>
+                      <span
+                        className={
+                          appointment.paymentStatus === "Đã thanh toán"
+                            ? "paid-amount"
+                            : "unpaid-amount"
+                        }
+                      >
+                        {appointment.examinationFee?.toLocaleString() || "0"}{" "}
+                        VND
+                      </span>
+                    </div>
                   </div>
                 </div>
 
-                <div className="card-content">
-                  <div className="info-row">
-                    <span className="label">👤 Bệnh nhân:</span>
-                    <span>{appointment.fullName || "Chưa có"}</span>
-                  </div>
-                  <div className="info-row">
-                    <span className="label">📞 SĐT:</span>
-                    <span>{appointment.phone || "Chưa có"}</span>
-                  </div>
-                  <div className="info-row">
-                    <span className="label">📧 Email:</span>
-                    <span>{appointment.email || "Chưa có"}</span>
-                  </div>
-                  <div className="info-row">
-                    <span className="label">🏥 Khoa:</span>
-                    <span>{appointment.department || "Chưa có"}</span>
-                  </div>
+                {/* Expanded Details - Chỉ hiển thị khi expanded */}
+                {expandedCard === appointment.id && (
+                  <div className="card-expanded-details">
+                    <div className="details-section">
+                      <h4>Thông tin chi tiết</h4>
+                      <div className="details-grid">
+                        <div className="detail-item">
+                          <span className="label">📞 SĐT:</span>
+                          <span>{appointment.phone || "Chưa có"}</span>
+                        </div>
+                        <div className="detail-item">
+                          <span className="label">📧 Email:</span>
+                          <span>{appointment.email || "Chưa có"}</span>
+                        </div>
+                        <div className="detail-item">
+                          <span className="label">👨‍⚕️ Bác sĩ:</span>
+                          <span className="doctor-info">
+                            <strong>{getDoctorInfo(appointment)}</strong>
+                            {appointment.doctor?.specialty && (
+                              <div className="doctor-specialty">
+                                {appointment.doctor.specialty}
+                              </div>
+                            )}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
 
-                  <div className="info-row">
-                    <span className="label">👨‍⚕️ Bác sĩ:</span>
-                    <span className="doctor-info">
-                      <strong>{getDoctorInfo(appointment)}</strong>
-                      {appointment.doctor?.specialty && (
-                        <div className="doctor-specialty">
-                          {appointment.doctor.specialty}
+                    {/* Thông tin buổi khám cho đơn đã duyệt */}
+                    {appointment.status === "APPROVED" && (
+                      <div className="details-section approved-section">
+                        <h4>Thông tin buổi khám</h4>
+                        <div className="appointment-details">
+                          <div className="detail-row">
+                            <span className="label">🕒 Buổi khám:</span>
+                            <span>
+                              {appointment.assignedSession || "Chưa có"}
+                            </span>
+                          </div>
+                          <div className="detail-row">
+                            <span className="label">🎯 Số thứ tự:</span>
+                            <span className="queue-number">
+                              {appointment.queueNumber || "Chưa có"}
+                            </span>
+                          </div>
+                          <div className="detail-row">
+                            <span className="label">⏰ Khung giờ dự kiến:</span>
+                            <span>
+                              {appointment.expectedTimeSlot || "Chưa có"}
+                            </span>
+                          </div>
+                          <div className="detail-row">
+                            <span className="label">🚪 Phòng khám:</span>
+                            <span>{appointment.roomNumber || "Chưa có"}</span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Ngày thanh toán nếu đã thanh toán */}
+                    {appointment.paymentStatus === "Đã thanh toán" &&
+                      appointment.paymentDate && (
+                        <div className="details-section">
+                          <div className="detail-row">
+                            <span className="label">⏰ Ngày thanh toán:</span>
+                            <span>
+                              {formatDateTime(appointment.paymentDate)}
+                            </span>
+                          </div>
                         </div>
                       )}
-                    </span>
-                  </div>
 
-                  <div className="info-row">
-                    <span className="label">📅 Ngày khám:</span>
-                    <span>{formatDate(appointment.appointmentDate)}</span>
-                  </div>
+                    {/* Triệu chứng */}
+                    {appointment.symptoms && (
+                      <div className="details-section">
+                        <h4>📝 Triệu chứng</h4>
+                        <div className="symptoms-content">
+                          <p>{appointment.symptoms}</p>
+                        </div>
+                      </div>
+                    )}
 
-                  <div className="info-row">
-                    <span className="label">💰 Phí khám:</span>
-                    <span
-                      className={
-                        appointment.paymentStatus === "Đã thanh toán"
-                          ? "paid-amount"
-                          : "unpaid-amount"
-                      }
-                    >
-                      {appointment.examinationFee?.toLocaleString() || "0"} VND
-                      {appointment.paymentStatus === "Chưa thanh toán" && (
-                        <span className="unpaid-text">(Chưa thanh toán)</span>
+                    {/* Nút thanh toán */}
+                    {appointment.status === "APPROVED" &&
+                      appointment.paymentStatus === "Chưa thanh toán" && (
+                        <div className="payment-action">
+                          <button
+                            className="btn-pay-now expanded"
+                            onClick={() => handlePayment(appointment)}
+                          >
+                            💳 Thanh toán ngay
+                          </button>
+                        </div>
                       )}
-                    </span>
-                  </div>
 
-                  {/* Thông tin chi tiết cho đơn đã duyệt */}
-                  {appointment.status === "APPROVED" && (
-                    <div className="approved-details">
-                      <div className="info-row highlight">
-                        <span className="label">🕒 Buổi khám:</span>
-                        <span>{appointment.assignedSession || "Chưa có"}</span>
-                      </div>
-                      <div className="info-row highlight">
-                        <span className="label">🎯 Số thứ tự:</span>
-                        <span className="queue-number">
-                          {appointment.queueNumber || "Chưa có"}
-                        </span>
-                      </div>
-                      <div className="info-row highlight">
-                        <span className="label">⏰ Khung giờ dự kiến:</span>
-                        <span>{appointment.expectedTimeSlot || "Chưa có"}</span>
-                      </div>
-                      <div className="info-row highlight">
-                        <span className="label">🚪 Phòng khám:</span>
-                        <span>{appointment.roomNumber || "Chưa có"}</span>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Ngày thanh toán nếu đã thanh toán */}
-                  {appointment.paymentStatus === "Đã thanh toán" &&
-                    appointment.paymentDate && (
-                      <div className="info-row">
-                        <span className="label">⏰ Ngày thanh toán:</span>
-                        <span>{formatDateTime(appointment.paymentDate)}</span>
-                      </div>
-                    )}
-
-                  {appointment.symptoms && (
-                    <div className="symptoms">
-                      <span className="label">📝 Triệu chứng:</span>
-                      <p>{appointment.symptoms}</p>
-                    </div>
-                  )}
-                </div>
-
-                <div className="card-footer">
-                  <div className="appointment-notes">
-                    <p>
-                      💡 <strong>Lưu ý:</strong> Vui lòng đến trước 15 phút để
-                      làm thủ tục
-                    </p>
-                    {appointment.status === "APPROVED" && (
+                    {/* Notes */}
+                    <div className="appointment-notes">
                       <p>
-                        ✅ <strong>Trạng thái:</strong> Lịch hẹn đã được xác
-                        nhận
-                        {appointment.paymentStatus === "Chưa thanh toán" &&
-                          " - Vui lòng thanh toán phí khám trước khi đến"}
+                        💡 <strong>Lưu ý:</strong> Vui lòng đến trước 15 phút để
+                        làm thủ tục
                       </p>
-                    )}
+                      {appointment.status === "APPROVED" && (
+                        <p>
+                          ✅ <strong>Trạng thái:</strong> Lịch hẹn đã được xác
+                          nhận
+                          {appointment.paymentStatus === "Chưa thanh toán" &&
+                            " - Vui lòng thanh toán phí khám trước khi đến"}
+                        </p>
+                      )}
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
             ))}
           </div>

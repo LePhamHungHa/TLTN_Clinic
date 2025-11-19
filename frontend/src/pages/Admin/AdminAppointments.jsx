@@ -6,12 +6,22 @@ const AdminAppointments = () => {
   const [appointments, setAppointments] = useState([]);
   const [filteredAppointments, setFilteredAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState(null);
   const [filters, setFilters] = useState({
     status: "ALL",
     date: "",
     search: "",
     paymentStatus: "ALL",
   });
+  const [expandedCard, setExpandedCard] = useState(null);
+  const [showApproveModal, setShowApproveModal] = useState(false);
+  const [selectedAppointment, setSelectedAppointment] = useState(null);
+  const [availableDoctors, setAvailableDoctors] = useState([]);
+  const [loadingDoctors, setLoadingDoctors] = useState(false);
+  const [selectedDoctorId, setSelectedDoctorId] = useState(null);
+  const [availableTimeSlots, setAvailableTimeSlots] = useState([]);
+  const [selectedTimeSlot, setSelectedTimeSlot] = useState("");
+  const [loadingSlots, setLoadingSlots] = useState(false);
 
   useEffect(() => {
     fetchAppointments();
@@ -45,7 +55,7 @@ const AdminAppointments = () => {
     try {
       const token = getToken();
       if (!token) {
-        alert("⚠️ Vui lòng đăng nhập lại");
+        setErrorMessage("⚠️ Vui lòng đăng nhập lại");
         setLoading(false);
         return;
       }
@@ -60,7 +70,6 @@ const AdminAppointments = () => {
         }
       );
 
-      // Thêm thông tin thanh toán vào mỗi appointment
       const appointmentsWithPayment = await Promise.all(
         response.data.map(async (appointment) => {
           try {
@@ -74,7 +83,6 @@ const AdminAppointments = () => {
               }
             );
 
-            // CHUYỂN ĐỔI "Thành công" THÀNH "Đã thanh toán"
             let paymentStatus =
               paymentResponse.data.paymentStatus || "Chưa thanh toán";
             if (paymentStatus === "Thành công") {
@@ -103,14 +111,17 @@ const AdminAppointments = () => {
       );
 
       setAppointments(appointmentsWithPayment);
+      setErrorMessage(null);
     } catch (error) {
       console.error("❌ Lỗi tải danh sách lịch hẹn:", error);
       if (error.response?.status === 403) {
-        alert("❌ Bạn không có quyền ADMIN để truy cập tính năng này");
+        setErrorMessage(
+          "❌ Bạn không có quyền ADMIN để truy cập tính năng này"
+        );
       } else if (error.response?.status === 401) {
-        alert("⚠️ Phiên đăng nhập hết hạn, vui lòng đăng nhập lại");
+        setErrorMessage("⚠️ Phiên đăng nhập hết hạn, vui lòng đăng nhập lại");
       } else {
-        alert("Không thể tải danh sách lịch hẹn");
+        setErrorMessage("Không thể tải danh sách lịch hẹn");
       }
     } finally {
       setLoading(false);
@@ -140,22 +151,61 @@ const AdminAppointments = () => {
         (app) =>
           app.fullName?.toLowerCase().includes(searchLower) ||
           app.phone?.includes(filters.search) ||
-          app.email?.toLowerCase().includes(searchLower)
+          app.email?.toLowerCase().includes(searchLower) ||
+          app.department?.toLowerCase().includes(searchLower)
       );
     }
 
     setFilteredAppointments(filtered);
   };
 
-  const handleTryApprove = async (appointmentId) => {
-    if (!window.confirm("Bạn có chắc muốn thử duyệt đơn này?")) return;
+  const handleApprove = async (appointment) => {
+    console.log("🔄 START handleApprove for appointment:", appointment);
+    setSelectedAppointment(appointment);
+    setLoadingDoctors(true);
+    setSelectedDoctorId(null);
+    setSelectedTimeSlot("");
+    setAvailableTimeSlots([]);
+
+    try {
+      const token = getToken();
+      if (!token) return;
+
+      const response = await axios.get(
+        `http://localhost:8080/api/admin/doctors/by-department`,
+        {
+          params: { department: appointment.department },
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      setAvailableDoctors(response.data);
+      setShowApproveModal(true);
+    } catch (error) {
+      alert("❌ Lỗi khi lấy danh sách bác sĩ: " + error.message);
+    } finally {
+      setLoadingDoctors(false);
+    }
+  };
+
+  const handleQuickApprove = async (appointment) => {
+    if (
+      !window.confirm(
+        `Bạn có chắc muốn duyệt đơn của ${appointment.fullName} với bác sĩ và khung giờ ngẫu nhiên?`
+      )
+    ) {
+      return;
+    }
 
     try {
       const token = getToken();
       if (!token) return;
 
       await axios.post(
-        `http://localhost:8080/api/admin/registrations/${appointmentId}/try-approve`,
+        `http://localhost:8080/api/admin/registrations/${appointment.id}/quick-approve`,
         {},
         {
           headers: {
@@ -165,14 +215,84 @@ const AdminAppointments = () => {
         }
       );
 
-      alert("✅ Đã duyệt đơn thành công!");
+      alert("✅ Đã duyệt đơn thành công với bác sĩ và khung giờ ngẫu nhiên!");
       fetchAppointments();
     } catch (error) {
       alert(
-        `❌ ${
-          error.response?.data || "Không thể duyệt đơn. Có thể đã hết slot."
-        }`
+        "❌ Lỗi khi duyệt đơn nhanh: " + (error.response?.data || error.message)
       );
+    }
+  };
+
+  const handleDoctorSelect = async (doctorId) => {
+    setSelectedDoctorId(doctorId);
+    setSelectedTimeSlot("");
+    setLoadingSlots(true);
+
+    try {
+      const token = getToken();
+      if (!token) return;
+
+      const response = await axios.get(
+        `http://localhost:8080/api/admin/doctors/${doctorId}/available-slots`,
+        {
+          params: {
+            appointmentDate: selectedAppointment?.appointmentDate,
+          },
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      setAvailableTimeSlots(response.data);
+    } catch (error) {
+      console.error("Lỗi khi lấy khung giờ khả dụng:", error);
+      setAvailableTimeSlots([]);
+    } finally {
+      setLoadingSlots(false);
+    }
+  };
+
+  const handleConfirmApprove = async () => {
+    if (!selectedAppointment || !selectedDoctorId || !selectedTimeSlot) {
+      alert("⚠️ Vui lòng chọn bác sĩ và khung giờ");
+      return;
+    }
+
+    try {
+      const token = getToken();
+      if (!token) return;
+
+      console.log("🎯 Confirming approval with:", {
+        selectedDoctorId,
+        selectedTimeSlot,
+      });
+
+      await axios.post(
+        `http://localhost:8080/api/admin/registrations/${selectedAppointment.id}/approve-with-assignment`,
+        null,
+        {
+          params: {
+            doctorId: selectedDoctorId,
+            timeSlot: selectedTimeSlot,
+          },
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      alert("✅ Đã duyệt đơn thành công!");
+      setShowApproveModal(false);
+      setSelectedDoctorId(null);
+      setSelectedTimeSlot("");
+      setAvailableTimeSlots([]);
+      fetchAppointments();
+    } catch (error) {
+      alert("❌ Lỗi khi duyệt đơn: " + (error.response?.data || error.message));
     }
   };
 
@@ -230,6 +350,40 @@ const AdminAppointments = () => {
     }
   };
 
+  const toggleCardExpand = (appointmentId) => {
+    setExpandedCard(expandedCard === appointmentId ? null : appointmentId);
+  };
+
+  const getStatusBadge = (status) => {
+    const statusConfig = {
+      APPROVED: {
+        label: "ĐÃ DUYỆT",
+        class: "status-approved",
+      },
+      NEEDS_MANUAL_REVIEW: {
+        label: "CẦN XỬ LÝ",
+        class: "status-pending",
+      },
+      PENDING: {
+        label: "CHỜ DUYỆT",
+        class: "status-pending",
+      },
+      REJECTED: {
+        label: "ĐÃ TỪ CHỐI",
+        class: "status-rejected",
+      },
+    };
+
+    const config = statusConfig[status] || {
+      label: status || "CHỜ DUYỆT",
+      class: "status-default",
+    };
+
+    return (
+      <span className={`status-badge ${config.class}`}>{config.label}</span>
+    );
+  };
+
   const getPaymentStatusBadge = (paymentStatus) => {
     const paymentConfig = {
       "Đã thanh toán": {
@@ -243,10 +397,6 @@ const AdminAppointments = () => {
       "Đang chờ xử lý": {
         label: "ĐANG XỬ LÝ",
         class: "payment-status-pending",
-      },
-      "Thất bại": {
-        label: "THẤT BẠI",
-        class: "payment-status-failed",
       },
     };
 
@@ -270,12 +420,10 @@ const AdminAppointments = () => {
     return new Date(dateTimeString).toLocaleString("vi-VN");
   };
 
-  // Tính toán thống kê chính xác
   const calculateStats = () => {
     const total = appointments.length;
     const approved = appointments.filter(
-      (app) =>
-        app.status === "APPROVED" || app.paymentStatus === "Đã thanh toán"
+      (app) => app.status === "APPROVED"
     ).length;
     const pending = appointments.filter(
       (app) => app.status === "NEEDS_MANUAL_REVIEW" || app.status === "PENDING"
@@ -283,8 +431,12 @@ const AdminAppointments = () => {
     const paid = appointments.filter(
       (app) => app.paymentStatus === "Đã thanh toán"
     ).length;
+    const unpaid = appointments.filter(
+      (app) =>
+        app.paymentStatus === "Chưa thanh toán" && app.status === "APPROVED"
+    ).length;
 
-    return { total, approved, pending, paid };
+    return { total, approved, pending, paid, unpaid };
   };
 
   const statsData = calculateStats();
@@ -304,7 +456,16 @@ const AdminAppointments = () => {
         <p>Quản lý và xử lý các đơn đăng ký khám bệnh</p>
       </div>
 
-      {/* Thống kê - SỬA LẠI ĐỂ TÍNH TOÁN CHÍNH XÁC */}
+      {errorMessage && (
+        <div className="error-message">
+          <p>{errorMessage}</p>
+          <button onClick={fetchAppointments} className="retry-button">
+            Thử lại
+          </button>
+        </div>
+      )}
+
+      {/* Thống kê */}
       <div className="stats-grid">
         <div className="stat-card total">
           <h3>Tổng đơn</h3>
@@ -322,6 +483,10 @@ const AdminAppointments = () => {
           <h3>Đã thanh toán</h3>
           <p className="stat-number">{statsData.paid}</p>
         </div>
+        <div className="stat-card unpaid-stats">
+          <h3>Chờ thanh toán</h3>
+          <p className="stat-number">{statsData.unpaid}</p>
+        </div>
       </div>
 
       {/* Bộ lọc */}
@@ -332,7 +497,7 @@ const AdminAppointments = () => {
             value={filters.status}
             onChange={(e) => setFilters({ ...filters, status: e.target.value })}
           >
-            <option value="ALL">Tất cả</option>
+            <option value="ALL">Tất cả trạng thái</option>
             <option value="APPROVED">Đã duyệt</option>
             <option value="PENDING">Chờ duyệt</option>
             <option value="NEEDS_MANUAL_REVIEW">Cần xử lý</option>
@@ -348,7 +513,7 @@ const AdminAppointments = () => {
               setFilters({ ...filters, paymentStatus: e.target.value })
             }
           >
-            <option value="ALL">Tất cả</option>
+            <option value="ALL">Tất cả thanh toán</option>
             <option value="Đã thanh toán">Đã thanh toán</option>
             <option value="Chưa thanh toán">Chưa thanh toán</option>
             <option value="Đang chờ xử lý">Đang xử lý</option>
@@ -368,7 +533,7 @@ const AdminAppointments = () => {
           <label>Tìm kiếm:</label>
           <input
             type="text"
-            placeholder="Tên, SĐT, Email..."
+            placeholder="Tên, SĐT, Email, Khoa..."
             value={filters.search}
             onChange={(e) => setFilters({ ...filters, search: e.target.value })}
           />
@@ -392,7 +557,11 @@ const AdminAppointments = () => {
       {/* Danh sách lịch hẹn */}
       <div className="appointments-list">
         <div className="list-header">
-          <h2>Danh sách Lịch hẹn ({filteredAppointments.length})</h2>
+          <h2>
+            Danh sách Lịch hẹn ({filteredAppointments.length})
+            {filters.paymentStatus !== "ALL" && ` - ${filters.paymentStatus}`}
+            {filters.status !== "ALL" && ` - ${filters.status}`}
+          </h2>
           <button className="refresh-btn" onClick={fetchAppointments}>
             🔄 Làm mới
           </button>
@@ -400,161 +569,372 @@ const AdminAppointments = () => {
 
         {filteredAppointments.length === 0 ? (
           <div className="no-data">
-            <p>📭 Không có lịch hẹn nào phù hợp</p>
+            <p>
+              📭{" "}
+              {appointments.length === 0
+                ? "Không có lịch hẹn nào"
+                : "Không có lịch hẹn nào phù hợp"}
+            </p>
+            {appointments.length === 0 && (
+              <button onClick={fetchAppointments} className="retry-button">
+                Kiểm tra lại
+              </button>
+            )}
           </div>
         ) : (
           <div className="appointments-grid">
             {filteredAppointments.map((appointment) => (
-              <div key={appointment.id} className="appointment-card">
+              <div
+                key={appointment.id}
+                className={`appointment-card ${
+                  expandedCard === appointment.id ? "expanded" : ""
+                }`}
+                id={`appointment-${appointment.id}`}
+              >
+                {/* Card Header - Luôn hiển thị */}
                 <div className="card-header">
-                  <h3>{appointment.fullName || "Chưa có tên"}</h3>
-                  <div className="status-group">
-                    {/* HIỂN THỊ TRẠNG THÁI THỰC TẾ */}
-                    {appointment.status === "APPROVED" ||
-                    appointment.paymentStatus === "Đã thanh toán" ? (
-                      <span className="status-badge status-approved">
-                        ĐÃ DUYỆT
-                      </span>
-                    ) : (
-                      <span
-                        className={`status-badge status-${
-                          appointment.status?.toLowerCase() || "default"
-                        }`}
-                      >
-                        {appointment.status === "PENDING" && "CHỜ DUYỆT"}
-                        {appointment.status === "NEEDS_MANUAL_REVIEW" &&
-                          "CẦN XỬ LÝ"}
-                        {appointment.status === "REJECTED" && "ĐÃ TỪ CHỐI"}
-                        {!appointment.status && "CHƯA XÁC ĐỊNH"}
-                      </span>
-                    )}
-                    {getPaymentStatusBadge(appointment.paymentStatus)}
-                  </div>
-                </div>
-
-                <div className="card-content">
-                  <div className="info-row">
-                    <span className="label">📞 SĐT:</span>
-                    <span>{appointment.phone || "Chưa có"}</span>
-                  </div>
-                  <div className="info-row">
-                    <span className="label">📧 Email:</span>
-                    <span>{appointment.email || "Chưa có"}</span>
-                  </div>
-                  <div className="info-row">
-                    <span className="label">🏥 Khoa:</span>
-                    <span>{appointment.department || "Chưa có"}</span>
-                  </div>
-                  <div className="info-row">
-                    <span className="label">📅 Ngày khám:</span>
-                    <span>{formatDate(appointment.appointmentDate)}</span>
-                  </div>
-
-                  <div className="info-row">
-                    <span className="label">💰 Phí khám:</span>
-                    <span
-                      className={
-                        appointment.paymentStatus === "Đã thanh toán"
-                          ? "paid-amount"
-                          : ""
-                      }
-                    >
-                      {appointment.examinationFee?.toLocaleString() || "0"} VND
-                    </span>
-                  </div>
-
-                  {/* Chỉ hiển thị ngày thanh toán nếu đã thanh toán */}
-                  {appointment.paymentStatus === "Đã thanh toán" &&
-                    appointment.paymentDate && (
-                      <div className="info-row">
-                        <span className="label">⏰ Ngày thanh toán:</span>
-                        <span>{formatDateTime(appointment.paymentDate)}</span>
-                      </div>
-                    )}
-
-                  {/* HIỂN THỊ THÔNG TIN BUỔI KHÁM CHO CẢ ĐƠN ĐÃ THANH TOÁN VÀ CHƯA THANH TOÁN */}
-                  {(appointment.assignedSession ||
-                    appointment.queueNumber ||
-                    appointment.expectedTimeSlot ||
-                    appointment.roomNumber) && (
-                    <>
-                      <div className="info-row">
-                        <span className="label">🕒 Buổi khám:</span>
-                        <span>{appointment.assignedSession || "Chưa có"}</span>
-                      </div>
-                      <div className="info-row">
-                        <span className="label">🎯 Số TT:</span>
-                        <span className="queue-number">
-                          {appointment.queueNumber || "Chưa có"}
-                        </span>
-                      </div>
-                      <div className="info-row">
-                        <span className="label">⏰ Khung giờ:</span>
-                        <span>{appointment.expectedTimeSlot || "Chưa có"}</span>
-                      </div>
-                      <div className="info-row">
-                        <span className="label">🚪 Phòng:</span>
-                        <span>{appointment.roomNumber || "Chưa có"}</span>
-                      </div>
-                    </>
-                  )}
-
-                  {appointment.symptoms && (
-                    <div className="symptoms">
-                      <span className="label">📝 Triệu chứng:</span>
-                      <p>{appointment.symptoms}</p>
+                  <div className="card-main-info">
+                    <h3>
+                      {appointment.fullName || "Chưa có tên"} - #
+                      {appointment.id}
+                    </h3>
+                    <div className="status-group">
+                      {getStatusBadge(appointment.status)}
+                      {getPaymentStatusBadge(appointment.paymentStatus)}
                     </div>
-                  )}
+                  </div>
+                  <button
+                    className="expand-btn"
+                    onClick={() => toggleCardExpand(appointment.id)}
+                  >
+                    {expandedCard === appointment.id ? "▼" : "▶"}
+                  </button>
                 </div>
 
-                <div className="card-actions">
-                  {/* CHỈ HIỂN THỊ "ĐÃ DUYỆT" NẾU THỰC SỰ ĐÃ DUYỆT */}
-                  {(appointment.status === "APPROVED" ||
-                    appointment.paymentStatus === "Đã thanh toán") && (
-                    <div className="approved-info">
-                      <span className="success-text">✅ Đã duyệt</span>
-                      {appointment.autoApproved && (
-                        <span className="auto-badge">🤖 Tự động</span>
+                {/* Basic Info - Luôn hiển thị */}
+                <div className="card-basic-info">
+                  <div className="basic-info-grid">
+                    <div className="info-item">
+                      <span className="label">📞 SĐT:</span>
+                      <span>{appointment.phone || "Chưa có"}</span>
+                    </div>
+                    <div className="info-item">
+                      <span className="label">📧 Email:</span>
+                      <span>{appointment.email || "Chưa có"}</span>
+                    </div>
+                    <div className="info-item">
+                      <span className="label">🏥 Khoa:</span>
+                      <span>{appointment.department || "Chưa có"}</span>
+                    </div>
+                    <div className="info-item">
+                      <span className="label">📅 Ngày khám:</span>
+                      <span>{formatDate(appointment.appointmentDate)}</span>
+                    </div>
+                    <div className="info-item">
+                      <span className="label">💰 Phí khám:</span>
+                      <span
+                        className={
+                          appointment.paymentStatus === "Đã thanh toán"
+                            ? "paid-amount"
+                            : "unpaid-amount"
+                        }
+                      >
+                        {appointment.examinationFee?.toLocaleString() || "0"}{" "}
+                        VND
+                      </span>
+                    </div>
+
+                    {/* HIỂN THỊ BÁC SĨ NGAY TRONG BASIC INFO NẾU CÓ */}
+                    {appointment.doctorId && (
+                      <div className="info-item full-width">
+                        <span className="label">👨‍⚕️ Bác sĩ:</span>
+                        <div className="doctor-info-compact">
+                          <strong>
+                            {appointment.doctor?.fullName || "Đã phân công"}
+                          </strong>
+                          {(appointment.doctor?.degree ||
+                            appointment.doctor?.position) && (
+                            <div className="doctor-credentials-compact">
+                              {appointment.doctor?.degree && (
+                                <span className="doctor-degree">
+                                  {appointment.doctor.degree}
+                                </span>
+                              )}
+                              <p> - </p>
+                              {appointment.doctor?.position && (
+                                <span className="doctor-position">
+                                  {appointment.doctor.position}
+                                </span>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Expanded Details - Chỉ hiển thị khi expanded */}
+                {expandedCard === appointment.id && (
+                  <div className="card-expanded-details">
+                    <div className="details-section">
+                      <h4>Thông tin chi tiết</h4>
+                      <div className="details-grid">
+                        <div className="detail-item">
+                          <span className="label">👤 Họ tên:</span>
+                          <span>{appointment.fullName || "Chưa có"}</span>
+                        </div>
+                        <div className="detail-item">
+                          <span className="label">📞 Điện thoại:</span>
+                          <span>{appointment.phone || "Chưa có"}</span>
+                        </div>
+                        <div className="detail-item">
+                          <span className="label">📧 Email:</span>
+                          <span>{appointment.email || "Chưa có"}</span>
+                        </div>
+                        <div className="detail-item">
+                          <span className="label">🏥 Khoa khám:</span>
+                          <span>{appointment.department || "Chưa có"}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Thông tin buổi khám cho đơn đã duyệt */}
+                    {appointment.status === "APPROVED" && (
+                      <div className="details-section approved-section">
+                        <h4>Thông tin buổi khám</h4>
+                        <div className="appointment-details">
+                          {appointment.assignedSession && (
+                            <div className="detail-row">
+                              <span className="label">🕒 Buổi khám:</span>
+                              <span>{appointment.assignedSession}</span>
+                            </div>
+                          )}
+                          {appointment.queueNumber && (
+                            <div className="detail-row">
+                              <span className="label">🎯 Số thứ tự:</span>
+                              <span className="queue-number">
+                                {appointment.queueNumber}
+                              </span>
+                            </div>
+                          )}
+                          {appointment.expectedTimeSlot && (
+                            <div className="detail-row">
+                              <span className="label">
+                                ⏰ Khung giờ dự kiến:
+                              </span>
+                              <span>{appointment.expectedTimeSlot}</span>
+                            </div>
+                          )}
+                          {appointment.roomNumber && (
+                            <div className="detail-row">
+                              <span className="label">🚪 Phòng khám:</span>
+                              <span>{appointment.roomNumber}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Ngày thanh toán nếu đã thanh toán */}
+                    {appointment.paymentStatus === "Đã thanh toán" &&
+                      appointment.paymentDate && (
+                        <div className="details-section">
+                          <div className="detail-row">
+                            <span className="label">⏰ Ngày thanh toán:</span>
+                            <span>
+                              {formatDateTime(appointment.paymentDate)}
+                            </span>
+                          </div>
+                        </div>
+                      )}
+
+                    {/* Triệu chứng */}
+                    {appointment.symptoms && (
+                      <div className="details-section">
+                        <h4>📝 Triệu chứng</h4>
+                        <div className="symptoms-content">
+                          <p>{appointment.symptoms}</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Action Buttons */}
+                    <div className="card-actions">
+                      {(appointment.status === "APPROVED" ||
+                        appointment.paymentStatus === "Đã thanh toán") && (
+                        <div className="approved-info">
+                          <span className="success-text">✅ Đã duyệt</span>
+                          {appointment.autoApproved && (
+                            <span className="auto-badge">🤖 Tự động</span>
+                          )}
+                        </div>
+                      )}
+
+                      {appointment.status === "NEEDS_MANUAL_REVIEW" && (
+                        <div className="approval-actions">
+                          <button
+                            className="btn-quick-approve"
+                            onClick={() => handleQuickApprove(appointment)}
+                            title="Duyệt nhanh với bác sĩ và khung giờ ngẫu nhiên"
+                          >
+                            ⚡ Duyệt nhanh
+                          </button>
+
+                          <button
+                            className="btn-approve"
+                            onClick={() => handleApprove(appointment)}
+                            title="Chọn bác sĩ và khung giờ cụ thể"
+                          >
+                            ✅ Duyệt đơn
+                          </button>
+
+                          <button
+                            className="btn-reject"
+                            onClick={() => handleReject(appointment.id)}
+                          >
+                            ❌ Từ chối
+                          </button>
+                        </div>
+                      )}
+
+                      {appointment.status === "PENDING" && (
+                        <button
+                          className="btn-manual"
+                          onClick={() => handleManualReview(appointment.id)}
+                        >
+                          🔄 Chuyển xử lý thủ công
+                        </button>
+                      )}
+
+                      {appointment.status === "REJECTED" && (
+                        <span className="rejected-text">❌ Đã từ chối</span>
                       )}
                     </div>
-                  )}
 
-                  {/* Actions chỉ cho các trạng thái cần xử lý */}
-                  {appointment.status === "NEEDS_MANUAL_REVIEW" && (
-                    <>
-                      <button
-                        className="btn-approve"
-                        onClick={() => handleTryApprove(appointment.id)}
-                      >
-                        ✅ Thử duyệt
-                      </button>
-                      <button
-                        className="btn-reject"
-                        onClick={() => handleReject(appointment.id)}
-                      >
-                        ❌ Từ chối
-                      </button>
-                    </>
-                  )}
-
-                  {appointment.status === "PENDING" && (
-                    <button
-                      className="btn-manual"
-                      onClick={() => handleManualReview(appointment.id)}
-                    >
-                      🔄 Chuyển xử lý thủ công
-                    </button>
-                  )}
-
-                  {appointment.status === "REJECTED" && (
-                    <span className="rejected-text">❌ Đã từ chối</span>
-                  )}
-                </div>
+                    {/* Notes */}
+                    <div className="appointment-notes">
+                      <p>
+                        💡 <strong>Thông tin quản lý:</strong> Đơn khám #
+                        {appointment.id}
+                      </p>
+                      {appointment.status === "APPROVED" && (
+                        <p>
+                          ✅ <strong>Trạng thái:</strong> Lịch hẹn đã được xác
+                          nhận
+                        </p>
+                      )}
+                      {appointment.status === "NEEDS_MANUAL_REVIEW" && (
+                        <p>
+                          ⚠️ <strong>Yêu cầu:</strong> Cần xử lý thủ công - phân
+                          công bác sĩ và khung giờ
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             ))}
           </div>
         )}
       </div>
+
+      {/* Modal duyệt đơn */}
+      {showApproveModal && (
+        <div className="modal-overlay">
+          <div className="modal-content approve-modal">
+            <div className="modal-header">
+              <h3>✅ Duyệt Đơn Khám</h3>
+              <button
+                className="close-btn"
+                onClick={() => {
+                  setShowApproveModal(false);
+                  setSelectedDoctorId(null);
+                  setSelectedTimeSlot("");
+                  setAvailableTimeSlots([]);
+                }}
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="modal-body">
+              <div className="appointment-info">
+                <h4>Thông tin đơn:</h4>
+                <p>
+                  <strong>Bệnh nhân:</strong> {selectedAppointment?.fullName}
+                </p>
+                <p>
+                  <strong>Khoa:</strong> {selectedAppointment?.department}
+                </p>
+                <p>
+                  <strong>Ngày khám:</strong>{" "}
+                  {formatDate(selectedAppointment?.appointmentDate)}
+                </p>
+              </div>
+
+              <div className="approval-options">
+                <div className="doctor-selection">
+                  <label>Chọn bác sĩ:</label>
+                  <select
+                    value={selectedDoctorId || ""}
+                    onChange={(e) => handleDoctorSelect(e.target.value)}
+                    disabled={loadingDoctors}
+                  >
+                    <option value="">-- Chọn bác sĩ --</option>
+                    {availableDoctors.map((doctor) => (
+                      <option key={doctor.id} value={doctor.id}>
+                        {doctor.fullName}
+                        {doctor.degree && ` - ${doctor.degree}`}
+                        {doctor.position && ` (${doctor.position})`}
+                        {doctor.roomNumber && ` - Phòng ${doctor.roomNumber}`}
+                        {doctor.specialty && ` - ${doctor.specialty}`}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {selectedDoctorId && (
+                  <div className="time-slot-selection">
+                    <label>Chọn khung giờ:</label>
+                    {loadingSlots ? (
+                      <div className="loading-slots">Đang tải khung giờ...</div>
+                    ) : availableTimeSlots.length > 0 ? (
+                      <div className="time-slots-grid">
+                        {availableTimeSlots.map((slot) => (
+                          <button
+                            key={slot}
+                            type="button"
+                            className={`time-slot-btn ${
+                              selectedTimeSlot === slot ? "selected" : ""
+                            }`}
+                            onClick={() => setSelectedTimeSlot(slot)}
+                          >
+                            {slot}
+                          </button>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="no-slots">
+                        ❌ Không có khung giờ nào khả dụng
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {selectedDoctorId && selectedTimeSlot && (
+                  <button
+                    className="btn-confirm-approve"
+                    onClick={handleConfirmApprove}
+                  >
+                    ✅ Xác nhận duyệt đơn
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

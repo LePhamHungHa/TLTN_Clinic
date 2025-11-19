@@ -59,9 +59,20 @@ public class AutoApprovalService {
     @Transactional
     public PatientRegistration processNewRegistration(PatientRegistration registration) {
         System.out.println("🚀 AutoApprovalService - Xử lý đăng ký mới: " + registration.getFullName());
+        System.out.println("📋 Thông tin đăng ký:");
+        System.out.println("   - Doctor ID: " + registration.getDoctorId());
+        System.out.println("   - Assigned Session: " + registration.getAssignedSession());
+        
+        // QUAN TRỌNG: Nếu KHÔNG có doctorId -> chuyển sang manual review
+        if (registration.getDoctorId() == null) {
+            System.out.println("⚠️ Không có bác sĩ được chọn, chuyển sang MANUAL REVIEW");
+            registration.setStatus("NEEDS_MANUAL_REVIEW");
+            registration.setRegistrationNumber(generateRegistrationNumber(registration));
+            return repository.save(registration);
+        }
         
         // Nếu đã có assignedSession (từ frontend), kiểm tra slot
-        if (registration.getDoctorId() != null && registration.getAssignedSession() != null) {
+        if (registration.getAssignedSession() != null) {
             boolean slotAvailable = checkAvailableSlots(
                 registration.getDoctorId(),
                 registration.getAppointmentDate(),
@@ -105,7 +116,6 @@ public class AutoApprovalService {
         return null;
     }
     
-    // QUAN TRỌNG: METHOD CHÍNH ĐÃ ĐƯỢC SỬA - SỬ DỤNG LOCK
     @Transactional
     public PatientRegistration autoApproveRegistration(PatientRegistration registration, String timeSlot) {
         System.out.println("🚀 Bắt đầu tự động duyệt đơn - Khung giờ: " + timeSlot);
