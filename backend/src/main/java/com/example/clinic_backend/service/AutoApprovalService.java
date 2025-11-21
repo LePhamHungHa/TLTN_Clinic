@@ -26,6 +26,9 @@ public class AutoApprovalService {
     
     @Autowired
     private DoctorSlotService doctorSlotService;
+
+    @Autowired
+    private EmailService emailService;
     
     private static final String[] TIME_SLOTS = {
         "07:00-08:00", "08:00-09:00", "09:00-10:00", "10:00-11:00", 
@@ -147,6 +150,14 @@ public class AutoApprovalService {
             registration.setAssignedSession(timeSlot);
             
             PatientRegistration saved = repository.save(registration);
+
+            // ✅ THÊM: GỬI EMAIL TỰ ĐỘNG KHI DUYỆT ĐƠN
+            try {
+                emailService.sendApprovalEmail(saved);
+                System.out.println("✅ Đã gửi email duyệt đơn cho: " + saved.getEmail());
+            } catch (Exception e) {
+                System.err.println("❌ Lỗi gửi email duyệt đơn: " + e.getMessage());
+            }
             
             System.out.println("🎉 Đã tự động duyệt thành công!");
             System.out.println("📋 Thông tin cuối cùng:");

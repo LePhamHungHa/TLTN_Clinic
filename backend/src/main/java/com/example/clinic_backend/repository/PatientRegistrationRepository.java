@@ -16,15 +16,20 @@ import java.util.Optional;
 @Repository
 public interface PatientRegistrationRepository extends JpaRepository<PatientRegistration, Long> {
     
-    // ==================== METHOD MỚI CHO ADMIN ====================
+    // ==================== METHOD MỚI CHO EMAIL ====================
+    
+    @Query("SELECT p FROM PatientRegistration p WHERE p.appointmentDate = :date AND p.status = :status")
+    List<PatientRegistration> findByAppointmentDateAndStatus(
+            @Param("date") LocalDate date, 
+            @Param("status") String status);
+    
+    // ==================== METHOD HIỆN CÓ - GIỮ NGUYÊN ====================
     
     @EntityGraph(attributePaths = {"doctor"})
     @Query("SELECT pr FROM PatientRegistration pr ORDER BY pr.createdAt DESC")
     List<PatientRegistration> findAllWithDoctor();
     
     List<PatientRegistration> findAll();
-    
-    // ==================== METHOD HIỆN CÓ - GIỮ NGUYÊN ====================
     
     List<PatientRegistration> findByEmail(String email);
     
@@ -47,7 +52,7 @@ public interface PatientRegistrationRepository extends JpaRepository<PatientRegi
     List<PatientRegistration> findByEmailOrderByCreatedAtDesc(String email);
     List<PatientRegistration> findByStatusOrderByCreatedAtAsc(String status);
     
-    // ==================== METHOD MỚI CHO SLOT MANAGEMENT ====================
+    // ==================== METHOD CHO SLOT MANAGEMENT ====================
     
     @Query("SELECT COUNT(p) FROM PatientRegistration p WHERE p.doctorId = :doctorId AND p.appointmentDate = :appointmentDate AND p.assignedSession = :assignedSession AND p.status = :status")
     Integer countByDoctorIdAndAppointmentDateAndAssignedSessionAndStatus(
@@ -57,7 +62,6 @@ public interface PatientRegistrationRepository extends JpaRepository<PatientRegi
         @Param("status") String status
     );
     
-    // QUAN TRỌNG: Method mới với LOCK để tránh trùng số thứ tự
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT COUNT(p) FROM PatientRegistration p WHERE p.doctorId = :doctorId AND p.appointmentDate = :appointmentDate AND p.assignedSession = :assignedSession AND p.status = 'APPROVED'")
     Integer countApprovedRegistrationsWithLock(
@@ -66,7 +70,6 @@ public interface PatientRegistrationRepository extends JpaRepository<PatientRegi
         @Param("assignedSession") String assignedSession
     );
     
-    // Tìm đơn theo doctor, date, session để kiểm tra trùng
     @Query("SELECT p FROM PatientRegistration p WHERE p.doctorId = :doctorId AND p.appointmentDate = :appointmentDate AND p.assignedSession = :assignedSession AND p.status = 'APPROVED'")
     List<PatientRegistration> findByDoctorAndDateAndSession(
         @Param("doctorId") Long doctorId,

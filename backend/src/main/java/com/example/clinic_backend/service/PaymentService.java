@@ -30,8 +30,15 @@ public class PaymentService {
         return paymentRepository.findByTransactionNo(transactionNo);
     }
 
+    public Optional<Payment> findByPatientRegistrationId(Long patientRegistrationId) {
+        return paymentRepository.findByPatientRegistrationId(patientRegistrationId);
+    }
+
+    /**
+     * Cập nhật trạng thái payment và trả về Payment object - THÊM METHOD NÀY
+     */
     @Transactional
-    public void updatePaymentStatus(String transactionNo, String status, String vnpResponseCode) {
+    public Payment updatePaymentStatus(String transactionNo, String status, String vnpResponseCode) {
         try {
             System.out.println("🔄 Updating payment status: " + transactionNo + " -> " + status);
             
@@ -41,36 +48,51 @@ public class PaymentService {
                 payment.setStatus(status);
                 payment.setVnpResponseCode(vnpResponseCode);
                 payment.setUpdatedAt(LocalDateTime.now());
-                paymentRepository.save(payment);
+                
+                // Nếu thành công, cập nhật thêm thông tin VNPay
+                if ("Thành công".equals(status) && vnpResponseCode != null) {
+                    payment.setVnpTransactionNo(vnpResponseCode);
+                }
+                
+                Payment savedPayment = paymentRepository.save(payment);
+                System.out.println("✅ Payment updated: " + savedPayment.getStatus());
 
-                System.out.println("✅ Payment updated: " + payment.getStatus());
-
-                // Update patient registration status
-                if ("00".equals(vnpResponseCode) && "SUCCESS".equals(status)) {
+                // Update patient registration status - SỬA LOGIC NÀY
+                if ("00".equals(vnpResponseCode) && "Thành công".equals(status)) {
                     Optional<PatientRegistration> registrationOpt = 
                         patientRegistrationRepository.findById(payment.getPatientRegistrationId());
                     if (registrationOpt.isPresent()) {
                         PatientRegistration registration = registrationOpt.get();
-                        registration.setStatus("PAID");
+                        registration.setPaymentStatus("PAID"); // SỬA: paymentStatus thay vì status
+                        registration.setTransactionNumber(transactionNo);
                         
                         // Convert Double to BigDecimal
                         if (payment.getAmount() != null) {
-                            registration.setExaminationFee(BigDecimal.valueOf(payment.getAmount()));
+                            registration.setPaidAmount(BigDecimal.valueOf(payment.getAmount())); // SỬA: paidAmount thay vì examinationFee
                         }
                         
+                        registration.setPaidAt(LocalDateTime.now());
                         patientRegistrationRepository.save(registration);
-                        System.out.println("✅ Updated patient registration: " + registration.getId() + " -> PAID");
+                        System.out.println("✅ Updated patient registration payment status: " + registration.getId() + " -> PAID");
                     } else {
                         System.out.println("❌ Patient registration not found: " + payment.getPatientRegistrationId());
                     }
                 }
+                
+                return savedPayment;
             } else {
                 System.out.println("❌ Payment not found: " + transactionNo);
+                return null;
             }
         } catch (Exception e) {
             System.err.println("❌ Error in updatePaymentStatus: " + e.getMessage());
             e.printStackTrace();
             throw e;
         }
+    }
+
+    @Transactional
+    public void updatePaymentStatusOld(String transactionNo, String status, String vnpResponseCode) {
+        updatePaymentStatus(transactionNo, status, vnpResponseCode);
     }
 }

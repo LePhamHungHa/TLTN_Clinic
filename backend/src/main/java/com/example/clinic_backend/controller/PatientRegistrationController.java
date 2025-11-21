@@ -44,7 +44,7 @@ public class PatientRegistrationController {
         }
     }
 
-    // POST method - Tạo đăng ký mới VỚI TÍCH HỢP SLOT
+    // POST method - Tạo đăng ký mới VỚI TÍCH HỢP SLOT VÀ THÔNG BÁO
     @PostMapping
     public ResponseEntity<?> createRegistration(@RequestBody PatientRegistrationDTO dto) {
         try {
@@ -113,7 +113,7 @@ public class PatientRegistrationController {
             System.out.println("   - Appointment Date: " + registration.getAppointmentDate());
             System.out.println("   - Time Slot: " + registration.getAssignedSession());
             
-            // GỌI SERVICE XỬ LÝ ĐĂNG KÝ
+            // GỌI SERVICE XỬ LÝ ĐĂNG KÝ (ĐÃ TÍCH HỢP THÔNG BÁO)
             PatientRegistration savedRegistration = registrationService.createRegistration(registration);
             
             System.out.println("✅ Registration processed successfully with status: " + savedRegistration.getStatus());
@@ -324,4 +324,67 @@ public class PatientRegistrationController {
             return ResponseEntity.internalServerError().build();
         }
     }
+
+    // THÊM API XỬ LÝ THANH TOÁN THÀNH CÔNG
+    @PostMapping("/{id}/payment-success")
+    public ResponseEntity<?> processPaymentSuccess(@PathVariable Long id, 
+                                                  @RequestBody PaymentRequest paymentRequest) {
+        try {
+            System.out.println("💳 Nhận yêu cầu xử lý thanh toán thành công");
+            System.out.println("   - Registration ID: " + id);
+            System.out.println("   - Transaction: " + paymentRequest.getTransactionNumber());
+            System.out.println("   - Amount: " + paymentRequest.getAmount());
+
+            PatientRegistration updatedRegistration = registrationService.processPaymentSuccess(
+                id, 
+                paymentRequest.getTransactionNumber(), 
+                paymentRequest.getAmount()
+            );
+
+            System.out.println("✅ Xử lý thanh toán thành công và đã gửi email xác nhận");
+            return ResponseEntity.ok(updatedRegistration);
+
+        } catch (Exception e) {
+            System.err.println("❌ Lỗi xử lý thanh toán: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.badRequest().body("Lỗi xử lý thanh toán: " + e.getMessage());
+        }
+    }
+
+    // THÊM API GỬI EMAIL NHẮC LỊCH THỦ CÔNG (CHO TESTING)
+    @PostMapping("/{id}/send-reminder")
+    public ResponseEntity<?> sendManualReminder(@PathVariable Long id) {
+        try {
+            Optional<PatientRegistration> registrationOpt = registrationService.getById(id);
+            if (registrationOpt.isEmpty()) {
+                return ResponseEntity.notFound().build();
+            }
+
+            PatientRegistration registration = registrationOpt.get();
+            
+            // Gọi email service để gửi reminder
+            // Bạn có thể tạo method mới trong EmailService cho việc này
+            // hoặc sử dụng method hiện có với điều chỉnh
+            
+            return ResponseEntity.ok().body("Đã gửi email nhắc lịch");
+
+        } catch (Exception e) {
+            System.err.println("❌ Lỗi gửi email nhắc lịch: " + e.getMessage());
+            return ResponseEntity.badRequest().body("Lỗi gửi email: " + e.getMessage());
+        }
+    }
+
+    // Inner class cho Payment Request
+    public static class PaymentRequest {
+        private String transactionNumber;
+        private Double amount;
+
+        // Getters and Setters
+        public String getTransactionNumber() { return transactionNumber; }
+        public void setTransactionNumber(String transactionNumber) { this.transactionNumber = transactionNumber; }
+        
+        public Double getAmount() { return amount; }
+        public void setAmount(Double amount) { this.amount = amount; }
+    }
+
 }

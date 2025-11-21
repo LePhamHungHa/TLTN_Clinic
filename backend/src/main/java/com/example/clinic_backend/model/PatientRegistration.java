@@ -88,6 +88,16 @@ public class PatientRegistration {
     @Column(name = "assigned_session")
     private String assignedSession;
 
+    // THÊM CÁC TRƯỜNG MỚI CHO THANH TOÁN
+    @Column(name = "payment_status")
+    private String paymentStatus;
+    
+    @Column(name = "paid_amount")
+    private BigDecimal paidAmount;
+    
+    @Column(name = "paid_at")
+    private LocalDateTime paidAt;
+
     // Constructors
     public PatientRegistration() {
         this.createdAt = LocalDateTime.now();
@@ -187,6 +197,16 @@ public class PatientRegistration {
     public String getAssignedSession() { return assignedSession; }
     public void setAssignedSession(String assignedSession) { this.assignedSession = assignedSession; }
 
+    // GETTERS AND SETTERS MỚI CHO THANH TOÁN
+    public String getPaymentStatus() { return paymentStatus; }
+    public void setPaymentStatus(String paymentStatus) { this.paymentStatus = paymentStatus; }
+    
+    public BigDecimal getPaidAmount() { return paidAmount; }
+    public void setPaidAmount(BigDecimal paidAmount) { this.paidAmount = paidAmount; }
+    
+    public LocalDateTime getPaidAt() { return paidAt; }
+    public void setPaidAt(LocalDateTime paidAt) { this.paidAt = paidAt; }
+
     @Override
     public String toString() {
         return "PatientRegistration{" +
@@ -202,6 +222,7 @@ public class PatientRegistration {
                 ", doctorId=" + doctorId +
                 ", assignedSession='" + assignedSession + '\'' +
                 ", status='" + status + '\'' +
+                ", paymentStatus='" + paymentStatus + '\'' +
                 '}';
     }
 }

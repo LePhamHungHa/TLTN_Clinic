@@ -1,6 +1,152 @@
-import React, { useState, useEffect } from "react";
+import React, {
+  useState,
+  useEffect,
+  useRef,
+  forwardRef,
+  useImperativeHandle,
+} from "react";
 import axios from "axios";
 import "../../css/AdminAppointments.css";
+
+// Audio component cho âm thanh thông báo
+const NotificationSound = forwardRef((props, ref) => {
+  const audioRef = useRef(null);
+
+  useImperativeHandle(ref, () => ({
+    playSound: () => {
+      if (audioRef.current) {
+        console.log("🔊 Đang phát nhạc thông báo...");
+        audioRef.current.currentTime = 1.0;
+        audioRef.current.volume = 1;
+
+        const stopTimeout = setTimeout(() => {
+          if (audioRef.current) {
+            audioRef.current.pause();
+            audioRef.current.currentTime = 0;
+          }
+        }, 3000);
+
+        audioRef.current
+          .play()
+          .then(() => console.log("✅ Nhạc đang phát"))
+          .catch((e) => {
+            console.log("❌ Lỗi phát nhạc:", e);
+            clearTimeout(stopTimeout);
+            playFallbackSound();
+          });
+
+        audioRef.current.onended = () => {
+          clearTimeout(stopTimeout);
+          console.log("Kiểm tra âm thanh kết thúc");
+        };
+      }
+    },
+  }));
+
+  return (
+    <audio ref={audioRef} preload="auto">
+      <source src="/img/sounds/notification.mp3" type="audio/mpeg" />
+      <source src="/img/sounds/notification.wav" type="audio/wav" />
+    </audio>
+  );
+});
+
+// Fallback âm thanh nếu file không tồn tại
+const playFallbackSound = () => {
+  try {
+    const audioContext = new (window.AudioContext ||
+      window.webkitAudioContext)();
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+
+    // Âm thanh fallback đơn giản
+    oscillator.frequency.value = 800;
+    oscillator.type = "sine";
+    gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+    gainNode.gain.linearRampToValueAtTime(0.3, audioContext.currentTime + 0.1);
+    gainNode.gain.linearRampToValueAtTime(0, audioContext.currentTime + 0.3);
+
+    oscillator.start(audioContext.currentTime);
+    oscillator.stop(audioContext.currentTime + 0.3);
+  } catch (error) {
+    console.log("❌ Lỗi fallback âm thanh:", error);
+  }
+};
+
+// Component thông báo đã sửa
+const NewAppointmentNotification = ({
+  notification,
+  onClose,
+  onQuickApprove,
+  onApprove,
+  onReject,
+}) => {
+  if (!notification) return null;
+
+  return (
+    <div className="notification-overlay">
+      <div className="notification-popup">
+        <div className="notification-header">
+          <h3>🎉 CÓ ĐƠN ĐĂNG KÝ MỚI</h3>
+          <button className="notification-close" onClick={onClose}>
+            ×
+          </button>
+        </div>
+        <div className="notification-content">
+          <div className="notification-patient">
+            <strong>Bệnh nhân:</strong> {notification.fullName}
+          </div>
+          <div className="notification-details">
+            <p>
+              <strong>📞 SĐT:</strong> {notification.phone}
+            </p>
+            <p>
+              <strong>🏥 Khoa:</strong> {notification.department}
+            </p>
+            <p>
+              <strong>📅 Ngày khám:</strong>{" "}
+              {new Date(notification.appointmentDate).toLocaleDateString(
+                "vi-VN"
+              )}
+            </p>
+            {notification.symptoms && (
+              <p>
+                <strong>📝 Triệu chứng:</strong>{" "}
+                {notification.symptoms.substring(0, 100)}...
+              </p>
+            )}
+          </div>
+          <div className="notification-time">
+            {new Date(notification.createdAt).toLocaleTimeString("vi-VN")}
+          </div>
+        </div>
+        <div className="notification-actions">
+          <button
+            className="btn-quick-approve"
+            onClick={() => onQuickApprove(notification)}
+          >
+            ⚡ Duyệt nhanh
+          </button>
+          <button
+            className="btn-approve"
+            onClick={() => onApprove(notification)}
+          >
+            ✅ Duyệt đơn
+          </button>
+          <button
+            className="btn-reject"
+            onClick={() => onReject(notification.id)}
+          >
+            ❌ Từ chối
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const AdminAppointments = () => {
   const [appointments, setAppointments] = useState([]);
@@ -23,30 +169,55 @@ const AdminAppointments = () => {
   const [selectedTimeSlot, setSelectedTimeSlot] = useState("");
   const [loadingSlots, setLoadingSlots] = useState(false);
 
+  // State cho thông báo
+  const [newAppointmentNotification, setNewAppointmentNotification] =
+    useState(null);
+  const [showNotification, setShowNotification] = useState(false);
+
+  // Refs
+  const notificationSoundRef = useRef(null);
+
   useEffect(() => {
     fetchAppointments();
+    const pollInterval = setInterval(() => {
+      fetchAppointments();
+    }, 5000);
+
+    return () => {
+      clearInterval(pollInterval);
+    };
   }, []);
 
   useEffect(() => {
     filterAppointments();
   }, [appointments, filters]);
 
+  // Phát âm thanh thông báo
+  const playNotificationSound = () => {
+    if (notificationSoundRef.current) {
+      notificationSoundRef.current.playSound();
+    }
+  };
+
   const getToken = () => {
     try {
       const userData = localStorage.getItem("user");
       if (!userData) {
-        console.error("❌ Không tìm thấy user data");
+        console.error("Không tìm thấy user data");
         return null;
       }
+
       const user = JSON.parse(userData);
       const token = user?.token;
+
       if (!token) {
-        console.error("❌ Không tìm thấy token");
+        console.error("Không tìm thấy token");
         return null;
       }
+
       return token;
     } catch (error) {
-      console.error("❌ Lỗi khi lấy token:", error);
+      console.error("Lỗi khi lấy token:", error);
       return null;
     }
   };
@@ -55,7 +226,7 @@ const AdminAppointments = () => {
     try {
       const token = getToken();
       if (!token) {
-        setErrorMessage("⚠️ Vui lòng đăng nhập lại");
+        setErrorMessage("Vui lòng đăng nhập lại");
         setLoading(false);
         return;
       }
@@ -110,16 +281,45 @@ const AdminAppointments = () => {
         })
       );
 
+      // PHÁT HIỆN ĐƠN MỚI CẦN XỬ LÝ
+      if (appointmentsWithPayment.length > appointments.length) {
+        const newAppointments = appointmentsWithPayment.slice(
+          appointments.length
+        );
+        const newPendingAppointments = newAppointments.filter(
+          (app) =>
+            app.status === "NEEDS_MANUAL_REVIEW" || app.status === "PENDING"
+        );
+
+        // CHỈ HIỆN THÔNG BÁO NẾU CÓ ĐƠN MỚI VÀ CHƯA CÓ THÔNG BÁO NÀO ĐANG HIỆN
+        if (newPendingAppointments.length > 0 && !showNotification) {
+          const latestNewAppointment = newPendingAppointments[0];
+
+          // KIỂM TRA XEM ĐƠN NÀY ĐÃ TỪNG ĐƯỢC THÔNG BÁO CHƯA
+          if (
+            !newAppointmentNotification ||
+            newAppointmentNotification.id !== latestNewAppointment.id
+          ) {
+            setNewAppointmentNotification(latestNewAppointment);
+            setShowNotification(true);
+            playNotificationSound();
+
+            // Tự động ẩn thông báo sau 15 giây
+            setTimeout(() => {
+              setShowNotification(false);
+            }, 15000);
+          }
+        }
+      }
+
       setAppointments(appointmentsWithPayment);
       setErrorMessage(null);
     } catch (error) {
-      console.error("❌ Lỗi tải danh sách lịch hẹn:", error);
+      console.error("Lỗi tải danh sách lịch hẹn:", error);
       if (error.response?.status === 403) {
-        setErrorMessage(
-          "❌ Bạn không có quyền ADMIN để truy cập tính năng này"
-        );
+        setErrorMessage("Bạn không có quyền ADMIN để truy cập tính năng này");
       } else if (error.response?.status === 401) {
-        setErrorMessage("⚠️ Phiên đăng nhập hết hạn, vui lòng đăng nhập lại");
+        setErrorMessage("Phiên đăng nhập hết hạn, vui lòng đăng nhập lại");
       } else {
         setErrorMessage("Không thể tải danh sách lịch hẹn");
       }
@@ -160,7 +360,6 @@ const AdminAppointments = () => {
   };
 
   const handleApprove = async (appointment) => {
-    console.log("🔄 START handleApprove for appointment:", appointment);
     setSelectedAppointment(appointment);
     setLoadingDoctors(true);
     setSelectedDoctorId(null);
@@ -185,7 +384,7 @@ const AdminAppointments = () => {
       setAvailableDoctors(response.data);
       setShowApproveModal(true);
     } catch (error) {
-      alert("❌ Lỗi khi lấy danh sách bác sĩ: " + error.message);
+      alert("Lỗi khi lấy danh sách bác sĩ: " + error.message);
     } finally {
       setLoadingDoctors(false);
     }
@@ -202,7 +401,10 @@ const AdminAppointments = () => {
 
     try {
       const token = getToken();
-      if (!token) return;
+      if (!token) {
+        alert("Vui lòng đăng nhập lại");
+        return;
+      }
 
       await axios.post(
         `http://localhost:8080/api/admin/registrations/${appointment.id}/quick-approve`,
@@ -215,12 +417,19 @@ const AdminAppointments = () => {
         }
       );
 
-      alert("✅ Đã duyệt đơn thành công với bác sĩ và khung giờ ngẫu nhiên!");
+      alert("Đã duyệt đơn thành công với bác sĩ và khung giờ ngẫu nhiên!");
       fetchAppointments();
+      setShowNotification(false);
     } catch (error) {
-      alert(
-        "❌ Lỗi khi duyệt đơn nhanh: " + (error.response?.data || error.message)
-      );
+      console.error("Lỗi khi duyệt đơn nhanh:", error);
+      if (error.response?.status === 403) {
+        alert("Bạn không có quyền thực hiện hành động này");
+      } else {
+        alert(
+          "Lỗi khi duyệt đơn nhanh: " +
+            (error.response?.data?.message || error.message)
+        );
+      }
     }
   };
 
@@ -257,18 +466,16 @@ const AdminAppointments = () => {
 
   const handleConfirmApprove = async () => {
     if (!selectedAppointment || !selectedDoctorId || !selectedTimeSlot) {
-      alert("⚠️ Vui lòng chọn bác sĩ và khung giờ");
+      alert("Vui lòng chọn bác sĩ và khung giờ");
       return;
     }
 
     try {
       const token = getToken();
-      if (!token) return;
-
-      console.log("🎯 Confirming approval with:", {
-        selectedDoctorId,
-        selectedTimeSlot,
-      });
+      if (!token) {
+        alert("Vui lòng đăng nhập lại");
+        return;
+      }
 
       await axios.post(
         `http://localhost:8080/api/admin/registrations/${selectedAppointment.id}/approve-with-assignment`,
@@ -285,14 +492,23 @@ const AdminAppointments = () => {
         }
       );
 
-      alert("✅ Đã duyệt đơn thành công!");
+      alert("Đã duyệt đơn thành công!");
       setShowApproveModal(false);
       setSelectedDoctorId(null);
       setSelectedTimeSlot("");
       setAvailableTimeSlots([]);
       fetchAppointments();
+      setShowNotification(false);
     } catch (error) {
-      alert("❌ Lỗi khi duyệt đơn: " + (error.response?.data || error.message));
+      console.error("Lỗi khi duyệt đơn:", error);
+      if (error.response?.status === 403) {
+        alert("Bạn không có quyền thực hiện hành động này");
+      } else {
+        alert(
+          "Lỗi khi duyệt đơn: " +
+            (error.response?.data?.message || error.message)
+        );
+      }
     }
   };
 
@@ -302,7 +518,10 @@ const AdminAppointments = () => {
 
     try {
       const token = getToken();
-      if (!token) return;
+      if (!token) {
+        alert("Vui lòng đăng nhập lại");
+        return;
+      }
 
       await axios.post(
         `http://localhost:8080/api/admin/registrations/${appointmentId}/reject`,
@@ -315,19 +534,29 @@ const AdminAppointments = () => {
         }
       );
 
-      alert("✅ Đã từ chối đơn!");
+      alert("Đã từ chối đơn!");
       fetchAppointments();
+      setShowNotification(false);
     } catch (error) {
-      alert(
-        "❌ Lỗi khi từ chối đơn: " + (error.response?.data || error.message)
-      );
+      console.error("Lỗi khi từ chối đơn:", error);
+      if (error.response?.status === 403) {
+        alert("Bạn không có quyền thực hiện hành động này");
+      } else {
+        alert(
+          "Lỗi khi từ chối đơn: " +
+            (error.response?.data?.message || error.message)
+        );
+      }
     }
   };
 
   const handleManualReview = async (appointmentId) => {
     try {
       const token = getToken();
-      if (!token) return;
+      if (!token) {
+        alert("Vui lòng đăng nhập lại");
+        return;
+      }
 
       await axios.put(
         `http://localhost:8080/api/admin/registrations/${appointmentId}/manual-review`,
@@ -340,13 +569,18 @@ const AdminAppointments = () => {
         }
       );
 
-      alert("✅ Đã chuyển sang chờ xử lý thủ công!");
+      alert("Đã chuyển sang chờ xử lý thủ công!");
       fetchAppointments();
     } catch (error) {
-      alert(
-        "❌ Lỗi khi cập nhật trạng thái: " +
-          (error.response?.data || error.message)
-      );
+      console.error("Lỗi khi cập nhật trạng thái:", error);
+      if (error.response?.status === 403) {
+        alert("Bạn không có quyền thực hiện hành động này");
+      } else {
+        alert(
+          "Lỗi khi cập nhật trạng thái: " +
+            (error.response?.data?.message || error.message)
+        );
+      }
     }
   };
 
@@ -356,22 +590,10 @@ const AdminAppointments = () => {
 
   const getStatusBadge = (status) => {
     const statusConfig = {
-      APPROVED: {
-        label: "ĐÃ DUYỆT",
-        class: "status-approved",
-      },
-      NEEDS_MANUAL_REVIEW: {
-        label: "CẦN XỬ LÝ",
-        class: "status-pending",
-      },
-      PENDING: {
-        label: "CHỜ DUYỆT",
-        class: "status-pending",
-      },
-      REJECTED: {
-        label: "ĐÃ TỪ CHỐI",
-        class: "status-rejected",
-      },
+      APPROVED: { label: "ĐÃ DUYỆT", class: "status-approved" },
+      NEEDS_MANUAL_REVIEW: { label: "CẦN XỬ LÝ", class: "status-pending" },
+      PENDING: { label: "CHỜ DUYỆT", class: "status-pending" },
+      REJECTED: { label: "ĐÃ TỪ CHỐI", class: "status-rejected" },
     };
 
     const config = statusConfig[status] || {
@@ -386,10 +608,7 @@ const AdminAppointments = () => {
 
   const getPaymentStatusBadge = (paymentStatus) => {
     const paymentConfig = {
-      "Đã thanh toán": {
-        label: "ĐÃ THANH TOÁN",
-        class: "payment-status-paid",
-      },
+      "Đã thanh toán": { label: "ĐÃ THANH TOÁN", class: "payment-status-paid" },
       "Chưa thanh toán": {
         label: "CHƯA THANH TOÁN",
         class: "payment-status-unpaid",
@@ -439,6 +658,10 @@ const AdminAppointments = () => {
     return { total, approved, pending, paid, unpaid };
   };
 
+  const handleCloseNotification = () => {
+    setShowNotification(false);
+  };
+
   const statsData = calculateStats();
 
   if (loading) {
@@ -451,6 +674,20 @@ const AdminAppointments = () => {
 
   return (
     <div className="admin-appointments-container">
+      {/* Component âm thanh */}
+      <NotificationSound ref={notificationSoundRef} />
+
+      {/* Thông báo đơn mới - CHỈ HIỆN KHI CÓ ĐƠN MỚI THỰC SỰ */}
+      {showNotification && (
+        <NewAppointmentNotification
+          notification={newAppointmentNotification}
+          onClose={handleCloseNotification}
+          onQuickApprove={handleQuickApprove}
+          onApprove={handleApprove}
+          onReject={handleReject}
+        />
+      )}
+
       <div className="admin-header">
         <h1>🔄 Quản lý Lịch hẹn Bệnh nhân</h1>
         <p>Quản lý và xử lý các đơn đăng ký khám bệnh</p>
@@ -562,9 +799,11 @@ const AdminAppointments = () => {
             {filters.paymentStatus !== "ALL" && ` - ${filters.paymentStatus}`}
             {filters.status !== "ALL" && ` - ${filters.status}`}
           </h2>
-          <button className="refresh-btn" onClick={fetchAppointments}>
-            🔄 Làm mới
-          </button>
+          <div className="header-actions">
+            <button className="refresh-btn" onClick={fetchAppointments}>
+              🔄 Làm mới
+            </button>
+          </div>
         </div>
 
         {filteredAppointments.length === 0 ? (
@@ -588,14 +827,14 @@ const AdminAppointments = () => {
                 key={appointment.id}
                 className={`appointment-card ${
                   expandedCard === appointment.id ? "expanded" : ""
-                }`}
+                } ${appointment.isNew ? "new-appointment" : ""}`}
                 id={`appointment-${appointment.id}`}
               >
                 {/* Card Header - Luôn hiển thị */}
                 <div className="card-header">
                   <div className="card-main-info">
                     <h3>
-                      {appointment.fullName || "Chưa có tên"} - #
+                      {appointment.fullName || "Chưa có tên"} - #{" "}
                       {appointment.id}
                     </h3>
                     <div className="status-group">
@@ -780,7 +1019,6 @@ const AdminAppointments = () => {
                           >
                             ⚡ Duyệt nhanh
                           </button>
-
                           <button
                             className="btn-approve"
                             onClick={() => handleApprove(appointment)}
@@ -788,7 +1026,6 @@ const AdminAppointments = () => {
                           >
                             ✅ Duyệt đơn
                           </button>
-
                           <button
                             className="btn-reject"
                             onClick={() => handleReject(appointment.id)}
@@ -815,7 +1052,7 @@ const AdminAppointments = () => {
                     {/* Notes */}
                     <div className="appointment-notes">
                       <p>
-                        💡 <strong>Thông tin quản lý:</strong> Đơn khám #
+                        💡 <strong>Thông tin quản lý:</strong> Đơn khám #{" "}
                         {appointment.id}
                       </p>
                       {appointment.status === "APPROVED" && (
@@ -857,7 +1094,6 @@ const AdminAppointments = () => {
                 ×
               </button>
             </div>
-
             <div className="modal-body">
               <div className="appointment-info">
                 <h4>Thông tin đơn:</h4>

@@ -1,0 +1,23 @@
+package com.example.clinic_backend.service;
+
+import com.example.clinic_backend.controller.WebSocketController;
+import com.example.clinic_backend.model.PatientRegistration;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+@Service
+public class WebSocketService {
+
+    @Autowired
+    private WebSocketController webSocketController;
+
+    public void notifyNewAppointment(PatientRegistration appointment) {
+        try {
+            System.out.println("🎯 WebSocketService: Sending notification for appointment " + appointment.getId());
+            webSocketController.sendNewAppointmentNotification(appointment);
+        } catch (Exception e) {
+            System.err.println("❌ Error in WebSocketService: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+}

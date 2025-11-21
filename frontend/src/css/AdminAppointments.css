@@ -1,3 +1,4 @@
+/* AdminAppointments.css */
 .admin-appointments-container {
   padding: 20px;
   min-width: 100vw;
@@ -15,6 +16,7 @@
     padding: 30px;
     border-radius: 15px;
     box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    position: relative;
 
     h1 {
       margin: 0 0 10px 0;
@@ -29,9 +31,48 @@
       opacity: 0.9;
       color: white;
     }
+
+    .notification-badge {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: #ff4444;
+      color: white;
+      padding: 5px 10px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: bold;
+      animation: pulse 2s infinite;
+    }
   }
 
-  /* Thống kê */
+  .error-message {
+    background: #f8d7da;
+    border: 1px solid #f5c6cb;
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 20px;
+    text-align: center;
+
+    p {
+      margin: 0 0 12px 0;
+      color: #721c24;
+    }
+
+    .retry-button {
+      background: #dc3545;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+
+      &:hover {
+        background: #c82333;
+      }
+    }
+  }
+
   .stats-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -56,8 +97,8 @@
       &.approved { border-left-color: #48bb78; }
       &.pending { border-left-color: #ed8936; }
       &.payment-stats { border-left-color: #805ad5; }
-      &.unpaid-stats {
-        border-left-color: #dc3545;
+      &.unpaid-stats { 
+        border-left-color: #dc3545; 
         background: linear-gradient(135deg, #fff5f5, #fed7d7);
       }
 
@@ -78,7 +119,6 @@
     }
   }
 
-  /* Bộ lọc */
   .filters-section {
     background: white;
     padding: 25px;
@@ -108,8 +148,7 @@
         font-size: 14px;
       }
 
-      select,
-      input {
+      select, input {
         padding: 10px 12px;
         border: 2px solid #e2e8f0;
         border-radius: 8px;
@@ -142,7 +181,6 @@
     }
   }
 
-  /* Danh sách lịch hẹn */
   .appointments-list {
     background: white;
     border-radius: 12px;
@@ -164,18 +202,35 @@
         font-size: 24px;
       }
 
-      .refresh-btn {
-        background: #667eea;
-        color: white;
-        border: none;
-        padding: 10px 20px;
-        border-radius: 8px;
-        cursor: pointer;
-        font-weight: 600;
-        transition: background 0.3s;
+      .header-actions {
+        display: flex;
+        align-items: center;
+        gap: 10px;
 
-        &:hover {
-          background: #5a6fd8;
+        .new-appointments-badge {
+          background: #ff4444;
+          color: white;
+          padding: 5px 10px;
+          border-radius: 20px;
+          font-size: 12px;
+          font-weight: bold;
+          margin-right: 10px;
+          animation: pulse 2s infinite;
+        }
+
+        .refresh-btn {
+          background: #667eea;
+          color: white;
+          border: none;
+          padding: 10px 20px;
+          border-radius: 8px;
+          cursor: pointer;
+          font-weight: 600;
+          transition: background 0.3s;
+
+          &:hover {
+            background: #5a6fd8;
+          }
         }
       }
     }
@@ -207,7 +262,6 @@
       }
     }
 
-    /* Grid lịch hẹn */
     .appointments-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
@@ -234,7 +288,11 @@
           box-shadow: 0 8px 25px rgba(102, 126, 234, 0.15);
         }
 
-        /* Card Header */
+        &.new-appointment {
+          border: 2px solid #4CAF50 !important;
+          animation: highlight 3s ease;
+        }
+
         .card-header {
           display: flex;
           justify-content: space-between;
@@ -251,6 +309,69 @@
               color: #000000;
               font-size: 18px;
               font-weight: 600;
+            }
+
+            .status-group {
+              display: flex;
+              gap: 8px;
+              align-items: center;
+              flex-wrap: wrap;
+
+              .status-badge {
+                padding: 6px 12px;
+                border-radius: 20px;
+                font-size: 12px;
+                font-weight: 600;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+
+                &.status-approved {
+                  background: #c6f6d5;
+                  color: #22543d;
+                }
+
+                &.status-pending {
+                  background: #fed7d7;
+                  color: #742a2a;
+                }
+
+                &.status-rejected {
+                  background: #fed7d7;
+                  color: #c53030;
+                }
+
+                &.status-default {
+                  background: #e2e8f0;
+                  color: #4a5568;
+                }
+              }
+
+              .payment-badge {
+                padding: 4px 8px;
+                border-radius: 12px;
+                font-size: 11px;
+                font-weight: 600;
+                text-transform: uppercase;
+                margin-left: 8px;
+
+                &.payment-status-paid {
+                  background-color: #e8f5e8;
+                  color: #2e7d32;
+                  border: 1px solid #2e7d32;
+                }
+
+                &.payment-status-unpaid {
+                  background-color: #ffebee;
+                  color: #c62828;
+                  border: 1px solid #c62828;
+                }
+
+                &.payment-status-pending {
+                  background-color: #fff3e0;
+                  color: #ef6c00;
+                  border: 1px solid #ef6c00;
+                }
+              }
             }
           }
 
@@ -270,7 +391,6 @@
           }
         }
 
-        /* Basic Info Grid */
         .card-basic-info {
           margin-bottom: 15px;
 
@@ -293,94 +413,45 @@
               }
 
               span:not(.label) {
-                /* color: #000000; */
                 font-size: 14px;
+              }
+
+              &.full-width {
+                grid-column: 1 / -1;
+                border-top: 1px dashed #e2e8f0;
+                padding-top: 12px;
+                margin-top: 8px;
+              }
+            }
+          }
+
+          .doctor-info-compact {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+
+            .doctor-credentials-compact {
+              display: flex;
+              flex-wrap: wrap;
+              gap: 6px;
+              margin-top: 2px;
+
+              .doctor-degree, .doctor-position {
+                color: black;
+                padding: 2px 6px;
+                border-radius: 10px;
+                font-size: 10px;
+                font-weight: 600;
               }
             }
           }
         }
 
-        /* Status badges */
-        .status-group {
-          display: flex;
-          gap: 8px;
-          align-items: center;
-          flex-wrap: wrap;
-
-          .status-badge {
-            padding: 6px 12px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-
-            &.status-approved {
-              background: #c6f6d5;
-              color: #22543d;
-            }
-
-            &.status-pending {
-              background: #fed7d7;
-              color: #742a2a;
-            }
-
-            &.status-rejected {
-              background: #fed7d7;
-              color: #c53030;
-            }
-
-            &.status-default {
-              background: #e2e8f0;
-              color: #4a5568;
-            }
-          }
-
-          .payment-badge {
-            padding: 4px 8px;
-            border-radius: 12px;
-            font-size: 11px;
-            font-weight: 600;
-            text-transform: uppercase;
-            margin-left: 8px;
-
-            &.payment-status-paid {
-              background-color: #e8f5e8;
-              color: #2e7d32;
-              border: 1px solid #2e7d32;
-            }
-
-            &.payment-status-unpaid {
-              background-color: #ffebee;
-              color: #c62828;
-              border: 1px solid #c62828;
-            }
-
-            &.payment-status-pending {
-              background-color: #fff3e0;
-              color: #ef6c00;
-              border: 1px solid #ef6c00;
-            }
-          }
-        }
-
-        /* Expanded Details */
         .card-expanded-details {
           border-top: 1px solid #e2e8f0;
           padding-top: 20px;
           margin-top: 15px;
           animation: slideDown 0.3s ease;
-
-          @keyframes slideDown {
-            from {
-              opacity: 0;
-              transform: translateY(-10px);
-            }
-            to {
-              opacity: 1;
-              transform: translateY(0);
-            }
-          }
 
           .details-section {
             margin-bottom: 20px;
@@ -410,23 +481,29 @@
                 }
               }
             }
-          }
 
-          /* Approved Section */
-          .approved-section {
-            background: #f0f9ff;
-            padding: 15px;
-            border-radius: 8px;
-            border-left: 4px solid #667eea;
+            &.approved-section {
+              background: #f0f9ff;
+              padding: 15px;
+              border-radius: 8px;
+              border-left: 4px solid #667eea;
 
-            .appointment-details {
-              display: flex;
-              flex-direction: column;
-              gap: 8px;
+              .appointment-details {
+                display: flex;
+                flex-direction: column;
+                gap: 8px;
+
+                .queue-number {
+                  background: #667eea;
+                  color: white;
+                  padding: 4px 8px;
+                  border-radius: 4px;
+                  font-weight: bold;
+                }
+              }
             }
           }
 
-          /* Symptoms */
           .symptoms-content {
             background: #f8f9fa;
             padding: 12px;
@@ -441,7 +518,6 @@
             }
           }
 
-          /* Card Actions */
           .card-actions {
             margin-top: 20px;
             padding-top: 20px;
@@ -466,32 +542,32 @@
                   transform: translateY(-2px);
                   box-shadow: 0 4px 12px rgba(0,0,0,0.15);
                 }
-              }
 
-              .btn-quick-approve {
-                background: linear-gradient(135deg, #28a745, #20c997);
-                color: white;
+                &.btn-quick-approve {
+                  background: linear-gradient(135deg, #28a745, #20c997);
+                  color: white;
 
-                &:hover {
-                  background: linear-gradient(135deg, #218838, #1e9c7a);
+                  &:hover {
+                    background: linear-gradient(135deg, #218838, #1e9c7a);
+                  }
                 }
-              }
 
-              .btn-approve {
-                background: linear-gradient(135deg, #007bff, #0056b3);
-                color: white;
+                &.btn-approve {
+                  background: linear-gradient(135deg, #007bff, #0056b3);
+                  color: white;
 
-                &:hover {
-                  background: linear-gradient(135deg, #0056b3, #004085);
+                  &:hover {
+                    background: linear-gradient(135deg, #0056b3, #004085);
+                  }
                 }
-              }
 
-              .btn-reject {
-                background: linear-gradient(135deg, #dc3545, #c82333);
-                color: white;
+                &.btn-reject {
+                  background: linear-gradient(135deg, #dc3545, #c82333);
+                  color: white;
 
-                &:hover {
-                  background: linear-gradient(135deg, #c82333, #a71e2a);
+                  &:hover {
+                    background: linear-gradient(135deg, #c82333, #a71e2a);
+                  }
                 }
               }
             }
@@ -555,7 +631,6 @@
             }
           }
 
-          /* Appointment notes */
           .appointment-notes {
             background: #fff3cd;
             padding: 12px;
@@ -575,7 +650,6 @@
           }
         }
 
-        /* Payment amounts */
         .paid-amount {
           color: #28a745;
           font-weight: bold;
@@ -585,48 +659,10 @@
           color: #dc3545;
           font-weight: bold;
         }
-
-        /* Queue number */
-        .queue-number {
-          background: #667eea;
-          color: white;
-          padding: 4px 8px;
-          border-radius: 4px;
-          font-weight: bold;
-        }
       }
     }
   }
 
-  /* Error message */
-  .error-message {
-    background: #f8d7da;
-    border: 1px solid #f5c6cb;
-    border-radius: 8px;
-    padding: 16px;
-    margin-bottom: 20px;
-    text-align: center;
-
-    p {
-      margin: 0 0 12px 0;
-      color: #721c24;
-    }
-
-    .retry-button {
-      background: #dc3545;
-      color: white;
-      border: none;
-      padding: 8px 16px;
-      border-radius: 4px;
-      cursor: pointer;
-
-      &:hover {
-        background: #c82333;
-      }
-    }
-  }
-
-  /* Modal */
   .modal-overlay {
     position: fixed;
     top: 0;
@@ -737,8 +773,7 @@
         }
 
         .approval-options {
-          .doctor-selection,
-          .time-slot-selection {
+          .doctor-selection, .time-slot-selection {
             margin-bottom: 25px;
 
             label {
@@ -799,8 +834,7 @@
             }
           }
 
-          .loading-slots,
-          .no-slots {
+          .loading-slots, .no-slots {
             text-align: center;
             padding: 20px;
             color: #718096;
@@ -834,54 +868,129 @@
     }
   }
 
- 
-
-.doctor-info-compact {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  
-  .doctor-credentials-compact {
+  .notification-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
     display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-    margin-top: 2px;
-    
-    .doctor-degree { 
-      /* real */
-      /* background: linear-gradient(135deg, #667eea, #764ba2); */
-      color: black;
-      padding: 2px 6px;
-      border-radius: 10px;
-      font-size: 10px;
-      font-weight: 600;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    animation: fadeIn 0.3s ease;
+  }
+
+  .notification-popup {
+    background: white;
+    border-radius: 12px;
+    padding: 0;
+    max-width: 400px;
+    width: 90%;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    animation: slideIn 0.3s ease;
+    border-left: 5px solid #4CAF50;
+  }
+
+  .notification-header {
+    background: linear-gradient(135deg, #4CAF50, #45a049);
+    color: white;
+    padding: 15px 20px;
+    border-radius: 12px 12px 0 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    h3 {
+      margin: 0;
+      font-size: 16px;
     }
-    
-    .doctor-position {
-      /* background: linear-gradient(135deg, #667eea, #764ba2); */
-      color: black;
-      padding: 2px 6px;
-      border-radius: 10px;
-      font-size: 10px;
-      font-weight: 600;
+
+    .notification-close {
+      background: none;
+      border: none;
+      color: white;
+      font-size: 20px;
+      cursor: pointer;
+      padding: 0;
+      width: 30px;
+      height: 30px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      transition: background 0.2s;
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.2);
+      }
     }
   }
-}
 
-/* Full width item trong basic info grid */
-.basic-info-grid .info-item.full-width {
-  grid-column: 1 / -1;
-  border-top: 1px dashed #e2e8f0;
-  padding-top: 12px;
-  margin-top: 8px;
-}
+  .notification-content {
+    padding: 20px;
 
-.doctor-specialty {
-  font-size: 12px;
-  color: #6c757d;
-  font-style: italic;
-  margin-top: 2px;
-}
+    .notification-patient {
+      font-size: 18px;
+      font-weight: bold;
+      margin-bottom: 10px;
+      color: #333;
+    }
+
+    .notification-details p {
+      margin: 8px 0;
+      color: #666;
+      font-size: 14px;
+    }
+
+    .notification-time {
+      text-align: center;
+      margin-top: 15px;
+      padding-top: 15px;
+      border-top: 1px solid #eee;
+      color: #888;
+      font-size: 12px;
+    }
+  }
+
+  .notification-actions {
+    padding: 0 20px 20px;
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+
+    button {
+      padding: 10px 16px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      transition: all 0.3s ease;
+      flex: 1;
+
+      &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      }
+
+      &.btn-quick-approve {
+        background: linear-gradient(135deg, #28a745, #20c997);
+        color: white;
+      }
+
+      &.btn-approve {
+        background: linear-gradient(135deg, #007bff, #0056b3);
+        color: white;
+      }
+
+      &.btn-reject {
+        background: linear-gradient(135deg, #dc3545, #c82333);
+        color: white;
+      }
+    }
+  }
 
   .loading {
     text-align: center;
@@ -889,6 +998,72 @@
     font-size: 18px;
     color: #4a5568;
   }
+
+  audio {
+    display: none;
+  }
+  .notification-list-btn {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    border: none;
+    padding: 10px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 14px;
+    transition: all 0.3s ease;
+
+    &.has-pending {
+      background: linear-gradient(135deg, #ff6b6b, #ee5a52);
+      animation: pulse 2s infinite;
+    }
+
+    &.no-pending {
+      background: linear-gradient(135deg, #a0aec0, #718096);
+    }
+
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+  }
+
+  .notification-list-btn.has-pending {
+  background: linear-gradient(135deg, #ff6b6b, #ee5a52);
+  animation: pulse 2s infinite;
+}
+
+.notification-list-btn.no-pending {
+  background: linear-gradient(135deg, #a0aec0, #718096);
+  opacity: 0.7;
+}
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateY(-20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+@keyframes highlight {
+  0% { background-color: rgba(76, 175, 80, 0.1); }
+  100% { background-color: transparent; }
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 /* Responsive */
@@ -957,6 +1132,15 @@
       .time-slots-grid {
         grid-template-columns: repeat(2, 1fr);
       }
+    }
+
+    .notification-popup {
+      width: 95%;
+      margin: 10px;
+    }
+
+    .notification-actions {
+      flex-direction: column;
     }
   }
 }

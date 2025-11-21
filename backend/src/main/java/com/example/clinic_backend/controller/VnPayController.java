@@ -2,7 +2,10 @@ package com.example.clinic_backend.controller;
 
 import com.example.clinic_backend.config.VNPayConfig;
 import com.example.clinic_backend.model.Payment;
+import com.example.clinic_backend.model.PatientRegistration;
 import com.example.clinic_backend.repository.PaymentRepository;
+import com.example.clinic_backend.repository.PatientRegistrationRepository;
+import com.example.clinic_backend.service.EmailService;
 import com.example.clinic_backend.service.PaymentService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.apache.commons.codec.digest.HmacUtils;
@@ -21,12 +24,19 @@ import java.util.*;
 public class VnPayController {
 
     private final PaymentService paymentService;
-    private final PaymentRepository paymentRepository; // THÊM: Để truy vấn trực tiếp
+    private final PaymentRepository paymentRepository;
+    private final EmailService emailService; // THÊM
+    private final PatientRegistrationRepository patientRegistrationRepository; // THÊM
 
-    // SỬA: Thêm paymentRepository vào constructor
-    public VnPayController(PaymentService paymentService, PaymentRepository paymentRepository) {
+    // SỬA CONSTRUCTOR: Thêm các dependency mới
+    public VnPayController(PaymentService paymentService, 
+                          PaymentRepository paymentRepository,
+                          EmailService emailService,
+                          PatientRegistrationRepository patientRegistrationRepository) {
         this.paymentService = paymentService;
         this.paymentRepository = paymentRepository;
+        this.emailService = emailService;
+        this.patientRegistrationRepository = patientRegistrationRepository;
     }
 
     // ==================== API PUBLIC - AI CŨNG XEM ĐƯỢC ====================
@@ -162,7 +172,7 @@ public class VnPayController {
     }
 
     /**
-     * Endpoint return URL từ VNPay sau khi thanh toán
+     * Endpoint return URL từ VNPay sau khi thanh toán - SỬA QUAN TRỌNG
      */
     @GetMapping("/payment-return")
     public ResponseEntity<Map<String, String>> paymentReturn(@RequestParam Map<String, String> params) {
@@ -178,12 +188,50 @@ public class VnPayController {
         
         if ("00".equals(vnp_ResponseCode)) {
             // Thanh toán thành công
-            paymentService.updatePaymentStatus(vnp_TxnRef, "Thành công", vnp_ResponseCode);
+            try {
+                // 1. Cập nhật trạng thái payment
+                Payment updatedPayment = paymentService.updatePaymentStatus(vnp_TxnRef, "Thành công", vnp_ResponseCode);
+                
+                // 2. TÌM VÀ CẬP NHẬT PATIENT REGISTRATION - QUAN TRỌNG
+                if (updatedPayment != null && updatedPayment.getPatientRegistrationId() != null) {
+                    Optional<PatientRegistration> registrationOpt = patientRegistrationRepository
+                        .findById(updatedPayment.getPatientRegistrationId());
+                    
+                    if (registrationOpt.isPresent()) {
+                        PatientRegistration registration = registrationOpt.get();
+                        
+                        // Cập nhật thông tin thanh toán
+                        registration.setPaymentStatus("PAID");
+                        registration.setTransactionNumber(vnp_TransactionNo);
+                        registration.setPaidAmount(java.math.BigDecimal.valueOf(Double.parseDouble(vnp_Amount) / 100));
+                        registration.setPaidAt(LocalDateTime.now());
+                        
+                        PatientRegistration savedRegistration = patientRegistrationRepository.save(registration);
+                        
+                        // 3. GỬI EMAIL TỰ ĐỘNG - QUAN TRỌNG!
+                        try {
+                            emailService.sendPaymentSuccessEmail(savedRegistration);
+                            System.out.println("✅ Đã gửi email thanh toán thành công cho: " + savedRegistration.getEmail());
+                        } catch (Exception emailException) {
+                            System.err.println("❌ Lỗi gửi email: " + emailException.getMessage());
+                            // KHÔNG throw exception - vẫn trả về success cho user
+                        }
+                        
+                        System.out.println("🎉 Đã cập nhật thông tin thanh toán và gửi email!");
+                    }
+                }
+                
+            } catch (Exception e) {
+                System.err.println("❌ Lỗi khi xử lý thanh toán thành công: " + e.getMessage());
+                e.printStackTrace();
+            }
+            
             result.put("status", "success");
             result.put("message", "Thanh toán thành công!");
             result.put("amount", String.valueOf(Double.parseDouble(vnp_Amount) / 100));
             result.put("paymentStatus", "Thành công");
             System.out.println("✅ Thanh toán thành công: " + vnp_TxnRef);
+            
         } else {
             // Thanh toán thất bại
             paymentService.updatePaymentStatus(vnp_TxnRef, "Thất bại", vnp_ResponseCode);
