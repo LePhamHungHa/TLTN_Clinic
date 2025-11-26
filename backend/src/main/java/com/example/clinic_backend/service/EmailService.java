@@ -11,8 +11,10 @@ import org.slf4j.LoggerFactory;
 
 import jakarta.mail.internet.MimeMessage;
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 @Service
 public class EmailService {
@@ -30,6 +32,13 @@ public class EmailService {
 
     @Value("${app.frontend.url:http://localhost:3000}")
     private String frontendUrl;
+
+    //CẤU HÌNH THỜI GIAN GỬI EMAIL TỰ ĐỘNG
+    private static final String REMINDER_START_TIME = "07:00";
+    private static final String REMINDER_END_TIME = "23:59";
+
+    // Biến khóa để tránh chạy song song
+    private final AtomicBoolean isSendingReminders = new AtomicBoolean(false);
 
     // ==================== 1. EMAIL KHI ĐƠN ĐƯỢC DUYỆT ====================
     public void sendApprovalEmail(com.example.clinic_backend.model.PatientRegistration appointment) {
@@ -83,36 +92,111 @@ public class EmailService {
         }
     }
 
-    // ==================== 3. EMAIL NHẮC LỊCH TỰ ĐỘNG 8H SÁNG ====================
-    @Scheduled(cron = "0 30 9 * * ?")
-    public void sendDailyAppointmentReminders() {
+    // ==================== 3. EMAIL NHẮC LỊCH TỰ ĐỘNG ====================
+    
+    @Scheduled(fixedRate = 60000)
+    public void sendAppointmentReminders() {
+        //KIỂM TRA KHÓA - tránh chạy song song
+        if (!isSendingReminders.compareAndSet(false, true)) {
+            logger.info("⏸️ Task gửi reminder đang chạy, bỏ qua...");
+            return;
+        }
+        
         try {
-            logger.info("⏰ Bắt đầu gửi email nhắc lịch khám...");
+            // KIỂM TRA THỜI GIAN TRƯỚC KHI GỬI
+            if (!isWithinReminderTimeWindow()) {
+                logger.debug("⏰ Ngoài khung giờ gửi email ({}-{}), bỏ qua...", 
+                           REMINDER_START_TIME, REMINDER_END_TIME);
+                return;
+            }
+            
+            logger.info("🎯 Bắt đầu gửi email nhắc lịch tự động...");
 
             LocalDate tomorrow = LocalDate.now().plusDays(1);
             
+            // 🔥 CHỈ LẤY CÁC LỊCH CHƯA ĐƯỢC GỬI REMINDER
             List<com.example.clinic_backend.model.PatientRegistration> tomorrowAppointments = patientRegistrationRepository
-                    .findByAppointmentDateAndStatus(tomorrow, "APPROVED");
+                    .findByAppointmentDateAndStatusAndReminderNotSent(tomorrow, "APPROVED");
 
-            logger.info("📅 Tìm thấy {} lịch hẹn vào ngày mai", tomorrowAppointments.size());
+            logger.info("📅 Tìm thấy {} lịch hẹn vào ngày mai CHƯA được nhắc", tomorrowAppointments.size());
+
+            if (tomorrowAppointments.isEmpty()) {
+                logger.info("📭 Không có lịch hẹn nào cần nhắc vào ngày mai");
+                return;
+            }
 
             int sentCount = 0;
+            int failedCount = 0;
+            
             for (com.example.clinic_backend.model.PatientRegistration appointment : tomorrowAppointments) {
                 if (sendReminderEmail(appointment)) {
                     sentCount++;
+                    
+                    // 🔥 CẬP NHẬT TRẠNG THÁI ĐÃ GỬI REMINDER
+                    updateReminderSentStatus(appointment);
+                } else {
+                    failedCount++;
+                }
+                
+                // Delay nhỏ giữa các email để tránh quá tải
+                try {
+                    Thread.sleep(5000);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    break;
                 }
             }
 
-            logger.info("✅ Đã gửi {} email nhắc lịch thành công", sentCount);
+            logger.info("✅ Đã gửi {}/{} email nhắc lịch thành công ({} thất bại)", 
+                       sentCount, tomorrowAppointments.size(), failedCount);
 
         } catch (Exception e) {
             logger.error("❌ Lỗi khi gửi email nhắc lịch: {}", e.getMessage(), e);
+        } finally {
+            // 🔓 MỞ KHÓA khi hoàn thành
+            isSendingReminders.set(false);
+        }
+    }
+
+    /**
+     * 🔥 CẬP NHẬT TRẠNG THÁI ĐÃ GỬI REMINDER
+     */
+    private void updateReminderSentStatus(com.example.clinic_backend.model.PatientRegistration appointment) {
+        try {
+            appointment.setReminderSent(true);
+            appointment.setLastReminderSentAt(java.time.LocalDateTime.now());
+            patientRegistrationRepository.save(appointment);
+            logger.debug("📝 Đã cập nhật trạng thái reminder sent cho đơn: {}", appointment.getRegistrationNumber());
+        } catch (Exception e) {
+            logger.error("❌ Lỗi cập nhật trạng thái reminder sent: {}", e.getMessage(), e);
+        }
+    }
+
+    /**
+     * KIỂM TRA XEM CÓ TRONG KHUNG GIỜ ĐƯỢC PHÉP GỬI EMAIL KHÔNG
+     */
+    public boolean isWithinReminderTimeWindow() {
+        try {
+            LocalTime now = LocalTime.now();
+            LocalTime startTime = LocalTime.parse(REMINDER_START_TIME);
+            LocalTime endTime = LocalTime.parse(REMINDER_END_TIME);
+            
+            boolean withinWindow = !now.isBefore(startTime) && !now.isAfter(endTime);
+            
+            logger.debug("🕒 Kiểm tra thời gian: Now={}, Window={}-{}, WithinWindow={}", 
+                        now, startTime, endTime, withinWindow);
+            
+            return withinWindow;
+        } catch (Exception e) {
+            logger.error("❌ Lỗi kiểm tra khung giờ: {}", e.getMessage(), e);
+            return false;
         }
     }
 
     private boolean sendReminderEmail(com.example.clinic_backend.model.PatientRegistration appointment) {
         try {
             if (appointment.getEmail() == null || appointment.getEmail().trim().isEmpty()) {
+                logger.warn("📭 Bỏ qua - không có email cho đơn: {}", appointment.getRegistrationNumber());
                 return false;
             }
 
@@ -121,23 +205,24 @@ public class EmailService {
 
             helper.setFrom(fromEmail);
             helper.setTo(appointment.getEmail());
-            helper.setSubject("🔔 NHẮC LỊCH KHÁM: Lịch hẹn của bạn vào NGÀY MAI");
+            helper.setSubject("🔔 NHẮC LỊCH KHÁM: Lịch hẹn của bạn vào NGÀY MAI - " + appointment.getRegistrationNumber());
 
             String emailContent = buildReminderEmailContent(appointment);
             helper.setText(emailContent, true);
 
             mailSender.send(message);
-            logger.info("📧 Đã gửi email nhắc lịch cho: {}", appointment.getEmail());
+            logger.info("📧 Đã gửi email nhắc lịch cho: {} - {}", 
+                       appointment.getFullName(), appointment.getEmail());
             return true;
 
         } catch (Exception e) {
-            logger.error("❌ Lỗi gửi email nhắc lịch cho {}: {}", 
-                        appointment.getEmail(), e.getMessage(), e);
+            logger.error("❌ Lỗi gửi email nhắc lịch cho {} ({}): {}", 
+                        appointment.getFullName(), appointment.getEmail(), e.getMessage());
             return false;
         }
     }
 
-    // ==================== Mau mail ====================
+    // ==================== EMAIL TEMPLATES ====================
 
     private String buildApprovalEmailContent(com.example.clinic_backend.model.PatientRegistration appointment) {
         String appointmentDate = formatDate(appointment.getAppointmentDate());
@@ -151,6 +236,10 @@ public class EmailService {
             String.valueOf(appointment.getQueueNumber()) : "";
         String examinationFee = appointment.getExaminationFee() != null ? 
             String.format("%,d", appointment.getExaminationFee().intValue()) : "0";
+        
+        // 🔥 THÊM TRIỆU CHỨNG
+        String symptoms = appointment.getSymptoms() != null ? 
+            appointment.getSymptoms() : "Không có thông tin";
 
         StringBuilder html = new StringBuilder();
         html.append("<!DOCTYPE html><html><head><meta charset='UTF-8'>")
@@ -163,6 +252,7 @@ public class EmailService {
             .append(".footer { text-align: center; margin-top: 30px; color: #666; font-size: 14px; }")
             .append(".button { display: inline-block; padding: 12px 30px; background: #1890ff; color: white; text-decoration: none; border-radius: 6px; font-weight: bold; }")
             .append(".status-badge { background: #f6ffed; color: #52c41a; border: 1px solid #b7eb8f; padding: 8px 16px; border-radius: 20px; font-weight: bold; }")
+            .append(".symptoms-box { background: #f9f0ff; border: 1px solid #d3adf7; padding: 15px; border-radius: 8px; margin: 15px 0; }")
             .append("</style></head><body>")
             .append("<div class='container'>")
             .append("<div class='header'><h1>✅ ĐƠN ĐĂNG KÝ ĐÃ ĐƯỢC DUYỆT</h1><p>Bệnh Viện Đại Học Y Dược Tp HCM</p></div>")
@@ -184,7 +274,11 @@ public class EmailService {
             html.append("<p><strong>Số thứ tự:</strong> ").append(queueNumber).append("</p>");
         }
         
-        html.append("</div><div style='background: #fff7e6; padding: 20px; border-radius: 8px;'>")
+        // 🔥 THÊM PHẦN TRIỆU CHỨNG
+        html.append("</div><div class='symptoms-box'>")
+            .append("<h4>📝 Triệu chứng / Mô tả tình trạng</h4>")
+            .append("<p style='margin: 10px 0; font-style: italic;'>").append(symptoms).append("</p>")
+            .append("</div><div style='background: #fff7e6; padding: 20px; border-radius: 8px;'>")
             .append("<h4>💳 Thanh toán</h4>")
             .append("<p><strong>Phí khám:</strong> <span style='font-size: 20px; color: #fa541c; font-weight: bold;'>")
             .append(examinationFee).append(" VND</span></p>")

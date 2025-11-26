@@ -16,10 +16,16 @@ import java.util.Optional;
 @Repository
 public interface PatientRegistrationRepository extends JpaRepository<PatientRegistration, Long> {
     
-    // ==================== METHOD MỚI CHO EMAIL ====================
+    // ==================== METHOD MỚI CHO EMAIL REMINDER ====================
     
     @Query("SELECT p FROM PatientRegistration p WHERE p.appointmentDate = :date AND p.status = :status")
     List<PatientRegistration> findByAppointmentDateAndStatus(
+            @Param("date") LocalDate date, 
+            @Param("status") String status);
+    
+    // 🔥 METHOD MỚI: CHỈ LẤY CÁC LỊCH CHƯA ĐƯỢC GỬI REMINDER
+    @Query("SELECT p FROM PatientRegistration p WHERE p.appointmentDate = :date AND p.status = :status AND (p.reminderSent = false OR p.reminderSent IS NULL)")
+    List<PatientRegistration> findByAppointmentDateAndStatusAndReminderNotSent(
             @Param("date") LocalDate date, 
             @Param("status") String status);
     

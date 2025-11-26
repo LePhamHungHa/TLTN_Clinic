@@ -98,10 +98,18 @@ public class PatientRegistration {
     @Column(name = "paid_at")
     private LocalDateTime paidAt;
 
+    // 🔥 THÊM CÁC TRƯỜNG MỚI CHO THEO DÕI EMAIL REMINDER
+    @Column(name = "reminder_sent")
+    private Boolean reminderSent = false;
+    
+    @Column(name = "last_reminder_sent_at")
+    private LocalDateTime lastReminderSentAt;
+
     // Constructors
     public PatientRegistration() {
         this.createdAt = LocalDateTime.now();
         this.status = "PENDING";
+        this.reminderSent = false;
     }
 
     public PatientRegistration(String fullName, LocalDate dob, String gender, String phone, 
@@ -207,6 +215,13 @@ public class PatientRegistration {
     public LocalDateTime getPaidAt() { return paidAt; }
     public void setPaidAt(LocalDateTime paidAt) { this.paidAt = paidAt; }
 
+    // 🔥 GETTERS AND SETTERS MỚI CHO REMINDER TRACKING
+    public Boolean getReminderSent() { return reminderSent; }
+    public void setReminderSent(Boolean reminderSent) { this.reminderSent = reminderSent; }
+    
+    public LocalDateTime getLastReminderSentAt() { return lastReminderSentAt; }
+    public void setLastReminderSentAt(LocalDateTime lastReminderSentAt) { this.lastReminderSentAt = lastReminderSentAt; }
+
     @Override
     public String toString() {
         return "PatientRegistration{" +
@@ -223,6 +238,7 @@ public class PatientRegistration {
                 ", assignedSession='" + assignedSession + '\'' +
                 ", status='" + status + '\'' +
                 ", paymentStatus='" + paymentStatus + '\'' +
+                ", reminderSent=" + reminderSent +
                 '}';
     }
 }
