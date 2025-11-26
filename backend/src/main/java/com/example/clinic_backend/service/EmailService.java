@@ -84,7 +84,7 @@ public class EmailService {
     }
 
     // ==================== 3. EMAIL NHẮC LỊCH TỰ ĐỘNG 8H SÁNG ====================
-    @Scheduled(cron = "0 0 8 * * ?")
+    @Scheduled(cron = "0 30 9 * * ?")
     public void sendDailyAppointmentReminders() {
         try {
             logger.info("⏰ Bắt đầu gửi email nhắc lịch khám...");
@@ -165,7 +165,7 @@ public class EmailService {
             .append(".status-badge { background: #f6ffed; color: #52c41a; border: 1px solid #b7eb8f; padding: 8px 16px; border-radius: 20px; font-weight: bold; }")
             .append("</style></head><body>")
             .append("<div class='container'>")
-            .append("<div class='header'><h1>✅ ĐƠN ĐĂNG KÝ ĐÃ ĐƯỢC DUYỆT</h1><p>Đại Học Y Dược Tp HCM</p></div>")
+            .append("<div class='header'><h1>✅ ĐƠN ĐĂNG KÝ ĐÃ ĐƯỢC DUYỆT</h1><p>Bệnh Viện Đại Học Y Dược Tp HCM</p></div>")
             .append("<div class='content'>")
             .append("<div class='info-card'>")
             .append("<div style='text-align: center; margin-bottom: 20px;'><span class='status-badge'>ĐÃ ĐƯỢC DUYỆT</span></div>")
@@ -224,7 +224,7 @@ public class EmailService {
             .append(".payment-success { background: #f6ffed; border: 2px solid #b7eb8f; padding: 20px; border-radius: 8px; text-align: center; margin: 20px 0; }")
             .append("</style></head><body>")
             .append("<div class='container'>")
-            .append("<div class='header'><h1>💳 THANH TOÁN THÀNH CÔNG</h1><p>Bệnh viện Đa khoa Quốc tế</p></div>")
+            .append("<div class='header'><h1>💳 THANH TOÁN THÀNH CÔNG</h1><p>Bệnh Viện Đại Học Y Dược Tp HCM</p></div>")
             .append("<div class='content'>")
             .append("<div class='payment-success'>")
             .append("<h2 style='color: #52c41a; margin: 0;'>✅ Thanh toán thành công!</h2>")
@@ -283,7 +283,7 @@ public class EmailService {
             .append(".reminder-badge { background: #fff566; color: #874d00; padding: 10px 20px; border-radius: 20px; font-weight: bold; display: inline-block; margin-bottom: 15px; }")
             .append("</style></head><body>")
             .append("<div class='container'>")
-            .append("<div class='header'><h1>🔔 NHẮC LỊCH KHÁM</h1><p>Bệnh viện Đa khoa Quốc tế</p></div>")
+            .append("<div class='header'><h1>🔔 NHẮC LỊCH KHÁM</h1><p>Bệnh Viện Đại Học Y Dược Tp HCM</p></div>")
             .append("<div class='content'>")
             .append("<div style='text-align: center; margin-bottom: 20px;'><span class='reminder-badge'>LỊCH KHÁM VÀO NGÀY MAI</span></div>")
             .append("<div class='info-card'>")

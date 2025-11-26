@@ -189,10 +189,10 @@ public class VnPayController {
         if ("00".equals(vnp_ResponseCode)) {
             // Thanh toán thành công
             try {
-                // 1. Cập nhật trạng thái payment
+               
                 Payment updatedPayment = paymentService.updatePaymentStatus(vnp_TxnRef, "Thành công", vnp_ResponseCode);
                 
-                // 2. TÌM VÀ CẬP NHẬT PATIENT REGISTRATION - QUAN TRỌNG
+                
                 if (updatedPayment != null && updatedPayment.getPatientRegistrationId() != null) {
                     Optional<PatientRegistration> registrationOpt = patientRegistrationRepository
                         .findById(updatedPayment.getPatientRegistrationId());
@@ -207,14 +207,13 @@ public class VnPayController {
                         registration.setPaidAt(LocalDateTime.now());
                         
                         PatientRegistration savedRegistration = patientRegistrationRepository.save(registration);
-                        
-                        // 3. GỬI EMAIL TỰ ĐỘNG - QUAN TRỌNG!
+                       
                         try {
                             emailService.sendPaymentSuccessEmail(savedRegistration);
                             System.out.println("✅ Đã gửi email thanh toán thành công cho: " + savedRegistration.getEmail());
                         } catch (Exception emailException) {
                             System.err.println("❌ Lỗi gửi email: " + emailException.getMessage());
-                            // KHÔNG throw exception - vẫn trả về success cho user
+                            
                         }
                         
                         System.out.println("🎉 Đã cập nhật thông tin thanh toán và gửi email!");
@@ -246,9 +245,6 @@ public class VnPayController {
 
     // ==================== PAYMENT STATUS ENDPOINTS ====================
 
-    /**
-     * Kiểm tra trạng thái thanh toán theo transactionNo (cần token)
-     */
     @PostMapping("/check-payment-status")
     public ResponseEntity<?> checkPaymentStatus(@RequestBody Map<String, String> request) {
         try {
@@ -277,9 +273,6 @@ public class VnPayController {
         }
     }
 
-    /**
-     * Lấy trạng thái thanh toán theo transactionNo qua GET
-     */
     @GetMapping("/payment-status/{transactionNo}")
     public ResponseEntity<Map<String, String>> getPaymentStatus(@PathVariable String transactionNo) {
         Optional<Payment> paymentOpt = paymentService.findByTransactionNo(transactionNo);
@@ -302,9 +295,6 @@ public class VnPayController {
 
     // ==================== ADMIN ENDPOINTS ====================
 
-    /**
-     * Cập nhật thủ công trạng thái thanh toán (cho admin)
-     */
     @PostMapping("/manual-update-payment")
     public ResponseEntity<?> manualUpdatePayment(@RequestBody Map<String, String> request) {
         try {
@@ -325,9 +315,6 @@ public class VnPayController {
 
     // ==================== PRIVATE METHODS ====================
 
-    /**
-     * Tạo URL thanh toán VNPay
-     */
     private String createPaymentUrl(Map<String, String> vnp_Params) throws Exception {
         List<String> fieldNames = new ArrayList<>(vnp_Params.keySet());
         Collections.sort(fieldNames);
@@ -355,9 +342,6 @@ public class VnPayController {
         return VNPayConfig.vnp_Url + "?" + query + "&vnp_SecureHash=" + vnp_SecureHash;
     }
 
-    /**
-     * Lấy địa chỉ IP của client
-     */
     private String getClientIpAddress(HttpServletRequest request) {
         String xForwardedFor = request.getHeader("X-Forwarded-For");
         if (xForwardedFor != null && !xForwardedFor.isEmpty()) {
