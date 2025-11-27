@@ -26,6 +26,10 @@ import PaymentResult from "./pages/Patient/PaymentResult.jsx";
 import AdminUsers from "./pages/Admin/AdminUsers.jsx";
 import AdminAppointments from "./pages/Admin/AdminAppointments.jsx";
 
+// Import Doctor
+import DoctorAppointments from "./pages/Doctor/DoctorAppointments.jsx";
+import DoctorExamination from "./pages/Doctor/DoctorExamination.jsx";
+
 function App() {
   const user = JSON.parse(localStorage.getItem("user")) || null;
 
@@ -190,6 +194,33 @@ function App() {
               <AdminUsers />
               <Footer />
             </>
+          }
+        />
+
+        {/* ==================== DOCTOR ==================== */}
+        {/* Quản lý lịch hẹn - Bác sĩ */}
+        <Route
+          path="/doctor/appointments"
+          element={
+            <PrivateRoute role="DOCTOR">
+              <>
+                <Header />
+                <DoctorAppointments />
+              </>
+            </PrivateRoute>
+          }
+        />
+
+        {/* Khám bệnh - Bác sĩ */}
+        <Route
+          path="/doctor/examination/:appointmentId"
+          element={
+            <PrivateRoute role="DOCTOR">
+              <>
+                <Header />
+                <DoctorExamination />
+              </>
+            </PrivateRoute>
           }
         />
 

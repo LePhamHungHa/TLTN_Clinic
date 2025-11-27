@@ -47,9 +47,15 @@ public class SecurityConfig {
                     "/api/vnpay/**",
                     "/api/wallet/**",
                     "/api/departments/**",
-                    "/api/doctors/**"
+                    "/api/doctors/**",           
+                    "/api/doctor/appointments/test"
                 ).permitAll()
                 .requestMatchers("/api/admin/**").hasAuthority("ROLE_ADMIN")         
+                .requestMatchers(
+                    "/api/doctor/**",
+                    "/api/doctor/appointments/**",
+                    "/api/doctor/medical-records/**"
+                ).hasAuthority("ROLE_DOCTOR")
                 .requestMatchers("/api/patients/me").hasAuthority("ROLE_PATIENT")    
                 .requestMatchers("/api/wallets/**").hasAuthority("ROLE_PATIENT")    
                 .requestMatchers("/api/users/change-password").authenticated()

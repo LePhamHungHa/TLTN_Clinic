@@ -32,6 +32,7 @@ public class EmailService {
 
     @Value("${app.frontend.url:http://localhost:3000}")
     private String frontendUrl;
+    
 
     //CẤU HÌNH THỜI GIAN GỬI EMAIL TỰ ĐỘNG
     private static final String REMINDER_START_TIME = "07:00";

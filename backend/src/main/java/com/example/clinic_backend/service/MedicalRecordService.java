@@ -1,38 +1,301 @@
 package com.example.clinic_backend.service;
 
 import com.example.clinic_backend.model.MedicalRecord;
+import com.example.clinic_backend.model.PatientRegistration;
 import com.example.clinic_backend.repository.MedicalRecordRepository;
+import com.example.clinic_backend.repository.DoctorAppointmentRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
-
+import java.util.Map;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
 
 @Service
 public class MedicalRecordService {
-
+    
+    private static final Logger logger = LoggerFactory.getLogger(MedicalRecordService.class);
     private final MedicalRecordRepository medicalRecordRepository;
-
-    public MedicalRecordService(MedicalRecordRepository medicalRecordRepository) {
+    private final DoctorAppointmentRepository doctorAppointmentRepository;
+    
+    public MedicalRecordService(MedicalRecordRepository medicalRecordRepository,
+                              DoctorAppointmentRepository doctorAppointmentRepository) {
         this.medicalRecordRepository = medicalRecordRepository;
+        this.doctorAppointmentRepository = doctorAppointmentRepository;
     }
-
-    public MedicalRecord createMedicalRecord(MedicalRecord record) {
-        return medicalRecordRepository.save(record);
+    
+    public Map<String, Object> startExamination(Long appointmentId, Long requestDoctorId) {
+        Map<String, Object> response = new HashMap<>();
+        
+        try {
+            logger.info("🔍 Starting examination for appointment {} by doctor {}", appointmentId, requestDoctorId);
+            
+            // Kiểm tra appointment tồn tại
+            Optional<PatientRegistration> appointmentOpt = doctorAppointmentRepository.findById(appointmentId);
+            if (appointmentOpt.isEmpty()) {
+                response.put("success", false);
+                response.put("message", "Không tìm thấy lịch hẹn");
+                return response;
+            }
+            
+            PatientRegistration appointment = appointmentOpt.get();
+            logger.info("✅ Found appointment: {} for patient: {}", appointmentId, appointment.getFullName());
+            logger.info("🎯 Appointment doctor_id: {}", appointment.getDoctorId());
+            logger.info("🎯 Request doctor_id: {}", requestDoctorId);
+            
+            // 🔥 SỬ DỤNG DOCTOR_ID TỪ PATIENT_REGISTRATIONS, KHÔNG PHẢI TỪ REQUEST
+            Long actualDoctorId = appointment.getDoctorId();
+            
+            if (actualDoctorId == null) {
+                logger.error("❌ Appointment does not have a doctor assigned");
+                response.put("success", false);
+                response.put("message", "Lịch hẹn chưa được phân công cho bác sĩ");
+                return response;
+            }
+            
+            // Kiểm tra xem doctor có quyền truy cập appointment này không
+            if (!actualDoctorId.equals(requestDoctorId)) {
+                logger.warn("⚠️ Doctor {} tried to access appointment {} assigned to doctor {}", 
+                           requestDoctorId, appointmentId, actualDoctorId);
+                response.put("success", false);
+                response.put("message", "Bạn không có quyền truy cập lịch hẹn này");
+                return response;
+            }
+            
+            // Kiểm tra xem đã có medical record chưa
+            Optional<MedicalRecord> existingRecordOpt = medicalRecordRepository.findByAppointmentId(appointmentId);
+            
+            MedicalRecord medicalRecord;
+            if (existingRecordOpt.isPresent()) {
+                // Cập nhật record hiện có
+                MedicalRecord existingRecord = existingRecordOpt.get();
+                existingRecord.setExaminationStatus("IN_PROGRESS");
+                medicalRecord = medicalRecordRepository.save(existingRecord);
+                logger.info("✅ Continued existing examination record");
+            } else {
+                // Tạo record mới - SỬ DỤNG DOCTOR_ID TỪ APPOINTMENT
+                medicalRecord = new MedicalRecord(appointmentId, actualDoctorId);
+                medicalRecord.setExaminationStatus("IN_PROGRESS");
+                medicalRecord = medicalRecordRepository.save(medicalRecord);
+                logger.info("✅ Created new examination record with doctor ID: {}", actualDoctorId);
+            }
+            
+            // Cập nhật trạng thái appointment
+            appointment.setExaminationStatus("IN_PROGRESS");
+            doctorAppointmentRepository.save(appointment);
+            
+            // Tạo response DTO thay vì trả về entity trực tiếp
+            Map<String, Object> medicalRecordDTO = createMedicalRecordDTO(medicalRecord);
+            Map<String, Object> appointmentDTO = createAppointmentDTO(appointment);
+            
+            response.put("success", true);
+            response.put("message", "Đã bắt đầu khám bệnh");
+            response.put("medicalRecord", medicalRecordDTO);
+            response.put("appointment", appointmentDTO);
+            
+            logger.info("✅ Examination started successfully for appointment {}", appointmentId);
+            
+        } catch (Exception e) {
+            logger.error("💥 Error starting examination: {}", e.getMessage(), e);
+            response.put("success", false);
+            response.put("message", "Lỗi khi bắt đầu khám: " + e.getMessage());
+        }
+        
+        return response;
     }
-
-    public List<MedicalRecord> getAllMedicalRecords() {
-        return medicalRecordRepository.findAll();
+    
+    // Helper method để tạo DTO cho MedicalRecord
+    private Map<String, Object> createMedicalRecordDTO(MedicalRecord medicalRecord) {
+        Map<String, Object> dto = new HashMap<>();
+        dto.put("id", medicalRecord.getId());
+        dto.put("appointmentId", medicalRecord.getAppointmentId());
+        dto.put("doctorId", medicalRecord.getDoctorId());
+        dto.put("examinationDate", medicalRecord.getExaminationDate());
+        dto.put("examinationStatus", medicalRecord.getExaminationStatus());
+        dto.put("chiefComplaint", medicalRecord.getChiefComplaint());
+        dto.put("historyOfIllness", medicalRecord.getHistoryOfIllness());
+        dto.put("physicalExamination", medicalRecord.getPhysicalExamination());
+        dto.put("vitalSigns", medicalRecord.getVitalSigns());
+        dto.put("preliminaryDiagnosis", medicalRecord.getPreliminaryDiagnosis());
+        dto.put("finalDiagnosis", medicalRecord.getFinalDiagnosis());
+        dto.put("treatmentPlan", medicalRecord.getTreatmentPlan());
+        dto.put("medications", medicalRecord.getMedications());
+        dto.put("labTests", medicalRecord.getLabTests());
+        dto.put("advice", medicalRecord.getAdvice());
+        dto.put("followUpDate", medicalRecord.getFollowUpDate());
+        dto.put("followUpNotes", medicalRecord.getFollowUpNotes());
+        dto.put("createdAt", medicalRecord.getCreatedAt());
+        dto.put("updatedAt", medicalRecord.getUpdatedAt());
+        return dto;
     }
-
-    public Optional<MedicalRecord> getMedicalRecordById(Long id) {
-        return medicalRecordRepository.findById(id);
+    
+    // Helper method để tạo DTO cho Appointment
+    private Map<String, Object> createAppointmentDTO(PatientRegistration appointment) {
+        Map<String, Object> dto = new HashMap<>();
+        dto.put("id", appointment.getId());
+        dto.put("fullName", appointment.getFullName());
+        dto.put("phone", appointment.getPhone());
+        dto.put("email", appointment.getEmail());
+        dto.put("dob", appointment.getDob());
+        dto.put("gender", appointment.getGender());
+        dto.put("appointmentDate", appointment.getAppointmentDate());
+        dto.put("expectedTimeSlot", appointment.getExpectedTimeSlot());
+        dto.put("department", appointment.getDepartment());
+        dto.put("symptoms", appointment.getSymptoms());
+        dto.put("status", appointment.getStatus());
+        dto.put("examinationStatus", appointment.getExaminationStatus());
+        dto.put("queueNumber", appointment.getQueueNumber());
+        dto.put("roomNumber", appointment.getRoomNumber());
+        dto.put("examinationFee", appointment.getExaminationFee());
+        dto.put("paymentStatus", appointment.getPaymentStatus());
+        dto.put("registrationNumber", appointment.getRegistrationNumber());
+        dto.put("doctorId", appointment.getDoctorId()); // THÊM DOCTOR_ID VÀO DTO
+        dto.put("createdAt", appointment.getCreatedAt());
+        return dto;
     }
-
-    public List<MedicalRecord> getRecordsByPatient(Long patientId) {
-        return medicalRecordRepository.findByPatientId(patientId);
+    
+    public Map<String, Object> saveMedicalRecord(MedicalRecord medicalRecord) {
+        Map<String, Object> response = new HashMap<>();
+        
+        try {
+            logger.info("💾 Saving medical record for appointment {}", medicalRecord.getAppointmentId());
+            
+            MedicalRecord savedRecord = medicalRecordRepository.save(medicalRecord);
+            
+            // Sử dụng DTO thay vì entity
+            Map<String, Object> medicalRecordDTO = createMedicalRecordDTO(savedRecord);
+            
+            response.put("success", true);
+            response.put("message", "Đã lưu kết quả khám");
+            response.put("medicalRecord", medicalRecordDTO);
+            
+            logger.info("✅ Medical record saved successfully");
+            
+        } catch (Exception e) {
+            logger.error("💥 Error saving medical record: {}", e.getMessage(), e);
+            response.put("success", false);
+            response.put("message", "Lỗi khi lưu kết quả khám: " + e.getMessage());
+        }
+        
+        return response;
     }
-
-    public void deleteMedicalRecord(Long id) {
-        medicalRecordRepository.deleteById(id);
+    
+    public Map<String, Object> completeExamination(Long appointmentId) {
+        Map<String, Object> response = new HashMap<>();
+        
+        try {
+            logger.info("✅ Completing examination for appointment {}", appointmentId);
+            
+            // Cập nhật medical record
+            Optional<MedicalRecord> medicalRecordOpt = medicalRecordRepository.findByAppointmentId(appointmentId);
+            if (medicalRecordOpt.isEmpty()) {
+                response.put("success", false);
+                response.put("message", "Không tìm thấy hồ sơ khám bệnh");
+                return response;
+            }
+            
+            MedicalRecord medicalRecord = medicalRecordOpt.get();
+            medicalRecord.setExaminationStatus("COMPLETED");
+            MedicalRecord savedRecord = medicalRecordRepository.save(medicalRecord);
+            
+            // Cập nhật appointment
+            Optional<PatientRegistration> appointmentOpt = doctorAppointmentRepository.findById(appointmentId);
+            if (appointmentOpt.isEmpty()) {
+                response.put("success", false);
+                response.put("message", "Không tìm thấy lịch hẹn");
+                return response;
+            }
+            
+            PatientRegistration appointment = appointmentOpt.get();
+            appointment.setExaminationStatus("COMPLETED");
+            appointment.setStatus("COMPLETED");
+            doctorAppointmentRepository.save(appointment);
+            
+            // Sử dụng DTO
+            Map<String, Object> medicalRecordDTO = createMedicalRecordDTO(savedRecord);
+            
+            response.put("success", true);
+            response.put("message", "Đã hoàn thành khám bệnh");
+            response.put("medicalRecord", medicalRecordDTO);
+            
+            logger.info("✅ Examination completed successfully");
+            
+        } catch (Exception e) {
+            logger.error("💥 Error completing examination: {}", e.getMessage(), e);
+            response.put("success", false);
+            response.put("message", "Lỗi khi hoàn thành khám: " + e.getMessage());
+        }
+        
+        return response;
+    }
+    
+    public Map<String, Object> markAsMissed(Long appointmentId) {
+        Map<String, Object> response = new HashMap<>();
+        
+        try {
+            logger.info("🚫 Marking appointment {} as missed", appointmentId);
+            
+            Optional<PatientRegistration> appointmentOpt = doctorAppointmentRepository.findById(appointmentId);
+            if (appointmentOpt.isEmpty()) {
+                response.put("success", false);
+                response.put("message", "Không tìm thấy lịch hẹn");
+                return response;
+            }
+            
+            PatientRegistration appointment = appointmentOpt.get();
+            appointment.setExaminationStatus("MISSED");
+            appointment.setStatus("CANCELLED");
+            PatientRegistration savedAppointment = doctorAppointmentRepository.save(appointment);
+            
+            // Sử dụng DTO
+            Map<String, Object> appointmentDTO = createAppointmentDTO(savedAppointment);
+            
+            response.put("success", true);
+            response.put("message", "Đã đánh dấu không đi khám");
+            response.put("appointment", appointmentDTO);
+            
+            logger.info("✅ Appointment marked as missed");
+            
+        } catch (Exception e) {
+            logger.error("💥 Error marking as missed: {}", e.getMessage(), e);
+            response.put("success", false);
+            response.put("message", "Lỗi khi đánh dấu không đi khám: " + e.getMessage());
+        }
+        
+        return response;
+    }
+    
+    public Map<String, Object> getExaminationDetail(Long appointmentId) {
+        Map<String, Object> response = new HashMap<>();
+        
+        try {
+            logger.info("🔍 Getting examination detail for appointment {}", appointmentId);
+            
+            Optional<PatientRegistration> appointmentOpt = doctorAppointmentRepository.findById(appointmentId);
+            if (appointmentOpt.isEmpty()) {
+                response.put("success", false);
+                response.put("message", "Không tìm thấy lịch hẹn");
+                return response;
+            }
+            
+            PatientRegistration appointment = appointmentOpt.get();
+            Optional<MedicalRecord> medicalRecordOpt = medicalRecordRepository.findByAppointmentId(appointmentId);
+            
+            // Sử dụng DTO
+            Map<String, Object> appointmentDTO = createAppointmentDTO(appointment);
+            Map<String, Object> medicalRecordDTO = medicalRecordOpt.map(this::createMedicalRecordDTO).orElse(null);
+            
+            response.put("success", true);
+            response.put("appointment", appointmentDTO);
+            response.put("medicalRecord", medicalRecordDTO);
+            
+        } catch (Exception e) {
+            logger.error("💥 Error getting examination detail: {}", e.getMessage(), e);
+            response.put("success", false);
+            response.put("message", "Lỗi khi lấy thông tin khám: " + e.getMessage());
+        }
+        
+        return response;
     }
 }

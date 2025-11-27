@@ -5,6 +5,8 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 @Entity
 @Table(name = "patient_registrations")
 public class PatientRegistration {
@@ -47,6 +49,7 @@ public class PatientRegistration {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "doctor_id", referencedColumnName = "id", insertable = false, updatable = false)
+    @JsonIgnore
     private Doctor doctor;
 
     @Column(name = "registration_number")
@@ -88,6 +91,10 @@ public class PatientRegistration {
     @Column(name = "assigned_session")
     private String assignedSession;
 
+    // THÊM TRƯỜNG MỚI - TRẠNG THÁI KHÁM BỆNH
+    @Column(name = "examination_status")
+    private String examinationStatus = "WAITING";
+
     // THÊM CÁC TRƯỜNG MỚI CHO THANH TOÁN
     @Column(name = "payment_status")
     private String paymentStatus;
@@ -109,6 +116,7 @@ public class PatientRegistration {
     public PatientRegistration() {
         this.createdAt = LocalDateTime.now();
         this.status = "PENDING";
+        this.examinationStatus = "WAITING";
         this.reminderSent = false;
     }
 
@@ -205,6 +213,9 @@ public class PatientRegistration {
     public String getAssignedSession() { return assignedSession; }
     public void setAssignedSession(String assignedSession) { this.assignedSession = assignedSession; }
 
+    public String getExaminationStatus() { return examinationStatus; }
+    public void setExaminationStatus(String examinationStatus) { this.examinationStatus = examinationStatus; }
+
     // GETTERS AND SETTERS MỚI CHO THANH TOÁN
     public String getPaymentStatus() { return paymentStatus; }
     public void setPaymentStatus(String paymentStatus) { this.paymentStatus = paymentStatus; }
@@ -215,7 +226,6 @@ public class PatientRegistration {
     public LocalDateTime getPaidAt() { return paidAt; }
     public void setPaidAt(LocalDateTime paidAt) { this.paidAt = paidAt; }
 
-    // 🔥 GETTERS AND SETTERS MỚI CHO REMINDER TRACKING
     public Boolean getReminderSent() { return reminderSent; }
     public void setReminderSent(Boolean reminderSent) { this.reminderSent = reminderSent; }
     
@@ -237,6 +247,7 @@ public class PatientRegistration {
                 ", doctorId=" + doctorId +
                 ", assignedSession='" + assignedSession + '\'' +
                 ", status='" + status + '\'' +
+                ", examinationStatus='" + examinationStatus + '\'' +
                 ", paymentStatus='" + paymentStatus + '\'' +
                 ", reminderSent=" + reminderSent +
                 '}';

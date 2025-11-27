@@ -19,8 +19,8 @@ public class PatientRegistrationService {
     private final AutoApprovalService autoApprovalService;
     private final EmailService emailService;
     
-    // @Autowired
-    // private DoctorSlotService doctorSlotService;
+    @Autowired
+    private DoctorSlotService doctorSlotService;
 
     @Autowired
     private WebSocketService webSocketService;
