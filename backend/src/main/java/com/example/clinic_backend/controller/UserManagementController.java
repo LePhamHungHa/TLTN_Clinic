@@ -120,40 +120,42 @@ public class UserManagementController {
 
     // API 5: Tạo bác sĩ mới
     @PostMapping("/doctors")
-    public ResponseEntity<?> createDoctor(@RequestBody Map<String, Object> doctorData) {
-        System.out.println("=== 👨‍⚕️ USER MANAGEMENT - CREATE DOCTOR ===");
-        
-        try {
-            // Extract data từ request
-            String username = (String) doctorData.get("username");
-            String password = (String) doctorData.get("password");
-            String fullName = (String) doctorData.get("full_name");
-            String dateOfBirth = (String) doctorData.get("date_of_birth");
-            String gender = (String) doctorData.get("gender");
-            String citizenId = (String) doctorData.get("citizen_id");
-            String address = (String) doctorData.get("address");
-            String phone = (String) doctorData.get("phone");
-            String email = (String) doctorData.get("email");
-            Integer departmentId = (Integer) doctorData.get("department_id");
-            String degree = (String) doctorData.get("degree");
-            String position = (String) doctorData.get("position");
-            String roomNumber = (String) doctorData.get("room_number");
-            String floor = (String) doctorData.get("floor");
+public ResponseEntity<?> createDoctor(@RequestBody Map<String, Object> doctorData) {
+    System.out.println("=== 👨‍⚕️ USER MANAGEMENT - CREATE DOCTOR ===");
+    System.out.println("📥 Received data: " + doctorData);
+    
+    try {
+        // Extract data từ request
+        String username = (String) doctorData.get("username");
+        String password = (String) doctorData.get("password");
+        String fullName = (String) doctorData.get("full_name");
+        String dateOfBirth = (String) doctorData.get("date_of_birth");
+        String gender = (String) doctorData.get("gender");
+        String citizenId = (String) doctorData.get("citizen_id");
+        String address = (String) doctorData.get("address");
+        String phone = (String) doctorData.get("phone");
+        String email = (String) doctorData.get("email");
+        Integer departmentId = (Integer) doctorData.get("department_id");
+        String degree = (String) doctorData.get("degree");
+        String position = (String) doctorData.get("position");
+        String roomNumber = (String) doctorData.get("room_number");
+        String floor = (String) doctorData.get("floor");
 
-            // Kiểm tra username đã tồn tại chưa
-            if (userService.findByUsername(username).isPresent()) {
-                return ResponseEntity.badRequest().body("Username đã tồn tại");
-            }
+        System.out.println("🔍 Extracted data - Username: " + username + ", Department ID: " + departmentId);
 
-            // Kiểm tra department tồn tại
-            if (departmentId == null) {
-                return ResponseEntity.badRequest().body("Vui lòng chọn khoa");
-            }
-            
-            Optional<Department> department = departmentService.getDepartmentById(departmentId.longValue());
-            if (department.isEmpty()) {
-                return ResponseEntity.badRequest().body("Khoa không tồn tại");
-            }
+        // Kiểm tra dữ liệu bắt buộc
+        if (username == null || username.trim().isEmpty()) {
+            return ResponseEntity.badRequest().body("Username là bắt buộc");
+        }
+        if (password == null || password.trim().isEmpty()) {
+            return ResponseEntity.badRequest().body("Password là bắt buộc");
+        }
+        if (fullName == null || fullName.trim().isEmpty()) {
+            return ResponseEntity.badRequest().body("Họ tên là bắt buộc");
+        }
+        if (departmentId == null) {
+            return ResponseEntity.badRequest().body("Vui lòng chọn khoa");
+        }
 
             // Tạo user trước
             User user = new User();

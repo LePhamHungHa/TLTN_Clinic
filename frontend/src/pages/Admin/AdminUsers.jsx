@@ -289,17 +289,18 @@ const AdminUsers = () => {
         };
         endpoint = "http://localhost:8080/api/admin/users/patients";
       } else if (userForm.role === "DOCTOR") {
+        // 🚨 SỬA LẠI PHẦN NÀY - ĐÚNG VỚI BACKEND
         requestData = {
           username: userForm.username,
           password: userForm.password,
           full_name: userForm.fullName,
-          date_of_birth: userForm.dateOfBirth,
+          date_of_birth: userForm.dateOfBirth, // Đúng với backend
           gender: userForm.gender,
           citizen_id: userForm.citizenId,
           address: userForm.address,
           phone: userForm.phone,
           email: userForm.email,
-          department_id: parseInt(userForm.departmentId),
+          department_id: parseInt(userForm.departmentId), // Đúng với backend
           degree: userForm.degree,
           position: userForm.position,
           room_number: userForm.roomNumber,
@@ -319,6 +320,7 @@ const AdminUsers = () => {
       }
 
       console.log("📤 Gửi data tạo user:", requestData);
+      console.log("🎯 Endpoint:", endpoint);
 
       const response = await axios.post(endpoint, requestData, {
         headers: {
@@ -330,6 +332,7 @@ const AdminUsers = () => {
       console.log("✅ Tạo user thành công:", response.data);
 
       setShowUserModal(false);
+      // Reset form
       setUserForm({
         role: "PATIENT",
         username: "",
@@ -367,9 +370,16 @@ const AdminUsers = () => {
       alert(`✅ Tạo ${roleName} thành công!`);
     } catch (error) {
       console.error("❌ Lỗi tạo người dùng:", error);
-      setError(
-        "Lỗi khi tạo người dùng: " + (error.response?.data || error.message)
-      );
+      console.log("📝 Chi tiết lỗi:", {
+        status: error.response?.status,
+        data: error.response?.data,
+        message: error.message,
+      });
+
+      // Hiển thị lỗi chi tiết từ backend
+      const errorMessage = error.response?.data || error.message;
+      setError(`Lỗi khi tạo người dùng: ${JSON.stringify(errorMessage)}`);
+      alert(`❌ Lỗi: ${JSON.stringify(errorMessage)}`);
     }
   };
 
