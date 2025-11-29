@@ -7,11 +7,21 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import java.util.List;
 import java.util.Optional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 @Repository
 public interface MedicalRecordRepository extends JpaRepository<MedicalRecord, Long> {
     
-    Optional<MedicalRecord> findByAppointmentId(Long appointmentId);
+    List<MedicalRecord> findByAppointmentId(Long appointmentId);
+    
+    @Query("SELECT mr FROM MedicalRecord mr WHERE mr.appointmentId = :appointmentId ORDER BY mr.createdAt DESC")
+    List<MedicalRecord> findByAppointmentIdOrderByCreatedAtDesc(@Param("appointmentId") Long appointmentId);
+    
+    default Optional<MedicalRecord> findFirstByAppointmentIdOrderByCreatedAtDesc(Long appointmentId) {
+        List<MedicalRecord> records = findByAppointmentIdOrderByCreatedAtDesc(appointmentId);
+        return records.isEmpty() ? Optional.empty() : Optional.of(records.get(0));
+    }
     
     List<MedicalRecord> findByDoctorIdOrderByExaminationDateDesc(Long doctorId);
     
@@ -22,4 +32,10 @@ public interface MedicalRecordRepository extends JpaRepository<MedicalRecord, Lo
     
     @Query("SELECT mr FROM MedicalRecord mr JOIN PatientRegistration pr ON mr.appointmentId = pr.id WHERE pr.patientCode = :patientCode ORDER BY mr.examinationDate DESC")
     List<MedicalRecord> findByPatientCodeOrderByExaminationDateDesc(@Param("patientCode") String patientCode);
+
+    @Query("SELECT DISTINCT mr FROM MedicalRecord mr " +
+           "LEFT JOIN FETCH PatientRegistration pr ON mr.appointmentId = pr.id " +
+           "WHERE mr.doctorId = :doctorId " +
+           "ORDER BY mr.examinationDate DESC")
+    Page<MedicalRecord> findByDoctorId(@Param("doctorId") Long doctorId, Pageable pageable);
 }

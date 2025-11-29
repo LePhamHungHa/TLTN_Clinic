@@ -127,22 +127,42 @@ const DoctorExamination = () => {
     }));
   };
 
-  // Lưu kết quả khám
-  const handleSaveExamination = async () => {
+  // NÚT DUY NHẤT: Lưu kết quả và hoàn thành khám
+  const handleSaveAndComplete = async () => {
+    if (
+      !window.confirm(
+        "Xác nhận lưu kết quả khám và hoàn thành? Sau khi hoàn thành không thể sửa đổi."
+      )
+    ) {
+      return;
+    }
+
     try {
       setSaving(true);
       const user = JSON.parse(localStorage.getItem("user"));
 
+      // Chuẩn bị dữ liệu medical record
       const medicalRecordData = {
         appointmentId: parseInt(appointmentId),
         doctorId: appointment.doctorId,
-        ...formData,
+        chiefComplaint: formData.chiefComplaint,
+        historyOfIllness: formData.historyOfIllness,
+        physicalExamination: formData.physicalExamination,
         vitalSigns: JSON.stringify(formData.vitalSigns),
+        preliminaryDiagnosis: formData.preliminaryDiagnosis,
+        finalDiagnosis: formData.finalDiagnosis,
+        treatmentPlan: formData.treatmentPlan,
         medications: JSON.stringify(formData.medications),
         labTests: JSON.stringify(formData.labTests),
-        examinationStatus: "IN_PROGRESS",
+        advice: formData.advice,
+        followUpDate: formData.followUpDate,
+        followUpNotes: formData.followUpNotes,
+        examinationStatus: "COMPLETED", // Trực tiếp set thành COMPLETED
       };
 
+      console.log("📤 Gửi dữ liệu medical record:", medicalRecordData);
+
+      // Gọi API để lưu medical record với trạng thái COMPLETED
       const response = await fetch(
         `http://localhost:8080/api/doctor/medical-records/${appointmentId}`,
         {
@@ -156,158 +176,31 @@ const DoctorExamination = () => {
       );
 
       if (!response.ok) {
-        throw new Error("Không thể lưu kết quả khám");
+        const errorText = await response.text();
+        console.error("❌ Lỗi response:", errorText);
+        throw new Error(`HTTP ${response.status}: ${errorText}`);
       }
 
       const result = await response.json();
+      console.log("📥 Kết quả lưu medical record:", result);
 
       if (result.success) {
-        alert("✅ Đã lưu kết quả khám thành công!");
-        // Cập nhật medical record sau khi lưu thành công
-        setMedicalRecord(result.medicalRecord);
+        alert("✅ Đã lưu kết quả khám và hoàn thành!");
+        navigate("/doctor/appointments");
       } else {
         throw new Error(result.message || "Lỗi khi lưu kết quả khám");
       }
     } catch (err) {
-      console.error("❌ Lỗi lưu kết quả khám:", err);
-      alert(`❌ Lỗi: ${err.message}`);
-    } finally {
-      setSaving(false);
-    }
-  };
+      console.error("❌ Lỗi lưu và hoàn thành khám:", err);
 
-  // Hoàn thành khám - PHIÊN BẢN ĐÃ SỬA
-  const handleCompleteExamination = async () => {
-    if (
-      !window.confirm(
-        "Xác nhận hoàn thành khám bệnh? Sau khi hoàn thành không thể sửa đổi kết quả khám."
-      )
-    ) {
-      return;
-    }
-
-    try {
-      setSaving(true);
-      const user = JSON.parse(localStorage.getItem("user"));
-
-      // 🔥 SỬA: Chỉ gọi API complete, không gọi save trước
-      // Backend sẽ tự động cập nhật examinationStatus khi complete
-      const completeResponse = await fetch(
-        `http://localhost:8080/api/doctor/medical-records/${appointmentId}/complete`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${user.token}`,
-          },
-        }
-      );
-
-      if (!completeResponse.ok) {
-        // Nếu lỗi, thử lưu kết quả trước rồi mới complete
-        console.log("🔄 Thử lưu kết quả trước khi complete...");
-
-        const medicalRecordData = {
-          appointmentId: parseInt(appointmentId),
-          doctorId: appointment.doctorId,
-          ...formData,
-          vitalSigns: JSON.stringify(formData.vitalSigns),
-          medications: JSON.stringify(formData.medications),
-          labTests: JSON.stringify(formData.labTests),
-          examinationStatus: "COMPLETED",
-        };
-
-        const saveResponse = await fetch(
-          `http://localhost:8080/api/doctor/medical-records/${appointmentId}`,
-          {
-            method: "PUT",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${user.token}`,
-            },
-            body: JSON.stringify(medicalRecordData),
-          }
-        );
-
-        if (!saveResponse.ok) {
-          throw new Error("Không thể lưu và hoàn thành khám");
-        }
-
-        const saveResult = await saveResponse.json();
-
-        if (saveResult.success) {
-          alert("✅ Đã hoàn thành khám bệnh!");
-          navigate("/doctor/appointments");
-          return;
-        } else {
-          throw new Error(saveResult.message || "Lỗi khi hoàn thành khám");
-        }
-      }
-
-      const result = await completeResponse.json();
-
-      if (result.success) {
-        alert("✅ Đã hoàn thành khám bệnh!");
-        navigate("/doctor/appointments");
-      } else {
-        throw new Error(result.message || "Lỗi khi hoàn thành khám");
-      }
-    } catch (err) {
-      console.error("❌ Lỗi hoàn thành khám:", err);
-
-      // Hiển thị thông báo lỗi chi tiết hơn
+      // Hiển thị thông báo lỗi chi tiết
       if (err.message.includes("Query did not return a unique result")) {
         alert(
-          "❌ Lỗi: Có nhiều hồ sơ khám cho cùng một lịch hẹn. Vui lòng liên hệ quản trị viên."
+          "❌ Lỗi: Có nhiều hồ sơ khám cho lịch hẹn này. Vui lòng liên hệ quản trị viên."
         );
       } else {
         alert(`❌ Lỗi: ${err.message}`);
       }
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  // 🔥 THÊM: Hàm chỉ đánh dấu hoàn thành mà không lưu dữ liệu
-  const handleMarkAsCompletedOnly = async () => {
-    if (
-      !window.confirm(
-        "Chỉ đánh dấu hoàn thành khám mà không lưu kết quả khám? Hành động này không thể hoàn tác."
-      )
-    ) {
-      return;
-    }
-
-    try {
-      setSaving(true);
-      const user = JSON.parse(localStorage.getItem("user"));
-
-      const response = await fetch(
-        `http://localhost:8080/api/doctor/appointments/${appointmentId}/complete`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${user.token}`,
-          },
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error("Không thể đánh dấu hoàn thành");
-      }
-
-      const result = await response.json();
-
-      if (result.success) {
-        alert("✅ Đã đánh dấu hoàn thành khám!");
-        navigate("/doctor/appointments");
-      } else {
-        throw new Error(result.message || "Lỗi khi đánh dấu hoàn thành");
-      }
-    } catch (err) {
-      console.error("❌ Lỗi đánh dấu hoàn thành:", err);
-      alert(`❌ Lỗi: ${err.message}`);
     } finally {
       setSaving(false);
     }
@@ -591,29 +484,14 @@ const DoctorExamination = () => {
             </div>
           </div>
 
-          {/* Action Buttons */}
+          {/* NÚT DUY NHẤT */}
           <div className="examination-actions">
             <button
-              className="btn-save"
-              onClick={handleSaveExamination}
+              className="btn-save-complete"
+              onClick={handleSaveAndComplete}
               disabled={saving}
             >
-              {saving ? "⏳" : "💾"} Lưu Kết Quả
-            </button>
-            <button
-              className="btn-complete"
-              onClick={handleCompleteExamination}
-              disabled={saving}
-            >
-              {saving ? "⏳" : "✅"} Lưu & Hoàn Thành
-            </button>
-            <button
-              className="btn-mark-complete"
-              onClick={handleMarkAsCompletedOnly}
-              disabled={saving}
-              title="Chỉ đánh dấu hoàn thành mà không lưu kết quả khám"
-            >
-              {saving ? "⏳" : "📝"} Chỉ Hoàn Thành
+              {saving ? "⏳ Đang xử lý..." : "💾 Lưu & Hoàn thành"}
             </button>
           </div>
 
@@ -630,12 +508,10 @@ const DoctorExamination = () => {
               }}
             >
               <h4>⚠️ Cảnh báo: Lỗi dữ liệu trùng lặp</h4>
-              <p>Có nhiều hồ sơ khám cho lịch hẹn này. Vui lòng:</p>
-              <ul>
-                <li>1. Sử dụng nút "Lưu Kết Quả" để lưu dữ liệu</li>
-                <li>2. Liên hệ quản trị viên để dọn dẹp dữ liệu trùng</li>
-                <li>3. Hoặc sử dụng "Chỉ Hoàn Thành" để đánh dấu khám xong</li>
-              </ul>
+              <p>
+                Có nhiều hồ sơ khám cho lịch hẹn này. Vui lòng liên hệ quản trị
+                viên.
+              </p>
             </div>
           )}
         </div>

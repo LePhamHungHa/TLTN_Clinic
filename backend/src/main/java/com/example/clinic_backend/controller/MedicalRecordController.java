@@ -139,4 +139,25 @@ public class MedicalRecordController {
             ));
         }
     }
+
+    // THÊM ENDPOINT MỚI: Lấy danh sách hồ sơ bệnh án theo doctor ID
+    @GetMapping("/doctor/{doctorId}")
+    public ResponseEntity<Map<String, Object>> getMedicalRecordsByDoctor(
+            @PathVariable Long doctorId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        
+        logger.info("📞 GET /api/doctor/medical-records/doctor/{} called, page: {}, size: {}", doctorId, page, size);
+        
+        try {
+            Map<String, Object> response = medicalRecordService.getMedicalRecordsByDoctor(doctorId, page, size);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            logger.error("❌ Error getting medical records by doctor: {}", e.getMessage(), e);
+            return ResponseEntity.internalServerError().body(Map.of(
+                "success", false,
+                "message", "Internal server error: " + e.getMessage()
+            ));
+        }
+    }
 }

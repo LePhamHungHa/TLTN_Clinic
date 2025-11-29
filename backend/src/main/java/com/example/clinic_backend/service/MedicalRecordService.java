@@ -7,10 +7,16 @@ import com.example.clinic_backend.repository.DoctorAppointmentRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+
 import java.util.Map;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class MedicalRecordService {
@@ -63,8 +69,8 @@ public class MedicalRecordService {
                 return response;
             }
             
-            // Kiểm tra xem đã có medical record chưa
-            Optional<MedicalRecord> existingRecordOpt = medicalRecordRepository.findByAppointmentId(appointmentId);
+            // Kiểm tra xem đã có medical record chưa - SỬA: Dùng method mới
+            Optional<MedicalRecord> existingRecordOpt = medicalRecordRepository.findFirstByAppointmentIdOrderByCreatedAtDesc(appointmentId);
             
             MedicalRecord medicalRecord;
             if (existingRecordOpt.isPresent()) {
@@ -155,15 +161,35 @@ public class MedicalRecordService {
         return dto;
     }
     
+    // SỬA LẠI METHOD saveMedicalRecord để tránh tạo nhiều bản ghi
     public Map<String, Object> saveMedicalRecord(MedicalRecord medicalRecord) {
         Map<String, Object> response = new HashMap<>();
         
         try {
             logger.info("💾 Saving medical record for appointment {}", medicalRecord.getAppointmentId());
             
-            MedicalRecord savedRecord = medicalRecordRepository.save(medicalRecord);
+            // KIỂM TRA XEM ĐÃ CÓ MEDICAL RECORD CHƯA
+            Optional<MedicalRecord> existingRecordOpt = medicalRecordRepository.findFirstByAppointmentIdOrderByCreatedAtDesc(medicalRecord.getAppointmentId());
             
-            // Sử dụng DTO thay vì entity
+            MedicalRecord recordToSave;
+            if (existingRecordOpt.isPresent()) {
+                // CẬP NHẬT RECORD HIỆN TẠI
+                recordToSave = existingRecordOpt.get();
+                updateMedicalRecordFields(recordToSave, medicalRecord);
+                logger.info("✅ Updated existing medical record");
+            } else {
+                // TẠO MỚI
+                recordToSave = medicalRecord;
+                logger.info("✅ Created new medical record");
+            }
+            
+            MedicalRecord savedRecord = medicalRecordRepository.save(recordToSave);
+            
+            // NẾU LÀ COMPLETED, CẬP NHẬT CẢ APPOINTMENT
+            if ("COMPLETED".equals(savedRecord.getExaminationStatus())) {
+                updateAppointmentStatus(savedRecord.getAppointmentId(), "COMPLETED", "COMPLETED");
+            }
+            
             Map<String, Object> medicalRecordDTO = createMedicalRecordDTO(savedRecord);
             
             response.put("success", true);
@@ -180,15 +206,49 @@ public class MedicalRecordService {
         
         return response;
     }
+
+    // THÊM METHOD HELPER ĐỂ CẬP NHẬT TRƯỜNG
+    private void updateMedicalRecordFields(MedicalRecord existing, MedicalRecord newData) {
+        existing.setChiefComplaint(newData.getChiefComplaint());
+        existing.setHistoryOfIllness(newData.getHistoryOfIllness());
+        existing.setPhysicalExamination(newData.getPhysicalExamination());
+        existing.setVitalSigns(newData.getVitalSigns());
+        existing.setPreliminaryDiagnosis(newData.getPreliminaryDiagnosis());
+        existing.setFinalDiagnosis(newData.getFinalDiagnosis());
+        existing.setTreatmentPlan(newData.getTreatmentPlan());
+        existing.setMedications(newData.getMedications());
+        existing.setLabTests(newData.getLabTests());
+        existing.setAdvice(newData.getAdvice());
+        existing.setFollowUpDate(newData.getFollowUpDate());
+        existing.setFollowUpNotes(newData.getFollowUpNotes());
+        existing.setExaminationStatus(newData.getExaminationStatus());
+    }
+
+    // THÊM METHOD HELPER ĐỂ CẬP NHẬT APPOINTMENT
+    private void updateAppointmentStatus(Long appointmentId, String examinationStatus, String status) {
+        try {
+            Optional<PatientRegistration> appointmentOpt = doctorAppointmentRepository.findById(appointmentId);
+            if (appointmentOpt.isPresent()) {
+                PatientRegistration appointment = appointmentOpt.get();
+                appointment.setExaminationStatus(examinationStatus);
+                appointment.setStatus(status);
+                doctorAppointmentRepository.save(appointment);
+                logger.info("✅ Updated appointment status to: {}", status);
+            }
+        } catch (Exception e) {
+            logger.error("❌ Error updating appointment status: {}", e.getMessage());
+        }
+    }
     
+    // SỬA LẠI METHOD completeExamination
     public Map<String, Object> completeExamination(Long appointmentId) {
         Map<String, Object> response = new HashMap<>();
         
         try {
             logger.info("✅ Completing examination for appointment {}", appointmentId);
             
-            // Cập nhật medical record
-            Optional<MedicalRecord> medicalRecordOpt = medicalRecordRepository.findByAppointmentId(appointmentId);
+            // SỬA: Sử dụng method mới để lấy record mới nhất
+            Optional<MedicalRecord> medicalRecordOpt = medicalRecordRepository.findFirstByAppointmentIdOrderByCreatedAtDesc(appointmentId);
             if (medicalRecordOpt.isEmpty()) {
                 response.put("success", false);
                 response.put("message", "Không tìm thấy hồ sơ khám bệnh");
@@ -200,17 +260,7 @@ public class MedicalRecordService {
             MedicalRecord savedRecord = medicalRecordRepository.save(medicalRecord);
             
             // Cập nhật appointment
-            Optional<PatientRegistration> appointmentOpt = doctorAppointmentRepository.findById(appointmentId);
-            if (appointmentOpt.isEmpty()) {
-                response.put("success", false);
-                response.put("message", "Không tìm thấy lịch hẹn");
-                return response;
-            }
-            
-            PatientRegistration appointment = appointmentOpt.get();
-            appointment.setExaminationStatus("COMPLETED");
-            appointment.setStatus("COMPLETED");
-            doctorAppointmentRepository.save(appointment);
+            updateAppointmentStatus(appointmentId, "COMPLETED", "COMPLETED");
             
             // Sử dụng DTO
             Map<String, Object> medicalRecordDTO = createMedicalRecordDTO(savedRecord);
@@ -266,6 +316,7 @@ public class MedicalRecordService {
         return response;
     }
     
+    // SỬA LẠI METHOD getExaminationDetail
     public Map<String, Object> getExaminationDetail(Long appointmentId) {
         Map<String, Object> response = new HashMap<>();
         
@@ -280,7 +331,9 @@ public class MedicalRecordService {
             }
             
             PatientRegistration appointment = appointmentOpt.get();
-            Optional<MedicalRecord> medicalRecordOpt = medicalRecordRepository.findByAppointmentId(appointmentId);
+            
+            // SỬA: Sử dụng method mới để lấy record mới nhất
+            Optional<MedicalRecord> medicalRecordOpt = medicalRecordRepository.findFirstByAppointmentIdOrderByCreatedAtDesc(appointmentId);
             
             // Sử dụng DTO
             Map<String, Object> appointmentDTO = createAppointmentDTO(appointment);
@@ -297,5 +350,61 @@ public class MedicalRecordService {
         }
         
         return response;
+    }
+
+    // THÊM METHOD MỚI: Lấy danh sách hồ sơ bệnh án theo doctor ID
+    public Map<String, Object> getMedicalRecordsByDoctor(Long doctorId, int page, int size) {
+        Map<String, Object> response = new HashMap<>();
+        
+        try {
+            logger.info("🔍 Getting medical records for doctor ID: {}, page: {}, size: {}", doctorId, page, size);
+            
+            Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "examinationDate"));
+            Page<MedicalRecord> medicalRecordsPage = medicalRecordRepository.findByDoctorId(doctorId, pageable);
+            
+            List<Map<String, Object>> medicalRecordsDTO = medicalRecordsPage.getContent()
+                    .stream()
+                    .map(this::createMedicalRecordWithPatientDTO)
+                    .collect(Collectors.toList());
+            
+            response.put("success", true);
+            response.put("medicalRecords", medicalRecordsDTO);
+            response.put("currentPage", medicalRecordsPage.getNumber());
+            response.put("totalPages", medicalRecordsPage.getTotalPages());
+            response.put("totalItems", medicalRecordsPage.getTotalElements());
+            
+            logger.info("✅ Found {} medical records for doctor {}", medicalRecordsDTO.size(), doctorId);
+            
+        } catch (Exception e) {
+            logger.error("💥 Error getting medical records: {}", e.getMessage(), e);
+            response.put("success", false);
+            response.put("message", "Lỗi khi lấy danh sách hồ sơ bệnh án: " + e.getMessage());
+        }
+        
+        return response;
+    }
+
+    // THÊM METHOD MỚI: Tạo DTO với thông tin patient
+    private Map<String, Object> createMedicalRecordWithPatientDTO(MedicalRecord medicalRecord) {
+        Map<String, Object> dto = createMedicalRecordDTO(medicalRecord);
+        
+        try {
+            // Lấy thông tin patient từ appointment
+            Optional<PatientRegistration> appointmentOpt = doctorAppointmentRepository.findById(medicalRecord.getAppointmentId());
+            if (appointmentOpt.isPresent()) {
+                PatientRegistration appointment = appointmentOpt.get();
+                dto.put("patientName", appointment.getFullName());
+                dto.put("patientPhone", appointment.getPhone());
+                dto.put("patientEmail", appointment.getEmail());
+                dto.put("patientDob", appointment.getDob());
+                dto.put("patientGender", appointment.getGender());
+                dto.put("appointmentDate", appointment.getAppointmentDate());
+                dto.put("symptoms", appointment.getSymptoms());
+            }
+        } catch (Exception e) {
+            logger.warn("⚠️ Could not load patient info for medical record {}: {}", medicalRecord.getId(), e.getMessage());
+        }
+        
+        return dto;
     }
 }
