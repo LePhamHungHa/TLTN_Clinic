@@ -54,19 +54,28 @@ public class PatientRegistrationService {
     public List<PatientRegistration> getByEmail(String email) {
         try {
             System.out.println("🔄 Đang tìm lịch hẹn với thông tin bác sĩ cho email: " + email);
+            
+            // 🔥 SỬA: Dùng method mới có JOIN FETCH để lấy thông tin bác sĩ
             List<PatientRegistration> result = repository.findByEmailWithDoctor(email);
             
             if (!result.isEmpty()) {
                 System.out.println("✅ Đã tìm thấy " + result.size() + " lịch hẹn với thông tin bác sĩ");
+                
+                // DEBUG: In thông tin bác sĩ để kiểm tra
                 result.forEach(appointment -> {
                     if (appointment.getDoctor() != null) {
                         System.out.println("👨‍⚕️ Bác sĩ: " + appointment.getDoctor().getFullName() + 
-                                         " - Bằng cấp: " + appointment.getDoctor().getDegree());
+                                         " - Bằng cấp: " + appointment.getDoctor().getDegree() +
+                                         " - Chức vụ: " + appointment.getDoctor().getPosition());
+                    } else {
+                        System.out.println("❌ Không có thông tin bác sĩ cho appointment ID: " + appointment.getId() +
+                                         ", Doctor ID: " + appointment.getDoctorId());
                     }
                 });
                 return result;
             }
             
+            // FALLBACK: nếu không có kết quả, dùng method cũ
             System.out.println("🔄 Không có kết quả với join, thử truy vấn thông thường");
             result = repository.findByEmail(email);
             System.out.println("✅ Đã tìm thấy " + result.size() + " lịch hẹn bằng truy vấn thông thường");
@@ -74,6 +83,8 @@ public class PatientRegistrationService {
             
         } catch (Exception e) {
             System.out.println("❌ Truy vấn với join thất bại: " + e.getMessage());
+            e.printStackTrace();
+            // FALLBACK: dùng method cũ nếu có lỗi
             return repository.findByEmail(email);
         }
     }

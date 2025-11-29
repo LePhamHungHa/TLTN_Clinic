@@ -37,10 +37,12 @@ public interface PatientRegistrationRepository extends JpaRepository<PatientRegi
     
     List<PatientRegistration> findAll();
     
-    List<PatientRegistration> findByEmail(String email);
-    
+    // 🔥 THÊM METHOD MỚI: Lấy theo email với JOIN FETCH doctor
     @Query("SELECT p FROM PatientRegistration p LEFT JOIN FETCH p.doctor WHERE p.email = :email ORDER BY p.createdAt DESC")
     List<PatientRegistration> findByEmailWithDoctor(@Param("email") String email);
+    
+    // Giữ method cũ để backup
+    List<PatientRegistration> findByEmail(String email);
     
     List<PatientRegistration> findByPhone(String phone);
     List<PatientRegistration> findByStatus(String status);

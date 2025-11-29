@@ -47,9 +47,9 @@ public class PatientRegistration {
     @Column(name = "doctor_id")
     private Long doctorId;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    // 🔥 SỬA: Thay LAZY bằng EAGER và bỏ @JsonIgnore
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "doctor_id", referencedColumnName = "id", insertable = false, updatable = false)
-    @JsonIgnore
     private Doctor doctor;
 
     @Column(name = "registration_number")
@@ -245,6 +245,7 @@ public class PatientRegistration {
                 ", department='" + department + '\'' +
                 ", appointmentDate=" + appointmentDate +
                 ", doctorId=" + doctorId +
+                ", doctor=" + (doctor != null ? doctor.getFullName() : "null") +
                 ", assignedSession='" + assignedSession + '\'' +
                 ", status='" + status + '\'' +
                 ", examinationStatus='" + examinationStatus + '\'' +

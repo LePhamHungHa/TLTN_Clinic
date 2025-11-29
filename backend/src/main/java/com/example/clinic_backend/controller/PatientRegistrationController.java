@@ -34,6 +34,21 @@ public class PatientRegistrationController {
             
             List<PatientRegistration> registrations = registrationService.getByEmail(email);
             
+            // 🔥 THÊM DEBUG: Kiểm tra thông tin bác sĩ
+            System.out.println("🔍 DEBUG - Checking doctor information:");
+            registrations.forEach(reg -> {
+                if (reg.getDoctor() != null) {
+                    System.out.println("✅ Registration ID: " + reg.getId() + 
+                                     " - Doctor: " + reg.getDoctor().getFullName() +
+                                     " - Degree: " + reg.getDoctor().getDegree() +
+                                     " - Position: " + reg.getDoctor().getPosition());
+                } else {
+                    System.out.println("❌ Registration ID: " + reg.getId() + 
+                                     " - Doctor: NULL" +
+                                     " - Doctor ID: " + reg.getDoctorId());
+                }
+            });
+            
             System.out.println("✅ Found " + registrations.size() + " registrations for email: " + email);
             return ResponseEntity.ok(registrations);
             
@@ -44,6 +59,7 @@ public class PatientRegistrationController {
         }
     }
 
+    // ... CÁC METHOD KHÁC GIỮ NGUYÊN ...
     // POST method - Tạo đăng ký mới VỚI TÍCH HỢP SLOT VÀ THÔNG BÁO
     @PostMapping
     public ResponseEntity<?> createRegistration(@RequestBody PatientRegistrationDTO dto) {
