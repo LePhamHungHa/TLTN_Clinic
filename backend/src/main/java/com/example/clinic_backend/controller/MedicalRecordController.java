@@ -160,4 +160,23 @@ public class MedicalRecordController {
             ));
         }
     }
+
+    // Kiểm tra trạng thái thanh toán
+@GetMapping("/{appointmentId}/payment-status")
+public ResponseEntity<Map<String, Object>> checkPaymentStatus(
+        @PathVariable Long appointmentId) {
+    
+    logger.info("📞 GET /api/doctor/medical-records/{}/payment-status called", appointmentId);
+    
+    try {
+        Map<String, Object> response = medicalRecordService.checkPaymentStatus(appointmentId);
+        return ResponseEntity.ok(response);
+    } catch (Exception e) {
+        logger.error("❌ Error checking payment status: {}", e.getMessage(), e);
+        return ResponseEntity.internalServerError().body(Map.of(
+            "success", false,
+            "message", "Internal server error: " + e.getMessage()
+        ));
+    }
+}
 }

@@ -68,32 +68,41 @@ const AppointmentsPage = () => {
           let paymentStatus = "Chưa thanh toán";
           let paymentAmount = appointment.examinationFee || 0;
           let paymentDate = null;
+          let paymentMethod = null;
 
           try {
+            // Gọi API mới để kiểm tra trạng thái thanh toán
             const paymentResponse = await axios.get(
-              `http://localhost:8080/api/vnpay/public/registrations/${appointment.id}/payment-status`,
-              { timeout: 5000 }
+              `http://localhost:8080/api/payments/status/${appointment.id}`,
+              {
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                },
+                timeout: 5000,
+              }
             );
 
-            paymentStatus =
-              paymentResponse.data.paymentStatus || "Chưa thanh toán";
+            if (paymentResponse.data.success) {
+              const paymentData = paymentResponse.data;
 
-            if (paymentStatus === "Thành công" || paymentStatus === "SUCCESS") {
+              if (paymentData.paymentStatus === "PAID") {
+                paymentStatus = "Đã thanh toán";
+                paymentMethod = paymentData.paymentMethod || "VNPAY";
+              } else {
+                paymentStatus = "Chưa thanh toán";
+              }
+
+              paymentAmount = paymentData.amount || paymentAmount;
+              paymentDate = paymentData.paymentDate;
+            }
+          } catch (error) {
+            console.error(`Payment API failed for ${appointment.id}:`, error);
+            // Fallback: Kiểm tra paymentStatus từ appointment
+            if (appointment.paymentStatus === "PAID") {
               paymentStatus = "Đã thanh toán";
-            } else if (
-              paymentStatus === "Đang chờ xử lý" ||
-              paymentStatus === "PENDING"
-            ) {
-              paymentStatus = "Đang chờ xử lý";
             } else {
               paymentStatus = "Chưa thanh toán";
             }
-
-            paymentAmount = paymentResponse.data.amount || paymentAmount;
-            paymentDate = paymentResponse.data.paymentDate;
-          } catch (error) {
-            console.error(`Payment API failed for ${appointment.id}:`, error);
-            paymentStatus = "Chưa thanh toán";
           }
 
           return {
@@ -101,6 +110,7 @@ const AppointmentsPage = () => {
             paymentStatus: paymentStatus,
             paymentAmount: paymentAmount,
             paymentDate: paymentDate,
+            paymentMethod: paymentMethod,
           };
         })
       );
@@ -124,6 +134,49 @@ const AppointmentsPage = () => {
       setLoading(false);
     }
   };
+
+  // Hàm kiểm tra lại trạng thái thanh toán cho 1 appointment cụ thể
+  // const refreshPaymentStatus = async (appointmentId) => {
+  //   try {
+  //     const token = localStorage.getItem("token");
+  //     const paymentResponse = await axios.get(
+  //       `http://localhost:8080/api/payments/status/${appointmentId}`,
+  //       {
+  //         headers: {
+  //           Authorization: `Bearer ${token}`,
+  //         },
+  //         timeout: 5000,
+  //       }
+  //     );
+
+  //     if (paymentResponse.data.success) {
+  //       const paymentData = paymentResponse.data;
+
+  //       // Cập nhật state
+  //       setAppointments((prevAppointments) =>
+  //         prevAppointments.map((app) =>
+  //           app.id === appointmentId
+  //             ? {
+  //                 ...app,
+  //                 paymentStatus:
+  //                   paymentData.paymentStatus === "PAID"
+  //                     ? "Đã thanh toán"
+  //                     : "Chưa thanh toán",
+  //                 paymentMethod: paymentData.paymentMethod,
+  //                 paymentDate: paymentData.paymentDate,
+  //               }
+  //             : app
+  //         )
+  //       );
+
+  //       return paymentData.paymentStatus === "PAID";
+  //     }
+  //     return false;
+  //   } catch (error) {
+  //     console.error("Lỗi kiểm tra thanh toán:", error);
+  //     return false;
+  //   }
+  // };
 
   const filterAppointments = () => {
     let filtered = appointments;
@@ -198,6 +251,8 @@ STATUS:${getStatusForQR(appointment.status)}`;
       PENDING: "CHO_DUYET",
       NEEDS_MANUAL_REVIEW: "CHUA_DUYET",
       REJECTED: "DA_TU_CHOI",
+      COMPLETED: "DA_HOAN_THANH",
+      CANCELLED: "DA_HUY",
     };
     return statusMap[status] || status;
   };
@@ -397,6 +452,10 @@ STATUS:${getStatusForQR(appointment.status)}`;
       PENDING: "CHỜ DUYỆT",
       NEEDS_MANUAL_REVIEW: "CHƯA DUYỆT",
       REJECTED: "ĐÃ TỪ CHỐI",
+      COMPLETED: "ĐÃ HOÀN THÀNH",
+      CANCELLED: "ĐÃ HỦY",
+      IN_PROGRESS: "ĐANG KHÁM",
+      WAITING: "ĐANG CHỜ",
     };
     return statusMap[status] || status;
   };
@@ -418,6 +477,22 @@ STATUS:${getStatusForQR(appointment.status)}`;
       REJECTED: {
         label: "ĐÃ TỪ CHỐI",
         class: "status-rejected",
+      },
+      COMPLETED: {
+        label: "ĐÃ HOÀN THÀNH",
+        class: "status-completed",
+      },
+      CANCELLED: {
+        label: "ĐÃ HỦY",
+        class: "status-cancelled",
+      },
+      IN_PROGRESS: {
+        label: "ĐANG KHÁM",
+        class: "status-in-progress",
+      },
+      WAITING: {
+        label: "ĐANG CHỜ",
+        class: "status-waiting",
       },
     };
 
@@ -488,6 +563,31 @@ STATUS:${getStatusForQR(appointment.status)}`;
 
   const statsData = calculateStats();
 
+  // Hàm kiểm tra lại thanh toán cho 1 appointment
+  // const handleCheckPaymentStatus = async (appointmentId) => {
+  //   const isPaid = await refreshPaymentStatus(appointmentId);
+  //   if (isPaid) {
+  //     alert("✅ Lịch hẹn đã được thanh toán!");
+  //   } else {
+  //     alert("❌ Lịch hẹn chưa được thanh toán.");
+  //   }
+  // };
+
+  // Hàm kiểm tra xem có hiển thị nút thanh toán không
+  const shouldShowPaymentButton = (appointment) => {
+    const allowedStatuses = ["APPROVED", "COMPLETED", "IN_PROGRESS", "WAITING"];
+    return (
+      appointment.paymentStatus !== "Đã thanh toán" &&
+      allowedStatuses.includes(appointment.status)
+    );
+  };
+
+  // Hàm kiểm tra xem có hiển thị thông báo chờ duyệt không
+  const shouldShowPendingMessage = (appointment) => {
+    const pendingStatuses = ["PENDING", "NEEDS_MANUAL_REVIEW", "REJECTED"];
+    return pendingStatuses.includes(appointment.status);
+  };
+
   if (loading) {
     return (
       <div className="appointments-container">
@@ -549,6 +649,10 @@ STATUS:${getStatusForQR(appointment.status)}`;
             <option value="PENDING">Chờ duyệt</option>
             <option value="NEEDS_MANUAL_REVIEW">Cần xử lý</option>
             <option value="REJECTED">Đã từ chối</option>
+            <option value="COMPLETED">Đã hoàn thành</option>
+            <option value="CANCELLED">Đã hủy</option>
+            <option value="IN_PROGRESS">Đang khám</option>
+            <option value="WAITING">Đang chờ</option>
           </select>
         </div>
 
@@ -794,6 +898,16 @@ STATUS:${getStatusForQR(appointment.status)}`;
                               {formatDateTime(appointment.paymentDate)}
                             </span>
                           </div>
+                          {appointment.paymentMethod && (
+                            <div className="detail-row">
+                              <span className="label">💳 Phương thức:</span>
+                              <span>
+                                {appointment.paymentMethod === "CASH"
+                                  ? "Tiền mặt"
+                                  : "VNPAY"}
+                              </span>
+                            </div>
+                          )}
                         </div>
                       )}
 
@@ -807,18 +921,61 @@ STATUS:${getStatusForQR(appointment.status)}`;
                       </div>
                     )}
 
-                    {/* Nút thanh toán */}
-                    {appointment.status === "APPROVED" &&
-                      appointment.paymentStatus === "Chưa thanh toán" && (
-                        <div className="payment-action">
-                          <button
-                            className="btn-pay-now expanded"
-                            onClick={() => handlePayment(appointment)}
-                          >
-                            💳 Thanh toán ngay
-                          </button>
-                        </div>
-                      )}
+                    {/* Nút thanh toán - CHỈ ẨN KHI ĐÃ THANH TOÁN */}
+                    {shouldShowPaymentButton(appointment) && (
+                      <div className="payment-action">
+                        {appointment.status === "COMPLETED" && (
+                          <div className="completed-warning">
+                            ⚠️ <strong>Lưu ý quan trọng:</strong> Đã khám xong
+                            nhưng chưa thanh toán!
+                          </div>
+                        )}
+                        <button
+                          className={`btn-pay-now expanded ${
+                            appointment.status === "COMPLETED" ? "urgent" : ""
+                          }`}
+                          onClick={() => handlePayment(appointment)}
+                        >
+                          {appointment.status === "COMPLETED"
+                            ? "💳 THANH TOÁN NGAY"
+                            : "💳 Thanh toán online"}
+                        </button>
+                        {/* <button
+                          className="btn-check-payment-status"
+                          onClick={() =>
+                            handleCheckPaymentStatus(appointment.id)
+                          }
+                          title="Kiểm tra nếu đã thanh toán tiền mặt tại quầy"
+                        >
+                          🔄 Kiểm tra thanh toán
+                        </button>
+                        <p className="payment-note">
+                          {appointment.status === "COMPLETED"
+                            ? "⚠️ Vui lòng thanh toán phí khám để hoàn tất hồ sơ y tế"
+                            : "💡 Nếu bạn đã thanh toán tiền mặt tại quầy, vui lòng bấm 'Kiểm tra thanh toán' để cập nhật trạng thái"}
+                        </p> */}
+                      </div>
+                    )}
+
+                    {/* Thông báo đã thanh toán */}
+                    {appointment.paymentStatus === "Đã thanh toán" && (
+                      <div className="payment-info">
+                        <p className="payment-success-note">
+                          ✅ <strong>Đã thanh toán:</strong> Phí khám đã được
+                          thanh toán đầy đủ
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Thông báo chờ duyệt */}
+                    {shouldShowPendingMessage(appointment) && (
+                      <div className="payment-info">
+                        <p className="payment-disabled-note">
+                          ⏳ <strong>Thông báo:</strong> Chỉ có thể thanh toán
+                          khi đơn đã được duyệt (APPROVED)
+                        </p>
+                      </div>
+                    )}
 
                     {/* Notes */}
                     <div className="appointment-notes">
@@ -832,6 +989,14 @@ STATUS:${getStatusForQR(appointment.status)}`;
                           nhận
                           {appointment.paymentStatus === "Chưa thanh toán" &&
                             " - Vui lòng thanh toán phí khám trước khi đến"}
+                        </p>
+                      )}
+                      {appointment.status === "COMPLETED" && (
+                        <p>
+                          ✅ <strong>Trạng thái:</strong> Đã hoàn thành khám
+                          bệnh
+                          {appointment.paymentStatus === "Chưa thanh toán" &&
+                            " - Vui lòng thanh toán phí khám để hoàn tất hồ sơ"}
                         </p>
                       )}
                     </div>

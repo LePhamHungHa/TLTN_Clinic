@@ -250,6 +250,7 @@ const DoctorAppointments = () => {
       CANCELLED: "status-cancelled",
       NEEDS_MANUAL_REVIEW: "status-pending",
       REJECTED: "status-cancelled",
+      IN_PROGRESS: "status-in-progress",
     };
     return statusMap[status] || "status-pending";
   };
@@ -264,6 +265,7 @@ const DoctorAppointments = () => {
       CANCELLED: "ĐÃ HỦY",
       NEEDS_MANUAL_REVIEW: "CHỜ DUYỆT",
       REJECTED: "ĐÃ TỪ CHỐI",
+      IN_PROGRESS: "ĐANG KHÁM",
     };
     return statusMap[status] || status;
   };
@@ -505,6 +507,18 @@ const DoctorAppointments = () => {
     }
   };
 
+  // Hàm chuyển đến trang kê đơn thuốc
+  const handlePrescribeMedication = (appointmentId) => {
+    navigate(`/doctor/prescription/${appointmentId}`);
+  };
+
+  // Hàm kiểm tra có nên hiển thị nút kê đơn thuốc không
+  const shouldShowPrescribeButton = (appointment) => {
+    return (
+      appointment.status === "COMPLETED" && appointment.paymentStatus === "PAID"
+    );
+  };
+
   if (loading) {
     return (
       <div className="doctor-appointments-loading">
@@ -598,6 +612,7 @@ const DoctorAppointments = () => {
             <option value="PENDING">Chờ xác nhận</option>
             <option value="COMPLETED">Đã khám</option>
             <option value="CANCELLED">Đã hủy</option>
+            <option value="IN_PROGRESS">Đang khám</option>
           </select>
         </div>
 
@@ -760,12 +775,47 @@ const DoctorAppointments = () => {
                     </>
                   )}
 
-                  {/* Action cho lịch đã khám */}
+                  {/* Action cho lịch đang khám */}
+                  {appointment.status === "IN_PROGRESS" && (
+                    <div className="in-progress-actions">
+                      <button
+                        className="btn-start-exam primary"
+                        onClick={() =>
+                          navigate(`/doctor/examination/${appointment.id}`)
+                        }
+                      >
+                        🩺 Tiếp tục khám
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Action cho lịch đã khám - HIỆN NÚT KÊ ĐƠN NẾU ĐÃ THANH TOÁN */}
                   {appointment.status === "COMPLETED" && (
                     <div className="completed-actions">
-                      <span className="completed-text">
-                        ✅ ĐÃ HOÀN THÀNH KHÁM
-                      </span>
+                      {shouldShowPrescribeButton(appointment) ? (
+                        <>
+                          <span className="completed-text">
+                            ✅ ĐÃ KHÁM & THANH TOÁN
+                          </span>
+                          <button
+                            className="btn-prescribe"
+                            onClick={() =>
+                              handlePrescribeMedication(appointment.id)
+                            }
+                          >
+                            💊 Kê đơn thuốc
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <span className="completed-text">
+                            ✅ ĐÃ HOÀN THÀNH KHÁM
+                          </span>
+                          <div className="payment-required-note">
+                            ⏳ Chờ thanh toán để kê đơn
+                          </div>
+                        </>
+                      )}
                     </div>
                   )}
 

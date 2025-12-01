@@ -454,6 +454,27 @@
               background: #e2e8f0;
               color: #4a5568;
             }
+
+            /* ===== TRẠNG THÁI MỚI ĐÃ THÊM ===== */
+            &.status-completed {
+              background: #d4edda;
+              color: #155724;
+            }
+
+            &.status-cancelled {
+              background: #f8d7da;
+              color: #721c24;
+            }
+
+            &.status-in-progress {
+              background: #d1ecf1;
+              color: #0c5460;
+            }
+
+            &.status-waiting {
+              background: #fff3cd;
+              color: #856404;
+            }
           }
 
           .payment-badge {
@@ -492,14 +513,8 @@
           animation: slideDown 0.3s ease;
 
           @keyframes slideDown {
-            from {
-              opacity: 0;
-              transform: translateY(-10px);
-            }
-            to {
-              opacity: 1;
-              transform: translateY(0);
-            }
+            from { opacity: 0; transform: translateY(-10px); }
+            to   { opacity: 1; transform: translateY(0); }
           }
 
           /* QR Section */
@@ -609,18 +624,84 @@
               line-height: 1.4;
             }
           }
+
+          /* ===== CSS BỔ SUNG CHO LOGIC THANH TOÁN ===== */
+
+          /* Cảnh báo khi đã khám xong nhưng chưa thanh toán */
+          .completed-warning {
+            background-color: #fff3cd;
+            color: #856404;
+            padding: 10px 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            font-weight: 600;
+            text-align: center;
+            border-left: 4px solid #ffc107;
+            animation: pulseWarning 2s infinite;
+          }
+
+          @keyframes pulseWarning {
+            0% { opacity: 1; }
+            50% { opacity: 0.8; }
+            100% { opacity: 1; }
+          }
+
+          /* Nút thanh toán khẩn cấp */
+          .btn-pay-now.urgent {
+            background: linear-gradient(45deg, #ff6b6b, #ff8e53);
+            color: white;
+            border: none;
+            animation: pulseUrgent 2s infinite;
+            box-shadow: 0 4px 15px rgba(255, 107, 107, 0.4);
+          }
+
+          @keyframes pulseUrgent {
+            0% { box-shadow: 0 0 0 0 rgba(255, 107, 107, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(255, 107, 107, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(255, 107, 107, 0); }
+          }
+
+          .btn-pay-now.urgent:hover {
+            background: linear-gradient(45deg, #ff5252, #ff7043);
+            transform: scale(1.05);
+          }
+
+          /* Thông báo đã thanh toán */
+          .payment-success-note {
+            background-color: #e8f5e9;
+            color: #2e7d32;
+            padding: 12px 15px;
+            border-radius: 8px;
+            text-align: center;
+            margin: 15px 0;
+            border-left: 4px solid #4caf50;
+            font-weight: 500;
+          }
+
+          /* Thông báo chưa thể thanh toán (chưa duyệt) */
+          .payment-disabled-note {
+            background-color: #f5f5f5;
+            color: #666;
+            padding: 12px 15px;
+            border-radius: 8px;
+            text-align: center;
+            margin: 15px 0;
+            border-left: 4px solid #9e9e9e;
+            font-weight: 500;
+          }
+
+          /* Ghi chú khẩn cấp */
+          .payment-note.urgent-note {
+            color: #dc3545;
+            font-weight: 500;
+            background-color: #ffe6e6;
+            border-left-color: #dc3545;
+          }
         }
 
         /* Payment amounts */
-        .paid-amount {
-          color: #28a745;
-          font-weight: bold;
-        }
-
-        .unpaid-amount {
-          color: #dc3545;
-          font-weight: bold;
-        }
+        .paid-amount { color: #28a745; font-weight: bold; }
+        .unpaid-amount { color: #dc3545; font-weight: bold; }
 
         /* Queue number */
         .queue-number {
@@ -644,35 +725,63 @@
           }
         }
 
-        /* Nút thanh toán */
-        .btn-pay-now {
-          background: linear-gradient(135deg, #dc3545, #e35d6a);
-          color: white;
-          border: none;
-          padding: 12px 20px;
-          border-radius: 8px;
-          cursor: pointer;
-          font-weight: 600;
-          font-size: 14px;
-          width: 100%;
-          transition: all 0.3s ease;
-          margin-bottom: 12px;
-
-          &:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(220, 53, 69, 0.4);
-          }
-
-          &.expanded {
-            margin-top: 15px;
-          }
-        }
-
-        /* Highlight cho đơn chưa thanh toán */
+        /* Nút thanh toán và kiểm tra */
         .payment-action {
           margin-top: 15px;
           padding-top: 15px;
           border-top: 2px dashed #fed7d7;
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+
+          .btn-pay-now {
+            background: linear-gradient(135deg, #dc3545, #e35d6a);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 14px;
+            width: 100%;
+            transition: all 0.3s ease !important;
+
+            &:hover {
+              transform: translateY(-2px) !important;
+              box-shadow: 0 4px 12px rgba(220, 53, 69, 0.4);
+            }
+
+            &.expanded { margin-top: 0; }
+          }
+
+          .btn-check-payment-status {
+            background: #17a2b8;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 13px;
+            transition: all 0.3s ease;
+
+            &:hover {
+              background: #138496;
+              transform: translateY(-1px);
+            }
+          }
+
+          .payment-note {
+            font-size: 0.85em;
+            color: #6c757d;
+            margin: 5px 0 0 0;
+            line-height: 1.4;
+            text-align: center;
+            background: #f8f9fa;
+            padding: 8px;
+            border-radius: 4px;
+            border-left: 3px solid #17a2b8;
+          }
         }
 
         /* Appointment notes */
@@ -688,9 +797,7 @@
             font-size: 13px;
             color: #856404;
 
-            &:last-child {
-              margin-bottom: 0;
-            }
+            &:last-child { margin-bottom: 0; }
           }
         }
       }
@@ -706,10 +813,7 @@
     margin-bottom: 20px;
     text-align: center;
 
-    p {
-      margin: 0 0 12px 0;
-      color: #721c24;
-    }
+    p { margin: 0 0 12px 0; color: #721c24; }
 
     .retry-button {
       background: #dc3545;
@@ -719,163 +823,129 @@
       border-radius: 4px;
       cursor: pointer;
 
-      &:hover {
-        background: #c82333;
-      }
+      &:hover { background: #c82333; }
     }
   }
 
   /* Modal QR */
   .modal-overlay {
     position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.6);
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
     display: flex;
     justify-content: center;
     align-items: center;
     z-index: 1000;
+  }
 
-    .modal-content {
+  .modal-content.qr-modal {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    max-width: 500px;
+    width: 90%;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+
+  .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    border-bottom: 1px solid #e9ecef;
+    background: #f8f9fa;
+    border-radius: 12px 12px 0 0;
+
+    h3 { margin: 0; color: #2c3e50; font-size: 1.4rem; }
+
+    .close-btn {
+      background: none;
+      border: none;
+      font-size: 24px;
+      cursor: pointer;
+      color: #6c757d;
+      padding: 0;
+      width: 30px;
+      height: 30px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      transition: background 0.3s ease;
+
+      &:hover { background: #e9ecef; color: #495057; }
+    }
+  }
+
+  .modal-body {
+    padding: 20px;
+
+    .qr-info-section {
+      background: #f8f9fa;
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      border-left: 4px solid #007bff;
+
+      h4 { margin: 0 0 10px 0; color: #2c3e50; font-size: 1.2rem; }
+
+      p {
+        margin: 5px 0;
+        color: #495057;
+        font-size: 0.95rem;
+
+        strong { color: #4a5568; min-width: 100px; display: inline-block; }
+      }
+    }
+
+    .qr-code-container {
       background: white;
-      border-radius: 12px;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-      max-width: 500px;
-      width: 90%;
-      max-height: 90vh;
-      overflow-y: auto;
+      padding: 20px;
+      border-radius: 8px;
+      border: 2px solid #e9ecef;
+      margin-bottom: 20px;
+      text-align: center;
 
-      &.qr-modal {
-        .modal-header {
-          background: linear-gradient(135deg, #805ad5, #6b46c1);
-          color: white;
+      .qr-instruction {
+        background: #fff3cd;
+        padding: 10px;
+        border-radius: 6px;
+        border: 1px solid #ffeaa7;
+        margin-top: 15px;
+        text-align: center;
+        font-weight: 500;
+        color: #856404;
+        font-size: 0.9rem;
+      }
+    }
 
-          h3 {
-            color: white;
-            margin: 0;
-            font-size: 20px;
-            font-weight: 600;
-          }
+    .qr-actions {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      flex-wrap: wrap;
+      padding-top: 15px;
+      border-top: 1px solid #dee2e6;
 
-          .close-btn {
-            background: none;
-            border: none;
-            font-size: 24px;
-            cursor: pointer;
-            color: white;
-            padding: 0;
-            width: 30px;
-            height: 30px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 50%;
-            transition: background 0.3s ease;
+      button {
+        padding: 10px 16px;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: 500;
+        transition: all 0.3s ease;
+        font-size: 0.9rem;
 
-            &:hover {
-              background: rgba(255, 255, 255, 0.2);
-            }
-          }
+        &:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(0,0,0,0.15);
         }
       }
 
-      .modal-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 20px 25px;
-        border-bottom: 1px solid #e2e8f0;
-        background: #f8fafc;
-        border-radius: 12px 12px 0 0;
-
-        h3 {
-          margin: 0;
-          color: #000000;
-          font-size: 20px;
-          font-weight: 600;
-        }
-      }
-
-      .modal-body {
-        padding: 25px;
-
-        .qr-info-section {
-          background: #f7fafc;
-          padding: 20px;
-          border-radius: 8px;
-          margin-bottom: 25px;
-          border-left: 4px solid #805ad5;
-
-          h4 {
-            margin: 0 0 15px 0;
-            color: #000000;
-            font-size: 18px;
-            font-weight: 600;
-          }
-
-          p {
-            margin: 8px 0;
-            color: #000000;
-            font-size: 14px;
-
-            strong {
-              color: #4a5568;
-              min-width: 100px;
-              display: inline-block;
-            }
-          }
-        }
-
-        .qr-code-container {
-          text-align: center;
-          margin-bottom: 25px;
-
-          .qr-instruction {
-            margin: 15px 0 0 0;
-            color: #4a5568;
-            font-size: 14px;
-            font-weight: 500;
-          }
-        }
-
-        .qr-actions {
-          display: flex;
-          gap: 10px;
-          justify-content: center;
-
-          button {
-            padding: 12px 20px;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 600;
-            font-size: 14px;
-            transition: all 0.3s ease;
-
-            &:hover {
-              transform: translateY(-2px);
-              box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            }
-          }
-
-          .btn-download-qr {
-            background: linear-gradient(135deg, #48bb78, #38a169);
-            color: white;
-          }
-
-          .btn-share-qr {
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            color: white;
-          }
-
-          .btn-close-qr {
-            background: #a0aec0;
-            color: white;
-          }
-        }
-      }
+      .btn-download-qr { background: linear-gradient(135deg, #48bb78, #38a169); color: white; }
+      .btn-share-qr     { background: linear-gradient(135deg, #667eea, #764ba2); color: white; }
+      .btn-close-qr     { background: #6c757d; color: white; }
     }
   }
 
@@ -887,7 +957,7 @@
   }
 }
 
-/* Responsive */
+/* ===== RESPONSIVE CHO CÁC THÀNH PHẦN MỚI ===== */
 @media (max-width: 768px) {
   .appointments-container {
     padding: 10px;
@@ -937,13 +1007,36 @@
         align-items: flex-start;
       }
 
-      .status-group {
-        align-self: flex-start;
-      }
+      .status-group { align-self: flex-start; }
 
       .card-actions-header {
         align-self: stretch;
         justify-content: space-between;
+      }
+
+      .payment-action {
+        .btn-pay-now,
+        .btn-check-payment-status {
+          width: 100%;
+          margin-left: 0;
+        }
+      }
+
+      /* Responsive cho cảnh báo & nút khẩn cấp */
+      .completed-warning {
+        font-size: 14px;
+        padding: 8px 12px;
+      }
+      
+      .btn-pay-now.urgent {
+        font-size: 13px;
+        padding: 10px 15px;
+      }
+      
+      .payment-success-note,
+      .payment-disabled-note {
+        font-size: 13px;
+        padding: 10px 12px;
       }
     }
 
@@ -952,211 +1045,22 @@
       padding: 15px;
       margin-bottom: 20px;
 
-      .section-header h2 {
-        font-size: 20px;
-      }
+      .section-header h2 { font-size: 20px; }
 
-      .unpaid-grid {
-        grid-template-columns: 1fr;
-      }
+      .unpaid-grid { grid-template-columns: 1fr; }
 
-      .unpaid-card-actions {
-        flex-direction: column;
-      }
+      .unpaid-card-actions { flex-direction: column; }
     }
 
-    /* Responsive cho QR mini */
-    .qr-mini-container {
-      flex-direction: column;
-      text-align: center;
-    }
+    .qr-mini-container { flex-direction: column; text-align: center; }
 
-    /* Responsive cho modal QR */
     .modal-overlay .modal-content {
       width: 95%;
       margin: 20px;
 
-      .modal-body {
-        padding: 20px;
-      }
+      .modal-body { padding: 20px; }
 
-      .qr-actions {
-        flex-direction: column;
-      }
+      .qr-actions { flex-direction: column; }
     }
   }
-  .modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.7);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-}
-
-.modal-content.qr-modal {
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-  max-width: 500px;
-  width: 90%;
-  max-height: 90vh;
-  overflow-y: auto;
-}
-
-.modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 20px;
-  border-bottom: 1px solid #e9ecef;
-  background: #f8f9fa;
-  border-radius: 12px 12px 0 0;
-}
-
-.modal-header h3 {
-  margin: 0;
-  color: #2c3e50;
-  font-size: 1.4rem;
-}
-
-.close-btn {
-  background: none;
-  border: none;
-  font-size: 24px;
-  cursor: pointer;
-  color: #6c757d;
-  padding: 0;
-  width: 30px;
-  height: 30px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-}
-
-.close-btn:hover {
-  background: #e9ecef;
-  color: #495057;
-}
-
-.modal-body {
-  padding: 20px;
-}
-
-.qr-info-section {
-  background: #f8f9fa;
-  padding: 15px;
-  border-radius: 8px;
-  margin-bottom: 20px;
-  border-left: 4px solid #007bff;
-}
-
-.qr-info-section h4 {
-  margin: 0 0 10px 0;
-  color: #2c3e50;
-  font-size: 1.2rem;
-}
-
-.qr-info-section p {
-  margin: 5px 0;
-  color: #495057;
-  font-size: 0.95rem;
-}
-
-.qr-code-container {
-  background: white;
-  padding: 20px;
-  border-radius: 8px;
-  border: 2px solid #e9ecef;
-  margin-bottom: 20px;
-  text-align: center;
-}
-
-.qr-instruction {
-  background: #fff3cd;
-  padding: 10px;
-  border-radius: 6px;
-  border: 1px solid #ffeaa7;
-  margin-top: 15px;
-  text-align: center;
-  font-weight: 500;
-  color: #856404;
-  font-size: 0.9rem;
-}
-
-.qr-actions {
-  display: flex;
-  gap: 10px;
-  justify-content: center;
-  flex-wrap: wrap;
-  padding-top: 15px;
-  border-top: 1px solid #dee2e6;
-}
-
-.btn-download-qr, .btn-share-qr, .btn-close-qr {
-  padding: 10px 16px;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  font-weight: 500;
-  transition: all 0.3s ease;
-  font-size: 0.9rem;
-}
-
-.btn-download-qr {
-  background: #28a745;
-  color: white;
-}
-
-.btn-download-qr:hover:not(:disabled) {
-  background: #218838;
-  transform: translateY(-2px);
-}
-
-.btn-download-qr:disabled {
-  background: #6c757d;
-  cursor: not-allowed;
-  transform: none;
-}
-
-.btn-share-qr {
-  background: #17a2b8;
-  color: white;
-}
-
-.btn-share-qr:hover {
-  background: #138496;
-  transform: translateY(-2px);
-}
-
-.btn-close-qr {
-  background: #6c757d;
-  color: white;
-}
-
-.btn-close-qr:hover {
-  background: #5a6268;
-  transform: translateY(-2px);
-}
-
-/* Responsive Design */
-@media (max-width: 768px) {
-  .modal-content.qr-modal {
-    width: 95%;
-    margin: 10px;
-  }
-  
-  .qr-actions {
-    flex-direction: column;
-  }
-  
-  .btn-download-qr, .btn-share-qr, .btn-close-qr {
-    width: 100%;
-  }
-}
 }

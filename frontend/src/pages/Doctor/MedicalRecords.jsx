@@ -10,6 +10,11 @@ const MedicalRecords = () => {
   const [totalPages, setTotalPages] = useState(0);
   const [searchTerm, setSearchTerm] = useState("");
   const [doctorId, setDoctorId] = useState(null);
+  const [showPrescriptionModal, setShowPrescriptionModal] = useState(false);
+  const [selectedRecord, setSelectedRecord] = useState(null);
+  const [prescription, setPrescription] = useState([]);
+  const [prescriptionLoading, setPrescriptionLoading] = useState(false);
+  const [totalAmount, setTotalAmount] = useState(0);
 
   const user = JSON.parse(localStorage.getItem("user"));
 
@@ -134,6 +139,70 @@ const MedicalRecords = () => {
     }
   };
 
+  // HÀM MỚI: Lấy đơn thuốc theo medicalRecordId
+  const fetchPrescription = async (medicalRecordId) => {
+    if (!medicalRecordId) {
+      console.error("❌ No medical record ID provided");
+      return;
+    }
+
+    try {
+      setPrescriptionLoading(true);
+      setPrescription([]);
+      setTotalAmount(0);
+
+      console.log(
+        "💊 Fetching prescription for medical record:",
+        medicalRecordId
+      );
+
+      const response = await fetchWithAuth(
+        `http://localhost:8080/api/doctor/prescriptions/${medicalRecordId}`
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log("📦 Prescription data:", data);
+
+      if (data.success) {
+        setPrescription(data.prescription || []);
+        setTotalAmount(data.totalAmount || 0);
+        console.log(
+          `✅ Found ${
+            data.prescription?.length || 0
+          } prescription items, total: ${data.totalAmount}`
+        );
+      } else {
+        console.error("❌ Prescription API Error:", data.message);
+        setError("Không thể lấy đơn thuốc: " + data.message);
+      }
+    } catch (err) {
+      console.error("🚨 Fetch prescription error:", err);
+      setError("Không thể kết nối đến server để lấy đơn thuốc");
+    } finally {
+      setPrescriptionLoading(false);
+    }
+  };
+
+  // HÀM MỚI: Xem đơn thuốc
+  const handleViewPrescription = (record) => {
+    console.log("💊 Viewing prescription for record:", record);
+    setSelectedRecord(record);
+    fetchPrescription(record.id); // Dùng record.id (medical record ID)
+    setShowPrescriptionModal(true);
+  };
+
+  // HÀM MỚI: Đóng modal
+  const handleClosePrescriptionModal = () => {
+    setShowPrescriptionModal(false);
+    setSelectedRecord(null);
+    setPrescription([]);
+    setTotalAmount(0);
+  };
+
   const filteredRecords = medicalRecords.filter(
     (record) =>
       record.patientName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -146,7 +215,6 @@ const MedicalRecords = () => {
     return new Date(dateString).toLocaleDateString("vi-VN");
   };
 
-  // SỬA LẠI HÀM XỬ LÝ GIỚI TÍNH
   const getGenderDisplay = (gender) => {
     if (!gender) return "N/A";
 
@@ -185,10 +253,170 @@ const MedicalRecords = () => {
     );
   };
 
-  // HÀM XỬ LÝ KHI XEM CHI TIẾT
-  const handleViewDetail = (record) => {
-    console.log("🔍 Viewing record details:", record);
-    // Điều hướng đến trang chi tiết
+  // MODAL COMPONENT
+  const PrescriptionModal = () => {
+    if (!showPrescriptionModal || !selectedRecord) return null;
+
+    return (
+      <div className="modal-overlay">
+        <div className="modal-content prescription-modal">
+          <div className="modal-header">
+            <h2>
+              <i className="fas fa-prescription-bottle-alt"></i> ĐƠN THUỐC
+            </h2>
+            <button
+              className="modal-close-btn"
+              onClick={handleClosePrescriptionModal}
+            >
+              <i className="fas fa-times"></i>
+            </button>
+          </div>
+
+          <div className="modal-body">
+            {/* Thông tin bệnh nhân */}
+            <div className="patient-info-section">
+              <h3>Thông tin bệnh nhân</h3>
+              <div className="patient-details-grid">
+                <div className="patient-detail-item">
+                  <strong>Họ tên:</strong> {selectedRecord.patientName}
+                </div>
+                <div className="patient-detail-item">
+                  <strong>SĐT:</strong> {selectedRecord.patientPhone}
+                </div>
+                <div className="patient-detail-item">
+                  <strong>Giới tính:</strong>{" "}
+                  {getGenderDisplay(selectedRecord.patientGender)}
+                </div>
+                <div className="patient-detail-item">
+                  <strong>Ngày sinh:</strong>{" "}
+                  {formatDate(selectedRecord.patientDob)}
+                </div>
+                <div className="patient-detail-item">
+                  <strong>Ngày khám:</strong>{" "}
+                  {formatDate(selectedRecord.examinationDate)}
+                </div>
+                <div className="patient-detail-item">
+                  <strong>Chẩn đoán:</strong> {selectedRecord.finalDiagnosis}
+                </div>
+              </div>
+            </div>
+
+            {/* Danh sách thuốc */}
+            <div className="prescription-list-section">
+              <div className="section-header">
+                <h3>
+                  <i className="fas fa-capsules"></i> Danh sách thuốc (
+                  {prescription.length} loại)
+                </h3>
+              </div>
+
+              {prescriptionLoading ? (
+                <div className="loading-prescription">
+                  <div className="spinner-small"></div>
+                  <p>Đang tải đơn thuốc...</p>
+                </div>
+              ) : prescription.length === 0 ? (
+                <div className="no-prescription">
+                  <i className="fas fa-box-open"></i>
+                  <p>Chưa có đơn thuốc cho lần khám này</p>
+                </div>
+              ) : (
+                <>
+                  <div className="prescription-table-container">
+                    <table className="prescription-table">
+                      <thead>
+                        <tr>
+                          <th>STT</th>
+                          <th>Tên thuốc</th>
+                          <th>Liều dùng</th>
+                          <th>Tần suất</th>
+                          <th>Thời gian</th>
+                          <th>Số lượng</th>
+                          <th>Đơn giá</th>
+                          <th>Thành tiền</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {prescription.map((medicine, index) => (
+                          <tr key={medicine.id}>
+                            <td>{index + 1}</td>
+                            <td>
+                              <div className="medicine-name">
+                                <strong>{medicine.medicineName}</strong>
+                                {medicine.instructions && (
+                                  <div className="medicine-instructions">
+                                    <small>
+                                      <i className="fas fa-info-circle"></i>{" "}
+                                      {medicine.instructions}
+                                    </small>
+                                  </div>
+                                )}
+                              </div>
+                            </td>
+                            <td>{medicine.dosage || "N/A"}</td>
+                            <td>{medicine.frequency || "N/A"}</td>
+                            <td>{medicine.duration || "N/A"}</td>
+                            <td>{medicine.quantity || 0}</td>
+                            <td>
+                              {medicine.unitPrice?.toLocaleString("vi-VN") || 0}{" "}
+                              đ
+                            </td>
+                            <td>
+                              <strong>
+                                {medicine.totalPrice?.toLocaleString("vi-VN") ||
+                                  0}{" "}
+                                đ
+                              </strong>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Tổng tiền */}
+                  <div className="prescription-total">
+                    <div className="total-amount">
+                      <span className="total-label">TỔNG TIỀN:</span>
+                      <span className="total-value">
+                        {totalAmount.toLocaleString("vi-VN")} đ
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Hướng dẫn sử dụng tổng hợp */}
+                  <div className="prescription-instructions">
+                    <h4>
+                      <i className="fas fa-sticky-note"></i> Hướng dẫn sử dụng:
+                    </h4>
+                    <div className="instructions-content">
+                      {selectedRecord.treatmentPlan ||
+                        "Tuân thủ đúng liều lượng và thời gian sử dụng thuốc. Tái khám đúng hẹn nếu có bất thường."}
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+
+          <div className="modal-footer">
+            <button
+              className="btn-print"
+              onClick={() => window.print()}
+              disabled={prescription.length === 0}
+            >
+              <i className="fas fa-print"></i> In đơn thuốc
+            </button>
+            <button
+              className="btn-close"
+              onClick={handleClosePrescriptionModal}
+            >
+              Đóng
+            </button>
+          </div>
+        </div>
+      </div>
+    );
   };
 
   if (loading) {
@@ -204,15 +432,17 @@ const MedicalRecords = () => {
 
   return (
     <div className="medical-records-container">
+      <PrescriptionModal />
+
       <div className="medical-records-header">
         <h1>HỒ SƠ BỆNH ÁN</h1>
         <p>Danh sách các hồ sơ bệnh án bạn đã khám</p>
-        {doctorId && (
+        {/* {doctorId && (
           <div className="debug-info">
             Doctor ID: {doctorId} | User ID: {user?.id} | Tổng bản ghi:{" "}
             {medicalRecords.length}
           </div>
-        )}
+        )} */}
       </div>
 
       {error && (
@@ -257,7 +487,6 @@ const MedicalRecords = () => {
           <table className="records-table">
             <thead>
               <tr>
-                <th>STT</th>
                 <th>Thông tin bệnh nhân</th>
                 <th>Ngày khám</th>
                 <th>Triệu chứng</th>
@@ -277,9 +506,8 @@ const MedicalRecords = () => {
                   </td>
                 </tr>
               ) : (
-                filteredRecords.map((record, index) => (
+                filteredRecords.map((record) => (
                   <tr key={record.id} className="record-row">
-                    <td>{index + 1 + currentPage * 10}</td>
                     <td>
                       <div className="patient-info">
                         <strong>{record.patientName || "N/A"}</strong>
@@ -304,7 +532,7 @@ const MedicalRecords = () => {
                         <div>{formatDate(record.examinationDate)}</div>
                         {record.appointmentDate && (
                           <div className="appointment-date">
-                            Hẹn: {formatDate(record.appointmentDate)}
+                            Tái khám: {formatDate(record.appointmentDate)}
                           </div>
                         )}
                       </div>
@@ -338,11 +566,18 @@ const MedicalRecords = () => {
                         <Link
                           to={`/doctor/examination/${record.appointmentId}`}
                           className="btn-view-detail"
-                          onClick={() => handleViewDetail(record)}
                         >
                           <i className="fas fa-eye"></i>
                           Chi tiết
                         </Link>
+                        <button
+                          className="btn-view-prescription"
+                          onClick={() => handleViewPrescription(record)}
+                          title="Xem đơn thuốc"
+                        >
+                          <i className="fas fa-prescription-bottle-alt"></i>
+                          Đơn thuốc
+                        </button>
                       </div>
                     </td>
                   </tr>

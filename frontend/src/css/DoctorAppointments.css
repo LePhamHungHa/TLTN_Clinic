@@ -254,6 +254,7 @@
         &:hover {
           transform: translateY(-2px);
           box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+          border-color: #4299e1;
         }
 
         .patient-header {
@@ -359,6 +360,7 @@
 
             &:hover:not(:disabled) {
               background: #218838;
+              transform: translateY(-2px);
             }
 
             &:disabled {
@@ -379,6 +381,7 @@
 
             &:hover:not(:disabled) {
               background: #138496;
+              transform: translateY(-2px);
             }
 
             &:disabled {
@@ -400,12 +403,45 @@
 
             &:hover:not(:disabled) {
               background: #e0a800;
+              transform: translateY(-2px);
             }
 
             &:disabled {
               background: #ccc;
               cursor: not-allowed;
             }
+          }
+
+          /* Nút kê đơn thuốc */
+          .btn-prescribe {
+            background: linear-gradient(135deg, #38a169, #48bb78);
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            flex: 1;
+            animation: pulsePrescribe 2s infinite;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+
+            &:hover {
+              background: linear-gradient(135deg, #2f855a, #38a169);
+              transform: translateY(-2px);
+              box-shadow: 0 4px 12px rgba(56, 161, 105, 0.3);
+            }
+          }
+
+          /* In progress actions */
+          .in-progress-actions {
+            width: 100%;
+            display: flex;
+            justify-content: center;
           }
 
           .completed-actions,
@@ -417,19 +453,43 @@
           }
 
           .completed-actions {
-            background: #d4edda;
+            background: #e8f5e9;
             color: #155724;
+            border-left: 4px solid #4caf50;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 12px;
+
+            .completed-text {
+              font-weight: 600;
+              font-size: 14px;
+              display: flex;
+              align-items: center;
+              gap: 5px;
+            }
+
+            /* Payment required note */
+            .payment-required-note {
+              background-color: #fff3cd;
+              color: #856404;
+              padding: 6px 10px;
+              border-radius: 4px;
+              font-size: 12px;
+              font-weight: 500;
+              border-left: 3px solid #ffc107;
+            }
           }
 
           .cancelled-actions {
             background: #f8d7da;
             color: #721c24;
-          }
+            border-left: 4px solid #dc3545;
 
-          .completed-text,
-          .cancelled-text {
-            font-weight: 600;
-            font-size: 14px;
+            .cancelled-text {
+              font-weight: 600;
+              font-size: 14px;
+            }
           }
         }
 
@@ -498,6 +558,13 @@
       color: #721c24;
       border: 1px solid #f5c6cb;
     }
+
+    &.status-in-progress {
+      background: linear-gradient(135deg, #4299e1, #3182ce);
+      color: white;
+      font-weight: 600;
+      border: none;
+    }
   }
 
   .payment-badge {
@@ -527,10 +594,16 @@
   }
 }
 
-/* Animation */
+/* Animations */
 @keyframes spin {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
+}
+
+@keyframes pulsePrescribe {
+  0% { box-shadow: 0 0 0 0 rgba(72, 187, 120, 0.7); }
+  70% { box-shadow: 0 0 0 10px rgba(72, 187, 120, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(72, 187, 120, 0); }
 }
 
 /* Responsive */
@@ -565,6 +638,23 @@
 
           .patient-actions {
             flex-direction: column;
+
+            .completed-actions {
+              flex-direction: column;
+              gap: 10px;
+              align-items: stretch;
+
+              .btn-prescribe {
+                margin-left: 0;
+                width: 100%;
+                justify-content: center;
+              }
+
+              .payment-required-note {
+                margin-left: 0;
+                text-align: center;
+              }
+            }
           }
         }
       }

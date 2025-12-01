@@ -10,6 +10,9 @@ const DoctorExamination = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
+  const [paymentStatus, setPaymentStatus] = useState(null);
+  const [showPaymentAlert, setShowPaymentAlert] = useState(false);
+  const [examinationCompleted, setExaminationCompleted] = useState(false);
 
   // Form data
   const [formData, setFormData] = useState({
@@ -33,6 +36,33 @@ const DoctorExamination = () => {
     followUpDate: "",
     followUpNotes: "",
   });
+
+  // Kiểm tra trạng thái thanh toán
+  const checkPaymentStatus = async () => {
+    try {
+      const user = JSON.parse(localStorage.getItem("user"));
+      const response = await fetch(
+        `http://localhost:8080/api/doctor/medical-records/${appointmentId}/payment-status`,
+        {
+          headers: {
+            Authorization: `Bearer ${user.token}`,
+          },
+        }
+      );
+
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success) {
+          setPaymentStatus(result);
+          return result;
+        }
+      }
+      return null;
+    } catch (error) {
+      console.error("Lỗi kiểm tra thanh toán:", error);
+      return null;
+    }
+  };
 
   // Lấy thông tin khám bệnh
   useEffect(() => {
@@ -61,6 +91,9 @@ const DoctorExamination = () => {
         if (result.success) {
           setAppointment(result.appointment);
           setMedicalRecord(result.medicalRecord);
+          setExaminationCompleted(
+            result.medicalRecord?.examinationStatus === "COMPLETED"
+          );
 
           // Nếu có medical record, điền dữ liệu vào form
           if (result.medicalRecord) {
@@ -89,6 +122,16 @@ const DoctorExamination = () => {
               followUpDate: result.medicalRecord.followUpDate || "",
               followUpNotes: result.medicalRecord.followUpNotes || "",
             });
+          }
+
+          // Kiểm tra thanh toán
+          const paymentResult = await checkPaymentStatus();
+          if (
+            paymentResult &&
+            !paymentResult.isPaid &&
+            result.medicalRecord?.examinationStatus === "COMPLETED"
+          ) {
+            setShowPaymentAlert(true);
           }
         } else {
           throw new Error(
@@ -127,11 +170,11 @@ const DoctorExamination = () => {
     }));
   };
 
-  // NÚT DUY NHẤT: Lưu kết quả và hoàn thành khám
-  const handleSaveAndComplete = async () => {
+  // Lưu kết quả khám (không chuyển trang ngay)
+  const handleSaveExamination = async () => {
     if (
       !window.confirm(
-        "Xác nhận lưu kết quả khám và hoàn thành? Sau khi hoàn thành không thể sửa đổi."
+        "Xác nhận lưu kết quả khám? Bạn vẫn có thể chỉnh sửa sau khi lưu."
       )
     ) {
       return;
@@ -157,12 +200,10 @@ const DoctorExamination = () => {
         advice: formData.advice,
         followUpDate: formData.followUpDate,
         followUpNotes: formData.followUpNotes,
-        examinationStatus: "COMPLETED", // Trực tiếp set thành COMPLETED
+        examinationStatus: "IN_PROGRESS", // Vẫn đang khám
       };
 
-      console.log("📤 Gửi dữ liệu medical record:", medicalRecordData);
-
-      // Gọi API để lưu medical record với trạng thái COMPLETED
+      // Gọi API để lưu medical record
       const response = await fetch(
         `http://localhost:8080/api/doctor/medical-records/${appointmentId}`,
         {
@@ -177,32 +218,122 @@ const DoctorExamination = () => {
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error("❌ Lỗi response:", errorText);
         throw new Error(`HTTP ${response.status}: ${errorText}`);
       }
 
       const result = await response.json();
-      console.log("📥 Kết quả lưu medical record:", result);
 
       if (result.success) {
-        alert("✅ Đã lưu kết quả khám và hoàn thành!");
-        navigate("/doctor/appointments");
+        alert("✅ Đã lưu kết quả khám!");
+        setMedicalRecord(result.medicalRecord);
       } else {
         throw new Error(result.message || "Lỗi khi lưu kết quả khám");
       }
     } catch (err) {
-      console.error("❌ Lỗi lưu và hoàn thành khám:", err);
-
-      // Hiển thị thông báo lỗi chi tiết
-      if (err.message.includes("Query did not return a unique result")) {
-        alert(
-          "❌ Lỗi: Có nhiều hồ sơ khám cho lịch hẹn này. Vui lòng liên hệ quản trị viên."
-        );
-      } else {
-        alert(`❌ Lỗi: ${err.message}`);
-      }
+      console.error("❌ Lỗi lưu kết quả khám:", err);
+      alert(`❌ Lỗi: ${err.message}`);
     } finally {
       setSaving(false);
+    }
+  };
+
+  // Hoàn thành khám và kiểm tra thanh toán
+  const handleCompleteExamination = async () => {
+    if (
+      !window.confirm(
+        "Xác nhận hoàn thành khám? Sau khi hoàn thành không thể sửa đổi."
+      )
+    ) {
+      return;
+    }
+
+    try {
+      setSaving(true);
+      const user = JSON.parse(localStorage.getItem("user"));
+
+      // Chuẩn bị dữ liệu medical record
+      const medicalRecordData = {
+        appointmentId: parseInt(appointmentId),
+        doctorId: appointment.doctorId,
+        chiefComplaint: formData.chiefComplaint,
+        historyOfIllness: formData.historyOfIllness,
+        physicalExamination: formData.physicalExamination,
+        vitalSigns: JSON.stringify(formData.vitalSigns),
+        preliminaryDiagnosis: formData.preliminaryDiagnosis,
+        finalDiagnosis: formData.finalDiagnosis,
+        treatmentPlan: formData.treatmentPlan,
+        medications: JSON.stringify(formData.medications),
+        labTests: JSON.stringify(formData.labTests),
+        advice: formData.advice,
+        followUpDate: formData.followUpDate,
+        followUpNotes: formData.followUpNotes,
+        examinationStatus: "COMPLETED",
+      };
+
+      // Gọi API để lưu medical record
+      const response = await fetch(
+        `http://localhost:8080/api/doctor/medical-records/${appointmentId}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${user.token}`,
+          },
+          body: JSON.stringify(medicalRecordData),
+        }
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`HTTP ${response.status}: ${errorText}`);
+      }
+
+      const result = await response.json();
+
+      if (result.success) {
+        setMedicalRecord(result.medicalRecord);
+        setExaminationCompleted(true);
+
+        // Kiểm tra thanh toán
+        const paymentResult = await checkPaymentStatus();
+
+        if (paymentResult && paymentResult.isPaid) {
+          // ĐÃ THANH TOÁN → CHUYỂN ĐẾN KÊ ĐƠN THUỐC
+          alert("✅ Đã hoàn thành khám! Chuyển đến kê đơn thuốc...");
+          navigate(
+            `/doctor/prescription/${appointmentId}/${result.medicalRecord.id}`
+          );
+        } else {
+          // CHƯA THANH TOÁN → HIỂN THỊ THÔNG BÁO
+          alert("✅ Đã hoàn thành khám! Đang chờ thanh toán...");
+          setShowPaymentAlert(true);
+        }
+      } else {
+        throw new Error(result.message || "Lỗi khi hoàn thành khám");
+      }
+    } catch (err) {
+      console.error("❌ Lỗi hoàn thành khám:", err);
+      alert(`❌ Lỗi: ${err.message}`);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Chuyển đến trang kê đơn thuốc
+  // const handleGoToPrescription = () => {
+  //   if (medicalRecord) {
+  //     navigate(`/doctor/prescription/${appointmentId}/${medicalRecord.id}`);
+  //   }
+  // };
+
+  // Kiểm tra lại thanh toán
+  const handleCheckPaymentAgain = async () => {
+    const paymentResult = await checkPaymentStatus();
+    if (paymentResult && paymentResult.isPaid) {
+      alert("✅ Bệnh nhân đã thanh toán! Có thể kê đơn thuốc.");
+      setShowPaymentAlert(false);
+    } else {
+      alert("❌ Bệnh nhân chưa thanh toán. Vui lòng chờ...");
     }
   };
 
@@ -264,9 +395,84 @@ const DoctorExamination = () => {
                     : "ĐANG KHÁM"}
                 </span>
               )}
+              {paymentStatus && (
+                <span
+                  className={`payment-status ${
+                    paymentStatus.isPaid ? "paid" : "unpaid"
+                  }`}
+                >
+                  Thanh toán:{" "}
+                  {paymentStatus.isPaid
+                    ? "✅ ĐÃ THANH TOÁN"
+                    : "❌ CHƯA THANH TOÁN"}
+                </span>
+              )}
             </div>
           </div>
         </div>
+
+        {/* Thông báo chờ thanh toán - CHỈ HIỆN KHI ĐÃ HOÀN THÀNH KHÁM VÀ CHƯA THANH TOÁN */}
+        {showPaymentAlert &&
+          examinationCompleted &&
+          paymentStatus &&
+          !paymentStatus.isPaid && (
+            <div className="payment-alert">
+              <div className="alert-content">
+                <div className="alert-icon">💳</div>
+                <div className="alert-text">
+                  <h3>Chờ Thanh Toán</h3>
+                  <p>
+                    Bệnh nhân cần thanh toán phí khám trước khi kê đơn thuốc.
+                  </p>
+                  <div className="payment-details">
+                    <p>
+                      <strong>Mã hóa đơn:</strong>{" "}
+                      {paymentStatus.invoiceCode || `INV-${appointmentId}`}
+                    </p>
+                    <p>
+                      <strong>Số tiền:</strong>{" "}
+                      {appointment?.examinationFee?.toLocaleString() ||
+                        "200,000"}{" "}
+                      VNĐ
+                    </p>
+                    <p>
+                      <strong>Trạng thái:</strong>{" "}
+                      <span className="status-unpaid">CHƯA THANH TOÁN</span>
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div className="alert-actions">
+                <button
+                  className="btn-check-payment"
+                  onClick={handleCheckPaymentAgain}
+                >
+                  🔄 Kiểm tra lại thanh toán
+                </button>
+              </div>
+            </div>
+          )}
+
+        {/* Nút kê đơn thuốc - CHỈ HIỆN KHI ĐÃ THANH TOÁN VÀ HOÀN THÀNH KHÁM */}
+        {/* {examinationCompleted && paymentStatus?.isPaid && (
+          <div className="prescription-ready-alert">
+            <div className="ready-content">
+              <div className="ready-icon">✅</div>
+              <div className="ready-text">
+                <h3>Đã Sẵn Sàng Kê Đơn</h3>
+                <p>
+                  Bệnh nhân đã thanh toán. Bạn có thể kê đơn thuốc ngay bây giờ.
+                </p>
+              </div>
+            </div>
+            <button
+              className="btn-go-prescription-main"
+              onClick={handleGoToPrescription}
+            >
+              💊 Kê Đơn Thuốc Ngay
+            </button>
+          </div>
+        )} */}
 
         {/* Thông tin bệnh nhân */}
         <div className="patient-info-card">
@@ -484,29 +690,32 @@ const DoctorExamination = () => {
             </div>
           </div>
 
-          {/* NÚT DUY NHẤT */}
+          {/* NÚT HÀNH ĐỘNG */}
           <div className="examination-actions">
             <button
-              className="btn-save-complete"
-              onClick={handleSaveAndComplete}
-              disabled={saving}
+              className="btn-save"
+              onClick={handleSaveExamination}
+              disabled={saving || examinationCompleted}
             >
-              {saving ? "⏳ Đang xử lý..." : "💾 Lưu & Hoàn thành"}
+              {saving ? "⏳ Đang lưu..." : "💾 Lưu Kết Quả"}
+            </button>
+
+            <button
+              className="btn-complete"
+              onClick={handleCompleteExamination}
+              disabled={saving || examinationCompleted}
+            >
+              {saving
+                ? "⏳ Đang xử lý..."
+                : examinationCompleted
+                ? "✅ Đã Hoàn Thành"
+                : "✅ Hoàn Thành Khám"}
             </button>
           </div>
 
           {/* Thông báo lỗi duplicate */}
           {error && error.includes("Query did not return a unique result") && (
-            <div
-              className="error-message"
-              style={{
-                background: "#ffeaa7",
-                padding: "15px",
-                borderRadius: "8px",
-                border: "2px solid #fdcb6e",
-                marginTop: "20px",
-              }}
-            >
+            <div className="error-message">
               <h4>⚠️ Cảnh báo: Lỗi dữ liệu trùng lặp</h4>
               <p>
                 Có nhiều hồ sơ khám cho lịch hẹn này. Vui lòng liên hệ quản trị

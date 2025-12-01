@@ -30,6 +30,7 @@ import AdminAppointments from "./pages/Admin/AdminAppointments.jsx";
 import DoctorAppointments from "./pages/Doctor/DoctorAppointments.jsx";
 import DoctorExamination from "./pages/Doctor/DoctorExamination.jsx";
 import MedicalRecords from "./pages/Doctor/MedicalRecords.jsx";
+import DoctorPrescription from "./pages/Doctor/DoctorPrescription.jsx";
 
 function App() {
   const user = JSON.parse(localStorage.getItem("user")) || null;
@@ -232,6 +233,30 @@ function App() {
             <>
               <Header />
               <MedicalRecords />
+            </>
+          }
+        />
+
+        {/* Kê đơn thuốc - Bác sĩ */}
+        <Route
+          path="/doctor/prescription/:appointmentId"
+          element={
+            <PrivateRoute role="DOCTOR">
+              <>
+                <Header />
+                <DoctorPrescription />
+              </>
+            </PrivateRoute>
+          }
+        />
+
+        {/* Kê đơn thuốc (có medicalRecordId) - Bác sĩ */}
+        <Route
+          path="/doctor/prescription/:appointmentId/:medicalRecordId"
+          element={
+            <>
+              <Header />
+              <DoctorPrescription />
             </>
           }
         />

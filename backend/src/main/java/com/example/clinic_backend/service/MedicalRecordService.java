@@ -407,4 +407,30 @@ public class MedicalRecordService {
         
         return dto;
     }
+
+    // Thêm vào MedicalRecordService
+public Map<String, Object> checkPaymentStatus(Long appointmentId) {
+    Map<String, Object> response = new HashMap<>();
+    
+    try {
+        Optional<PatientRegistration> appointmentOpt = doctorAppointmentRepository.findById(appointmentId);
+        if (appointmentOpt.isPresent()) {
+            PatientRegistration appointment = appointmentOpt.get();
+            boolean isPaid = "PAID".equals(appointment.getPaymentStatus());
+            
+            response.put("success", true);
+            response.put("isPaid", isPaid);
+            response.put("paymentStatus", appointment.getPaymentStatus());
+        } else {
+            response.put("success", false);
+            response.put("message", "Không tìm thấy lịch hẹn");
+        }
+    } catch (Exception e) {
+        logger.error("💥 Error checking payment status: {}", e.getMessage(), e);
+        response.put("success", false);
+        response.put("message", "Lỗi khi kiểm tra trạng thái thanh toán");
+    }
+    
+    return response;
+}
 }

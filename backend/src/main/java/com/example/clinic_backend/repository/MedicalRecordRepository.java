@@ -34,8 +34,13 @@ public interface MedicalRecordRepository extends JpaRepository<MedicalRecord, Lo
     List<MedicalRecord> findByPatientCodeOrderByExaminationDateDesc(@Param("patientCode") String patientCode);
 
     @Query("SELECT DISTINCT mr FROM MedicalRecord mr " +
-           "LEFT JOIN FETCH PatientRegistration pr ON mr.appointmentId = pr.id " +
+           "LEFT JOIN PatientRegistration pr ON mr.appointmentId = pr.id " +
            "WHERE mr.doctorId = :doctorId " +
-           "ORDER BY mr.examinationDate DESC")
+           "ORDER BY mr.examinationDate DESC NULLS LAST, mr.updatedAt DESC NULLS LAST, mr.createdAt DESC NULLS LAST")
     Page<MedicalRecord> findByDoctorId(@Param("doctorId") Long doctorId, Pageable pageable);
+
+    @Query("SELECT mr FROM MedicalRecord mr " +
+           "WHERE mr.doctorId = :doctorId " +
+           "ORDER BY mr.examinationDate DESC, mr.updatedAt DESC, mr.createdAt DESC")
+    List<MedicalRecord> findAllByDoctorIdOrderByDateDesc(@Param("doctorId") Long doctorId);
 }
