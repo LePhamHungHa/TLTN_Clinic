@@ -2,6 +2,198 @@ import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import "../../css/DoctorPrescription.css";
 
+// Component Modal lịch sử thuốc - Đơn giản
+const MedicationHistoryModal = ({
+  isOpen,
+  onClose,
+  medicalRecordId,
+  patientInfo,
+  medicationHistory,
+  loadingHistory,
+}) => {
+  const [historyData, setHistoryData] = useState([]);
+
+  // Xử lý dữ liệu lịch sử
+  useEffect(() => {
+    if (medicationHistory && medicationHistory.length > 0) {
+      // Nhóm theo ngày để hiển thị gọn hơn
+      const groupedByDate = {};
+
+      medicationHistory.forEach((item) => {
+        if (!item.createdAt) return;
+
+        const date = new Date(item.createdAt);
+        const dateKey = date.toLocaleDateString("vi-VN");
+
+        if (!groupedByDate[dateKey]) {
+          groupedByDate[dateKey] = {
+            date: dateKey,
+            items: [],
+          };
+        }
+
+        groupedByDate[dateKey].items.push(item);
+      });
+
+      // Chuyển object thành array
+      const formattedData = Object.values(groupedByDate);
+      setHistoryData(formattedData);
+    }
+  }, [medicationHistory]);
+
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat("vi-VN").format(amount) + " đ";
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="modal-overlay">
+      <div className="modal-content medication-history-modal">
+        <div className="modal-header">
+          <h3>📋 Lịch sử sử dụng thuốc</h3>
+          <button className="btn-close" onClick={onClose}>
+            ✕
+          </button>
+        </div>
+
+        <div className="modal-body">
+          {loadingHistory ? (
+            <div className="loading-state">
+              <div className="loading-spinner"></div>
+              <p>Đang tải dữ liệu...</p>
+            </div>
+          ) : medicationHistory.length === 0 ? (
+            <div className="empty-state">
+              <div className="empty-icon">📭</div>
+              <h4>Chưa có lịch sử sử dụng thuốc</h4>
+              <p>Bệnh nhân chưa từng được kê đơn thuốc trong hồ sơ này</p>
+            </div>
+          ) : (
+            <>
+              {/* Thông tin bệnh nhân */}
+              {patientInfo && (
+                <div className="patient-info-card">
+                  <div className="patient-info-row">
+                    <span className="label">Bệnh nhân:</span>
+                    <span className="value">{patientInfo.fullName}</span>
+                  </div>
+                  <div className="patient-info-row">
+                    <span className="label">Mã HS:</span>
+                    <span className="value">{medicalRecordId}</span>
+                  </div>
+                  <div className="patient-info-row">
+                    <span className="label">Tổng số đơn:</span>
+                    <span className="value">
+                      {historyData.length} lần kê đơn
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* Danh sách lịch sử */}
+              <div className="history-list">
+                {historyData.map((day, dayIndex) => (
+                  <div key={dayIndex} className="history-day">
+                    <div className="history-day-header">
+                      <span className="date-label">📅 {day.date}</span>
+                      <span className="item-count">
+                        ({day.items.length} loại thuốc)
+                      </span>
+                    </div>
+
+                    <div className="history-items">
+                      {day.items.map((item, itemIndex) => (
+                        <div key={itemIndex} className="history-item">
+                          <div className="medicine-name">
+                            {item.medicineName}
+                            {item.strength && ` (${item.strength})`}
+                          </div>
+
+                          <div className="medicine-details">
+                            <div className="detail-row">
+                              <span className="detail-label">Liều dùng:</span>
+                              <span className="detail-value">
+                                {item.dosage}
+                              </span>
+                            </div>
+                            <div className="detail-row">
+                              <span className="detail-label">Tần suất:</span>
+                              <span className="detail-value">
+                                {item.frequency}
+                              </span>
+                            </div>
+                            <div className="detail-row">
+                              <span className="detail-label">Thời gian:</span>
+                              <span className="detail-value">
+                                {item.duration}
+                              </span>
+                            </div>
+                            <div className="detail-row">
+                              <span className="detail-label">Số lượng:</span>
+                              <span className="detail-value">
+                                {item.quantity} {item.unit}
+                              </span>
+                            </div>
+                            <div className="detail-row">
+                              <span className="detail-label">Giá:</span>
+                              <span className="detail-value price">
+                                {formatCurrency(item.quantity * item.unitPrice)}
+                              </span>
+                            </div>
+                            {item.instructions && (
+                              <div className="detail-row">
+                                <span className="detail-label">Hướng dẫn:</span>
+                                <span className="detail-value instructions">
+                                  {item.instructions}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Tóm tắt */}
+              {medicationHistory.length > 0 && (
+                <div className="history-summary">
+                  <div className="summary-row">
+                    <span className="summary-label">Tổng số thuốc đã kê:</span>
+                    <span className="summary-value">
+                      {medicationHistory.length} loại
+                    </span>
+                  </div>
+                  <div className="summary-row">
+                    <span className="summary-label">Tổng chi phí:</span>
+                    <span className="summary-value total-cost">
+                      {formatCurrency(
+                        medicationHistory.reduce(
+                          (sum, item) => sum + item.quantity * item.unitPrice,
+                          0
+                        )
+                      )}
+                    </span>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+
+        <div className="modal-footer">
+          <button className="btn-close-modal" onClick={onClose}>
+            Đóng
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Main Component
 const DoctorPrescription = () => {
   const { appointmentId } = useParams();
   const navigate = useNavigate();
@@ -20,21 +212,64 @@ const DoctorPrescription = () => {
   const [showMedicationHistory, setShowMedicationHistory] = useState(false);
   const [medicationHistory, setMedicationHistory] = useState([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
-  const [groupedHistory, setGroupedHistory] = useState({});
+  const [medicineCategories, setMedicineCategories] = useState(["Tất cả"]);
+  const [categoriesLoading, setCategoriesLoading] = useState(false);
 
   // Danh mục thuốc
-  const medicineCategories = [
-    "Tất cả",
-    "Kháng sinh",
-    "Giảm đau - Hạ sốt",
-    "Kháng viêm không steroid",
-    "Kháng histamin",
-    "Dạ dày",
-    "Tim mạch",
-    "Hô hấp",
-    "Vitamin",
-    "Da liễu",
-  ];
+  useEffect(() => {
+    const loadCategories = async () => {
+      setCategoriesLoading(true);
+      try {
+        const user = JSON.parse(localStorage.getItem("user"));
+        const response = await fetch(
+          "http://localhost:8080/api/doctor/prescriptions/medicines/categories",
+          {
+            headers: {
+              Authorization: `Bearer ${user.token}`,
+            },
+          }
+        );
+
+        if (response.ok) {
+          const result = await response.json();
+          if (result.success && Array.isArray(result.categories)) {
+            // Sắp xếp A-Z và thêm "Tất cả" lên đầu
+            const sorted = result.categories.sort((a, b) =>
+              a.localeCompare(b, "vi")
+            );
+            setMedicineCategories(["Tất cả", ...sorted]);
+          }
+        } else {
+          console.warn("Không thể tải danh mục thuốc, dùng fallback");
+          fallbackCategories();
+        }
+      } catch (error) {
+        console.error("Lỗi tải danh mục thuốc:", error);
+        fallbackCategories();
+      } finally {
+        setCategoriesLoading(false);
+      }
+    };
+
+    const fallbackCategories = () => {
+      setMedicineCategories([
+        "Tất cả",
+        "Kháng sinh",
+        "Giảm đau - Hạ sốt",
+        "Kháng viêm không steroid",
+        "Kháng histamin",
+        "Dạ dày",
+        "Tim mạch",
+        "Hô hấp",
+        "Vitamin",
+        "Da liễu",
+        "Tiểu đường",
+        "Thần kinh",
+      ]);
+    };
+
+    loadCategories();
+  }, []);
 
   // Load dữ liệu
   useEffect(() => {
@@ -121,7 +356,7 @@ const DoctorPrescription = () => {
     loadData();
   }, [appointmentId]);
 
-  // Load lịch sử sử dụng thuốc của bệnh nhân theo medical_record_id
+  // Load lịch sử sử dụng thuốc
   const loadPatientMedicationHistory = async (medicalRecordId, token) => {
     setLoadingHistory(true);
     try {
@@ -139,10 +374,6 @@ const DoctorPrescription = () => {
         if (result.success) {
           const history = result.history || [];
           setMedicationHistory(history);
-
-          // Nhóm lịch sử theo ngày
-          const grouped = groupMedicationHistoryByDate(history);
-          setGroupedHistory(grouped);
         }
       }
     } catch (error) {
@@ -151,40 +382,6 @@ const DoctorPrescription = () => {
     } finally {
       setLoadingHistory(false);
     }
-  };
-
-  // Nhóm lịch sử theo ngày
-  const groupMedicationHistoryByDate = (history) => {
-    const grouped = {};
-
-    history.forEach((item) => {
-      if (!item.createdAt) return;
-
-      const date = new Date(item.createdAt);
-      const dateKey = date.toLocaleDateString("vi-VN", {
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric",
-      });
-
-      if (!grouped[dateKey]) {
-        grouped[dateKey] = {
-          date: dateKey,
-          fullDate: item.createdAt,
-          items: [],
-        };
-      }
-
-      grouped[dateKey].items.push(item);
-    });
-
-    // Sắp xếp theo ngày mới nhất trước
-    return Object.values(grouped)
-      .sort((a, b) => new Date(b.fullDate) - new Date(a.fullDate))
-      .reduce((acc, group) => {
-        acc[group.date] = group;
-        return acc;
-      }, {});
   };
 
   // Load đơn thuốc đã có từ database
@@ -206,15 +403,13 @@ const DoctorPrescription = () => {
           result.prescription &&
           result.prescription.length > 0
         ) {
-          // Lưu đơn thuốc đã có để hiển thị
           setExistingPrescription(result.prescription);
 
-          // Chuyển đổi prescription items từ database sang format cho state
           const prescriptionItemsFromDB = result.prescription.map((item) => ({
             medicineId: item.medicineId,
             medicineName: item.medicineName,
-            strength: "", // Cần lấy từ medicines
-            unit: "", // Cần lấy từ medicines
+            strength: "",
+            unit: "",
             unitPrice: item.unitPrice,
             dosage: item.dosage,
             frequency: item.frequency,
@@ -222,10 +417,9 @@ const DoctorPrescription = () => {
             quantity: item.quantity,
             instructions: item.instructions || "",
             notes: item.notes || "",
-            stockQuantity: 0, // Sẽ được cập nhật sau
+            stockQuantity: 0,
           }));
 
-          // Lấy thông tin chi tiết về thuốc từ danh sách medicines
           const user = JSON.parse(localStorage.getItem("user"));
           const medicinesResponse = await fetch(
             `http://localhost:8080/api/doctor/prescriptions/medicines/active`,
@@ -244,7 +438,6 @@ const DoctorPrescription = () => {
                 medicinesMap[med.id] = med;
               });
 
-              // Cập nhật thông tin chi tiết cho prescription items
               const updatedItems = prescriptionItemsFromDB.map((item) => {
                 const medicineDetail = medicinesMap[item.medicineId];
                 if (medicineDetail) {
@@ -476,38 +669,6 @@ const DoctorPrescription = () => {
     setShowMedicationHistory(true);
   };
 
-  // Format ngày tháng đầy đủ
-  const formatFullDate = (dateString) => {
-    if (!dateString) return "N/A";
-    try {
-      const date = new Date(dateString);
-      return date.toLocaleDateString("vi-VN", {
-        weekday: "long",
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-      });
-    } catch {
-      return dateString;
-    }
-  };
-
-  // Tính tổng tiền của một ngày
-  const calculateDayTotal = (items) => {
-    return items.reduce((total, item) => {
-      return total + (parseFloat(item.totalPrice) || 0);
-    }, 0);
-  };
-
-  // Tính tổng tiền toàn bộ lịch sử
-  const calculateHistoryTotal = () => {
-    return medicationHistory.reduce((total, item) => {
-      return total + (parseFloat(item.totalPrice) || 0);
-    }, 0);
-  };
-
   if (loading) {
     return (
       <div className="prescription-container">
@@ -579,6 +740,7 @@ const DoctorPrescription = () => {
                 value={selectedCategory}
                 onChange={(e) => setSelectedCategory(e.target.value)}
                 className="category-filter"
+                disabled={categoriesLoading}
               >
                 {medicineCategories.map((category) => (
                   <option key={category} value={category}>
@@ -944,212 +1106,14 @@ const DoctorPrescription = () => {
       )}
 
       {/* Modal lịch sử sử dụng thuốc */}
-      {showMedicationHistory && (
-        <div className="modal-overlay">
-          <div className="modal-content large-modal">
-            <div className="modal-header">
-              <h3>📜 Lịch Sử Thuốc Đã Sử Dụng</h3>
-              <button
-                className="btn-close"
-                onClick={() => setShowMedicationHistory(false)}
-              >
-                ✕
-              </button>
-            </div>
-
-            <div className="medication-history">
-              {patientInfo && (
-                <div className="patient-summary">
-                  <h4>Bệnh nhân: {patientInfo.fullName}</h4>
-                  <p>Mã HS: {medicalRecordId}</p>
-                  <p>Mã đơn: {patientInfo.registrationNumber}</p>
-                  <div className="history-stats">
-                    <span>
-                      Tổng số đơn: {Object.keys(groupedHistory).length}
-                    </span>
-                    <span>Tổng số thuốc: {medicationHistory.length}</span>
-                    <span>
-                      Tổng chi phí: {calculateHistoryTotal().toLocaleString()} đ
-                    </span>
-                  </div>
-                </div>
-              )}
-
-              {loadingHistory ? (
-                <div className="loading-history">
-                  <div className="loading-spinner"></div>
-                  <p>Đang tải lịch sử thuốc...</p>
-                </div>
-              ) : medicationHistory.length === 0 ? (
-                <div className="empty-history">
-                  <div className="empty-icon">📊</div>
-                  <p>Chưa có lịch sử sử dụng thuốc</p>
-                  <small>Hồ sơ bệnh án này chưa từng được kê đơn thuốc</small>
-                </div>
-              ) : (
-                <div className="history-grouped-container">
-                  {Object.values(groupedHistory).map((group, groupIndex) => (
-                    <div key={groupIndex} className="history-day-group">
-                      <div className="day-header">
-                        <div className="day-title">
-                          <span className="day-icon">📅</span>
-                          <h4>{group.date}</h4>
-                        </div>
-                        <div className="day-total">
-                          <span className="total-label">Tổng ngày:</span>
-                          <span className="total-amount">
-                            {calculateDayTotal(group.items).toLocaleString()} đ
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="day-medicines">
-                        {group.items.map((item, itemIndex) => (
-                          <div
-                            key={itemIndex}
-                            className="medicine-item-history"
-                          >
-                            <div className="medicine-info-history">
-                              <div className="medicine-name-history">
-                                <strong>{item.medicineName}</strong>
-                                {item.strength && (
-                                  <span className="medicine-strength">
-                                    ({item.strength})
-                                  </span>
-                                )}
-                              </div>
-                              <div className="medicine-details-history">
-                                <div className="detail-row">
-                                  <span className="detail-label">
-                                    Liều dùng:
-                                  </span>
-                                  <span className="detail-value">
-                                    {item.dosage}
-                                  </span>
-                                </div>
-                                <div className="detail-row">
-                                  <span className="detail-label">
-                                    Tần suất:
-                                  </span>
-                                  <span className="detail-value">
-                                    {item.frequency}
-                                  </span>
-                                </div>
-                                <div className="detail-row">
-                                  <span className="detail-label">Số ngày:</span>
-                                  <span className="detail-value">
-                                    {item.duration}
-                                  </span>
-                                </div>
-                                <div className="detail-row">
-                                  <span className="detail-label">
-                                    Số lượng:
-                                  </span>
-                                  <span className="detail-value">
-                                    {item.quantity} {item.unit || ""}
-                                  </span>
-                                </div>
-                                <div className="detail-row">
-                                  <span className="detail-label">Giá:</span>
-                                  <span className="detail-value">
-                                    {parseFloat(
-                                      item.unitPrice || 0
-                                    ).toLocaleString()}{" "}
-                                    đ
-                                  </span>
-                                </div>
-                                <div className="detail-row">
-                                  <span className="detail-label">
-                                    Thành tiền:
-                                  </span>
-                                  <span className="detail-value total-price">
-                                    {parseFloat(
-                                      item.totalPrice || 0
-                                    ).toLocaleString()}{" "}
-                                    đ
-                                  </span>
-                                </div>
-                              </div>
-
-                              {item.instructions && (
-                                <div className="medicine-instructions">
-                                  <span className="instructions-label">
-                                    Hướng dẫn:
-                                  </span>
-                                  <span className="instructions-text">
-                                    {item.instructions}
-                                  </span>
-                                </div>
-                              )}
-
-                              {item.notes && (
-                                <div className="medicine-notes">
-                                  <span className="notes-label">Ghi chú:</span>
-                                  <span className="notes-text">
-                                    {item.notes}
-                                  </span>
-                                </div>
-                              )}
-                            </div>
-
-                            <div className="medicine-time">
-                              <span className="time-icon">🕒</span>
-                              <span className="time-text">
-                                {formatFullDate(item.createdAt)}
-                              </span>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-
-                  {/* Tổng kết */}
-                  <div className="history-summary">
-                    <div className="summary-header">
-                      <h4>📊 Tổng Kết</h4>
-                    </div>
-                    <div className="summary-content">
-                      <div className="summary-row">
-                        <span className="summary-label">Tổng số ngày:</span>
-                        <span className="summary-value">
-                          {Object.keys(groupedHistory).length} ngày
-                        </span>
-                      </div>
-                      <div className="summary-row">
-                        <span className="summary-label">Tổng số thuốc:</span>
-                        <span className="summary-value">
-                          {medicationHistory.length} loại
-                        </span>
-                      </div>
-                      <div className="summary-row">
-                        <span className="summary-label">Tổng chi phí:</span>
-                        <span className="summary-value total-summary">
-                          {calculateHistoryTotal().toLocaleString()} đ
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              <div className="modal-actions">
-                <button
-                  className="btn-close"
-                  onClick={() => setShowMedicationHistory(false)}
-                >
-                  Đóng
-                </button>
-                {medicationHistory.length > 0 && (
-                  <button className="btn-print" onClick={() => window.print()}>
-                    🖨️ In báo cáo
-                  </button>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <MedicationHistoryModal
+        isOpen={showMedicationHistory}
+        onClose={() => setShowMedicationHistory(false)}
+        medicalRecordId={medicalRecordId}
+        patientInfo={patientInfo}
+        medicationHistory={medicationHistory}
+        loadingHistory={loadingHistory}
+      />
     </div>
   );
 };

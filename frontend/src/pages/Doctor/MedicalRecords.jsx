@@ -139,8 +139,8 @@ const MedicalRecords = () => {
     }
   };
 
-  // HÀM MỚI: Lấy đơn thuốc theo medicalRecordId
-  const fetchPrescription = async (medicalRecordId) => {
+  // HÀM: Lấy lịch sử đơn thuốc theo medicalRecordId
+  const fetchPrescriptionHistory = async (medicalRecordId) => {
     if (!medicalRecordId) {
       console.error("❌ No medical record ID provided");
       return;
@@ -152,12 +152,12 @@ const MedicalRecords = () => {
       setTotalAmount(0);
 
       console.log(
-        "💊 Fetching prescription for medical record:",
+        "💊 Fetching prescription history for medical record:",
         medicalRecordId
       );
 
       const response = await fetchWithAuth(
-        `http://localhost:8080/api/doctor/prescriptions/${medicalRecordId}`
+        `http://localhost:8080/api/doctor/prescriptions/history/${medicalRecordId}`
       );
 
       if (!response.ok) {
@@ -165,37 +165,91 @@ const MedicalRecords = () => {
       }
 
       const data = await response.json();
-      console.log("📦 Prescription data:", data);
+      console.log("📦 Prescription history data:", data);
 
       if (data.success) {
-        setPrescription(data.prescription || []);
-        setTotalAmount(data.totalAmount || 0);
+        setPrescription(data.history || []);
+        
+        // Tính tổng tiền
+        const total = (data.history || []).reduce((sum, item) => 
+          sum + parseFloat(item.totalPrice || 0), 0
+        );
+        setTotalAmount(total);
+        
         console.log(
-          `✅ Found ${
-            data.prescription?.length || 0
-          } prescription items, total: ${data.totalAmount}`
+          `✅ Found ${data.history?.length || 0} prescription history items`
         );
       } else {
-        console.error("❌ Prescription API Error:", data.message);
-        setError("Không thể lấy đơn thuốc: " + data.message);
+        console.error("❌ Prescription history API Error:", data.message);
+        setError("Không thể lấy lịch sử đơn thuốc: " + data.message);
       }
     } catch (err) {
-      console.error("🚨 Fetch prescription error:", err);
-      setError("Không thể kết nối đến server để lấy đơn thuốc");
+      console.error("🚨 Fetch prescription history error:", err);
+      setError("Không thể kết nối đến server để lấy lịch sử đơn thuốc");
     } finally {
       setPrescriptionLoading(false);
     }
   };
 
-  // HÀM MỚI: Xem đơn thuốc
+  // HÀM: Xử lý nhóm thuốc theo ngày
+  const groupMedicationByDate = (medicationList) => {
+    if (!medicationList || medicationList.length === 0) return {};
+
+    const grouped = {};
+
+    medicationList.forEach(item => {
+      if (!item.createdAt) return;
+
+      const date = new Date(item.createdAt);
+      const dateKey = date.toISOString().split('T')[0];
+      const formattedDate = date.toLocaleDateString('vi-VN', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+      });
+
+      if (!grouped[dateKey]) {
+        grouped[dateKey] = {
+          date: formattedDate,
+          fullDate: item.createdAt,
+          items: [],
+          totalCost: 0,
+          totalItems: 0
+        };
+      }
+
+      grouped[dateKey].items.push(item);
+      grouped[dateKey].totalCost += parseFloat(item.totalPrice || 0);
+      grouped[dateKey].totalItems += 1;
+    });
+
+    // Sắp xếp theo ngày giảm dần
+    return Object.keys(grouped)
+      .sort((a, b) => new Date(b) - new Date(a))
+      .reduce((acc, key) => {
+        acc[key] = grouped[key];
+        return acc;
+      }, {});
+  };
+
+  // HÀM: Định dạng tiền tệ
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('vi-VN', {
+      style: 'currency',
+      currency: 'VND',
+      minimumFractionDigits: 0
+    }).format(amount);
+  };
+
+  // HÀM: Xem đơn thuốc
   const handleViewPrescription = (record) => {
-    console.log("💊 Viewing prescription for record:", record);
+    console.log("💊 Viewing prescription history for record:", record);
     setSelectedRecord(record);
-    fetchPrescription(record.id); // Dùng record.id (medical record ID)
+    fetchPrescriptionHistory(record.id);
     setShowPrescriptionModal(true);
   };
 
-  // HÀM MỚI: Đóng modal
+  // HÀM: Đóng modal
   const handleClosePrescriptionModal = () => {
     setShowPrescriptionModal(false);
     setSelectedRecord(null);
@@ -253,164 +307,129 @@ const MedicalRecords = () => {
     );
   };
 
-  // MODAL COMPONENT
+  // MODAL COMPONENT - ĐƠN GIẢN NHƯ TRANG TRƯỚC
   const PrescriptionModal = () => {
     if (!showPrescriptionModal || !selectedRecord) return null;
 
+    const groupedPrescription = groupMedicationByDate(prescription);
+
     return (
       <div className="modal-overlay">
-        <div className="modal-content prescription-modal">
+        <div className="modal-content medication-history-modal">
           <div className="modal-header">
-            <h2>
-              <i className="fas fa-prescription-bottle-alt"></i> ĐƠN THUỐC
-            </h2>
-            <button
-              className="modal-close-btn"
-              onClick={handleClosePrescriptionModal}
-            >
-              <i className="fas fa-times"></i>
+            <h3>📋 Lịch sử sử dụng thuốc</h3>
+            <button className="btn-close" onClick={handleClosePrescriptionModal}>
+              ✕
             </button>
           </div>
 
           <div className="modal-body">
-            {/* Thông tin bệnh nhân */}
-            <div className="patient-info-section">
-              <h3>Thông tin bệnh nhân</h3>
-              <div className="patient-details-grid">
-                <div className="patient-detail-item">
-                  <strong>Họ tên:</strong> {selectedRecord.patientName}
-                </div>
-                <div className="patient-detail-item">
-                  <strong>SĐT:</strong> {selectedRecord.patientPhone}
-                </div>
-                <div className="patient-detail-item">
-                  <strong>Giới tính:</strong>{" "}
-                  {getGenderDisplay(selectedRecord.patientGender)}
-                </div>
-                <div className="patient-detail-item">
-                  <strong>Ngày sinh:</strong>{" "}
-                  {formatDate(selectedRecord.patientDob)}
-                </div>
-                <div className="patient-detail-item">
-                  <strong>Ngày khám:</strong>{" "}
-                  {formatDate(selectedRecord.examinationDate)}
-                </div>
-                <div className="patient-detail-item">
-                  <strong>Chẩn đoán:</strong> {selectedRecord.finalDiagnosis}
-                </div>
+            {prescriptionLoading ? (
+              <div className="loading-state">
+                <div className="loading-spinner"></div>
+                <p>Đang tải dữ liệu...</p>
               </div>
-            </div>
-
-            {/* Danh sách thuốc */}
-            <div className="prescription-list-section">
-              <div className="section-header">
-                <h3>
-                  <i className="fas fa-capsules"></i> Danh sách thuốc (
-                  {prescription.length} loại)
-                </h3>
+            ) : prescription.length === 0 ? (
+              <div className="empty-state">
+                <div className="empty-icon">📭</div>
+                <h4>Chưa có lịch sử sử dụng thuốc</h4>
+                <p>Bệnh nhân chưa từng được kê đơn thuốc trong hồ sơ này</p>
               </div>
-
-              {prescriptionLoading ? (
-                <div className="loading-prescription">
-                  <div className="spinner-small"></div>
-                  <p>Đang tải đơn thuốc...</p>
-                </div>
-              ) : prescription.length === 0 ? (
-                <div className="no-prescription">
-                  <i className="fas fa-box-open"></i>
-                  <p>Chưa có đơn thuốc cho lần khám này</p>
-                </div>
-              ) : (
-                <>
-                  <div className="prescription-table-container">
-                    <table className="prescription-table">
-                      <thead>
-                        <tr>
-                          <th>STT</th>
-                          <th>Tên thuốc</th>
-                          <th>Liều dùng</th>
-                          <th>Tần suất</th>
-                          <th>Thời gian</th>
-                          <th>Số lượng</th>
-                          <th>Đơn giá</th>
-                          <th>Thành tiền</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {prescription.map((medicine, index) => (
-                          <tr key={medicine.id}>
-                            <td>{index + 1}</td>
-                            <td>
-                              <div className="medicine-name">
-                                <strong>{medicine.medicineName}</strong>
-                                {medicine.instructions && (
-                                  <div className="medicine-instructions">
-                                    <small>
-                                      <i className="fas fa-info-circle"></i>{" "}
-                                      {medicine.instructions}
-                                    </small>
-                                  </div>
-                                )}
-                              </div>
-                            </td>
-                            <td>{medicine.dosage || "N/A"}</td>
-                            <td>{medicine.frequency || "N/A"}</td>
-                            <td>{medicine.duration || "N/A"}</td>
-                            <td>{medicine.quantity || 0}</td>
-                            <td>
-                              {medicine.unitPrice?.toLocaleString("vi-VN") || 0}{" "}
-                              đ
-                            </td>
-                            <td>
-                              <strong>
-                                {medicine.totalPrice?.toLocaleString("vi-VN") ||
-                                  0}{" "}
-                                đ
-                              </strong>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+            ) : (
+              <>
+                {/* Thông tin bệnh nhân */}
+                <div className="patient-info-card">
+                  <div className="patient-info-row">
+                    <span className="label">Bệnh nhân:</span>
+                    <span className="value">{selectedRecord.patientName}</span>
                   </div>
+                  <div className="patient-info-row">
+                    <span className="label">Mã HS:</span>
+                    <span className="value">{selectedRecord.id}</span>
+                  </div>
+                  <div className="patient-info-row">
+                    <span className="label">Tổng số đơn:</span>
+                    <span className="value">
+                      {Object.keys(groupedPrescription).length} lần kê đơn
+                    </span>
+                  </div>
+                </div>
 
-                  {/* Tổng tiền */}
-                  <div className="prescription-total">
-                    <div className="total-amount">
-                      <span className="total-label">TỔNG TIỀN:</span>
-                      <span className="total-value">
-                        {totalAmount.toLocaleString("vi-VN")} đ
+                {/* Danh sách lịch sử */}
+                <div className="history-list">
+                  {Object.entries(groupedPrescription).map(([dateKey, day]) => (
+                    <div key={dateKey} className="history-day">
+                      <div className="history-day-header">
+                        <span className="date-label">📅 {day.date}</span>
+                        <span className="item-count">({day.items.length} loại thuốc)</span>
+                      </div>
+
+                      <div className="history-items">
+                        {day.items.map((item, itemIndex) => (
+                          <div key={itemIndex} className="history-item">
+                            <div className="medicine-name">
+                              {item.medicineName}
+                              {item.strength && ` (${item.strength})`}
+                            </div>
+
+                            <div className="medicine-details">
+                              <div className="detail-row">
+                                <span className="detail-label">Liều dùng:</span>
+                                <span className="detail-value">{item.dosage}</span>
+                              </div>
+                              <div className="detail-row">
+                                <span className="detail-label">Tần suất:</span>
+                                <span className="detail-value">{item.frequency}</span>
+                              </div>
+                              <div className="detail-row">
+                                <span className="detail-label">Thời gian:</span>
+                                <span className="detail-value">{item.duration}</span>
+                              </div>
+                              <div className="detail-row">
+                                <span className="detail-label">Số lượng:</span>
+                                <span className="detail-value">{item.quantity} {item.unit}</span>
+                              </div>
+                              <div className="detail-row">
+                                <span className="detail-label">Giá:</span>
+                                <span className="detail-value price">
+                                  {formatCurrency(parseFloat(item.totalPrice || 0))}
+                                </span>
+                              </div>
+                              {item.instructions && (
+                                <div className="detail-row">
+                                  <span className="detail-label">Hướng dẫn:</span>
+                                  <span className="detail-value instructions">{item.instructions}</span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Tóm tắt */}
+                {prescription.length > 0 && (
+                  <div className="history-summary">
+                    <div className="summary-row">
+                      <span className="summary-label">Tổng số thuốc đã kê:</span>
+                      <span className="summary-value">{prescription.length} loại</span>
+                    </div>
+                    <div className="summary-row">
+                      <span className="summary-label">Tổng chi phí:</span>
+                      <span className="summary-value total-cost">
+                        {formatCurrency(totalAmount)}
                       </span>
                     </div>
                   </div>
-
-                  {/* Hướng dẫn sử dụng tổng hợp */}
-                  <div className="prescription-instructions">
-                    <h4>
-                      <i className="fas fa-sticky-note"></i> Hướng dẫn sử dụng:
-                    </h4>
-                    <div className="instructions-content">
-                      {selectedRecord.treatmentPlan ||
-                        "Tuân thủ đúng liều lượng và thời gian sử dụng thuốc. Tái khám đúng hẹn nếu có bất thường."}
-                    </div>
-                  </div>
-                </>
-              )}
-            </div>
+                )}
+              </>
+            )}
           </div>
 
           <div className="modal-footer">
-            <button
-              className="btn-print"
-              onClick={() => window.print()}
-              disabled={prescription.length === 0}
-            >
-              <i className="fas fa-print"></i> In đơn thuốc
-            </button>
-            <button
-              className="btn-close"
-              onClick={handleClosePrescriptionModal}
-            >
+            <button className="btn-close-modal" onClick={handleClosePrescriptionModal}>
               Đóng
             </button>
           </div>
@@ -437,12 +456,6 @@ const MedicalRecords = () => {
       <div className="medical-records-header">
         <h1>HỒ SƠ BỆNH ÁN</h1>
         <p>Danh sách các hồ sơ bệnh án bạn đã khám</p>
-        {/* {doctorId && (
-          <div className="debug-info">
-            Doctor ID: {doctorId} | User ID: {user?.id} | Tổng bản ghi:{" "}
-            {medicalRecords.length}
-          </div>
-        )} */}
       </div>
 
       {error && (
@@ -573,7 +586,7 @@ const MedicalRecords = () => {
                         <button
                           className="btn-view-prescription"
                           onClick={() => handleViewPrescription(record)}
-                          title="Xem đơn thuốc"
+                          title="Xem lịch sử đơn thuốc"
                         >
                           <i className="fas fa-prescription-bottle-alt"></i>
                           Đơn thuốc
