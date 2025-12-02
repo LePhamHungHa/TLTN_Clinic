@@ -1,6 +1,7 @@
 package com.example.clinic_backend.service;
 
 import com.example.clinic_backend.dto.PrescriptionDetailDTO;
+import com.example.clinic_backend.dto.MedicationHistoryDTO;
 import com.example.clinic_backend.model.PrescriptionDetail;
 import com.example.clinic_backend.model.Medicine;
 import com.example.clinic_backend.repository.PrescriptionDetailRepository;
@@ -9,8 +10,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowMapper;
 
 import java.math.BigDecimal;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
@@ -23,11 +29,14 @@ public class PrescriptionService {
     private static final Logger logger = LoggerFactory.getLogger(PrescriptionService.class);
     private final PrescriptionDetailRepository prescriptionDetailRepository;
     private final MedicineRepository medicineRepository;
+    private final JdbcTemplate jdbcTemplate;
     
     public PrescriptionService(PrescriptionDetailRepository prescriptionDetailRepository,
-                             MedicineRepository medicineRepository) {
+                             MedicineRepository medicineRepository,
+                             JdbcTemplate jdbcTemplate) {
         this.prescriptionDetailRepository = prescriptionDetailRepository;
         this.medicineRepository = medicineRepository;
+        this.jdbcTemplate = jdbcTemplate;
     }
     
     public Map<String, Object> getPrescriptionByMedicalRecord(Long medicalRecordId) {
@@ -60,6 +69,192 @@ public class PrescriptionService {
             logger.error("💥 Error getting prescription: {}", e.getMessage(), e);
             response.put("success", false);
             response.put("message", "Lỗi khi lấy thông tin đơn thuốc: " + e.getMessage());
+        }
+        
+        return response;
+    }
+    
+    // Lấy lịch sử sử dụng thuốc của bệnh nhân
+    public Map<String, Object> getMedicationHistoryByMedicalRecord(Long medicalRecordId) {
+        Map<String, Object> response = new HashMap<>();
+        
+        try {
+            logger.info("📊 Getting medication history for medical record {}", medicalRecordId);
+            
+            // Cách 1: Sử dụng query đơn giản hơn nếu không có quan hệ đầy đủ
+            String sql = """
+                SELECT pd.*, 
+                       mr.examination_date,
+                       m.unit,
+                       m.strength,
+                       m.category
+                FROM prescription_details pd
+                JOIN medical_records mr ON pd.medical_record_id = mr.id
+                LEFT JOIN medicines m ON pd.medicine_id = m.id
+                WHERE pd.medical_record_id = ?
+                ORDER BY pd.created_at DESC
+                """;
+            
+            List<MedicationHistoryDTO> history = jdbcTemplate.query(sql, new RowMapper<MedicationHistoryDTO>() {
+                @Override
+                public MedicationHistoryDTO mapRow(ResultSet rs, int rowNum) throws SQLException {
+                    MedicationHistoryDTO dto = new MedicationHistoryDTO();
+                    dto.setId(rs.getLong("id"));
+                    dto.setMedicalRecordId(rs.getLong("medical_record_id"));
+                    dto.setMedicineId(rs.getLong("medicine_id"));
+                    dto.setMedicineName(rs.getString("medicine_name"));
+                    dto.setDosage(rs.getString("dosage"));
+                    dto.setFrequency(rs.getString("frequency"));
+                    dto.setDuration(rs.getString("duration"));
+                    dto.setQuantity(rs.getInt("quantity"));
+                    dto.setUnitPrice(rs.getBigDecimal("unit_price"));
+                    dto.setTotalPrice(rs.getBigDecimal("total_price"));
+                    dto.setInstructions(rs.getString("instructions"));
+                    dto.setNotes(rs.getString("notes"));
+                    
+                    // Convert timestamp to LocalDateTime
+                    if (rs.getTimestamp("created_at") != null) {
+                        dto.setCreatedAt(rs.getTimestamp("created_at").toLocalDateTime());
+                    }
+                    
+                    dto.setExaminationDate(rs.getDate("examination_date"));
+                    dto.setUnit(rs.getString("unit"));
+                    dto.setStrength(rs.getString("strength"));
+                    dto.setCategory(rs.getString("category"));
+                    
+                    return dto;
+                }
+            }, medicalRecordId);
+            
+            // Tính tổng số tiền
+            BigDecimal totalAmount = BigDecimal.ZERO;
+            int totalItems = 0;
+            
+            for (MedicationHistoryDTO item : history) {
+                if (item.getTotalPrice() != null) {
+                    totalAmount = totalAmount.add(item.getTotalPrice());
+                }
+                totalItems++;
+            }
+            
+            response.put("success", true);
+            response.put("history", history);
+            response.put("count", history.size());
+            response.put("totalAmount", totalAmount);
+            response.put("totalItems", totalItems);
+            
+            logger.info("✅ Found {} medication history records for medical record {}", 
+                       history.size(), medicalRecordId);
+            
+        } catch (Exception e) {
+            logger.error("💥 Error getting medication history by medical record: {}", e.getMessage(), e);
+            response.put("success", false);
+            response.put("message", "Lỗi khi lấy lịch sử sử dụng thuốc: " + e.getMessage());
+        }
+        
+        return response;
+    }
+    
+    /**
+     * Lấy lịch sử sử dụng thuốc của bệnh nhân
+     */
+    public Map<String, Object> getPatientMedicationHistory(Long patientId) {
+        Map<String, Object> response = new HashMap<>();
+        
+        try {
+            logger.info("📊 Getting medication history for patient {}", patientId);
+            
+            // Cách đơn giản hơn - chỉ lấy thông tin cơ bản
+            String sql = """
+                SELECT pd.*, 
+                       mr.examination_date,
+                       m.unit,
+                       m.strength,
+                       m.category
+                FROM prescription_details pd
+                JOIN medical_records mr ON pd.medical_record_id = mr.id
+                JOIN appointments a ON mr.appointment_id = a.id
+                LEFT JOIN medicines m ON pd.medicine_id = m.id
+                WHERE a.patient_id = ?
+                ORDER BY pd.created_at DESC
+                LIMIT 100
+                """;
+            
+            List<MedicationHistoryDTO> history = jdbcTemplate.query(sql, new RowMapper<MedicationHistoryDTO>() {
+                @Override
+                public MedicationHistoryDTO mapRow(ResultSet rs, int rowNum) throws SQLException {
+                    MedicationHistoryDTO dto = new MedicationHistoryDTO();
+                    dto.setId(rs.getLong("id"));
+                    dto.setMedicalRecordId(rs.getLong("medical_record_id"));
+                    dto.setMedicineId(rs.getLong("medicine_id"));
+                    dto.setMedicineName(rs.getString("medicine_name"));
+                    dto.setDosage(rs.getString("dosage"));
+                    dto.setFrequency(rs.getString("frequency"));
+                    dto.setDuration(rs.getString("duration"));
+                    dto.setQuantity(rs.getInt("quantity"));
+                    dto.setUnitPrice(rs.getBigDecimal("unit_price"));
+                    dto.setTotalPrice(rs.getBigDecimal("total_price"));
+                    dto.setInstructions(rs.getString("instructions"));
+                    dto.setNotes(rs.getString("notes"));
+                    
+                    // Convert timestamp to LocalDateTime
+                    if (rs.getTimestamp("created_at") != null) {
+                        dto.setCreatedAt(rs.getTimestamp("created_at").toLocalDateTime());
+                    }
+                    
+                    dto.setExaminationDate(rs.getDate("examination_date"));
+                    dto.setUnit(rs.getString("unit"));
+                    dto.setStrength(rs.getString("strength"));
+                    dto.setCategory(rs.getString("category"));
+                    dto.setPatientId(patientId);
+                    
+                    return dto;
+                }
+            }, patientId);
+            
+            // Tính tổng số tiền và thống kê
+            BigDecimal totalAmount = BigDecimal.ZERO;
+            int totalItems = 0;
+            Map<String, Integer> medicineUsage = new HashMap<>();
+            
+            for (MedicationHistoryDTO item : history) {
+                if (item.getTotalPrice() != null) {
+                    totalAmount = totalAmount.add(item.getTotalPrice());
+                }
+                totalItems++;
+                
+                // Thống kê sử dụng thuốc
+                String medicineKey = item.getMedicineName();
+                medicineUsage.put(medicineKey, medicineUsage.getOrDefault(medicineKey, 0) + 1);
+            }
+            
+            // Sắp xếp thuốc được sử dụng nhiều nhất
+            List<Map.Entry<String, Integer>> sortedUsage = new ArrayList<>(medicineUsage.entrySet());
+            sortedUsage.sort((a, b) -> b.getValue().compareTo(a.getValue()));
+            
+            List<Map<String, Object>> topMedicines = new ArrayList<>();
+            for (int i = 0; i < Math.min(5, sortedUsage.size()); i++) {
+                Map<String, Object> medicineStat = new HashMap<>();
+                medicineStat.put("medicineName", sortedUsage.get(i).getKey());
+                medicineStat.put("usageCount", sortedUsage.get(i).getValue());
+                topMedicines.add(medicineStat);
+            }
+            
+            response.put("success", true);
+            response.put("history", history);
+            response.put("count", history.size());
+            response.put("totalAmount", totalAmount);
+            response.put("totalItems", totalItems);
+            response.put("topMedicines", topMedicines);
+            response.put("medicineUsage", medicineUsage);
+            
+            logger.info("✅ Found {} medication history records for patient {}", 
+                       history.size(), patientId);
+            
+        } catch (Exception e) {
+            logger.error("💥 Error getting patient medication history: {}", e.getMessage(), e);
+            response.put("success", false);
+            response.put("message", "Lỗi khi lấy lịch sử sử dụng thuốc: " + e.getMessage());
         }
         
         return response;
@@ -122,6 +317,8 @@ public class PrescriptionService {
                     BigDecimal unitPrice = extractBigDecimal(item.get("unitPrice"));
                     String instructions = extractString(item.get("instructions"));
                     String notes = extractString(item.get("notes"));
+                    String strength = extractString(item.get("strength"));
+                    String unit = extractString(item.get("unit"));
                     
                     // Validate required fields
                     if (medicineId == null) {

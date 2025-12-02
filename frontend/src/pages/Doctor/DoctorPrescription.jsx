@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import "../../css/DoctorPrescription.css";
 
 const DoctorPrescription = () => {
-  const { appointmentId } = useParams(); // Chỉ cần appointmentId
+  const { appointmentId } = useParams();
   const navigate = useNavigate();
 
   const [medicines, setMedicines] = useState([]);
@@ -16,6 +16,11 @@ const DoctorPrescription = () => {
   const [patientInfo, setPatientInfo] = useState(null);
   const [showMedicineDetail, setShowMedicineDetail] = useState(null);
   const [medicalRecordId, setMedicalRecordId] = useState(null);
+  const [existingPrescription, setExistingPrescription] = useState([]);
+  const [showMedicationHistory, setShowMedicationHistory] = useState(false);
+  const [medicationHistory, setMedicationHistory] = useState([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+  const [groupedHistory, setGroupedHistory] = useState({});
 
   // Danh mục thuốc
   const medicineCategories = [
@@ -74,6 +79,12 @@ const DoctorPrescription = () => {
             // Lấy medicalRecordId từ response
             if (result.medicalRecord) {
               setMedicalRecordId(result.medicalRecord.id);
+
+              // 3. Load đơn thuốc đã có (nếu có)
+              await loadExistingPrescription(
+                result.medicalRecord.id,
+                user.token
+              );
             } else {
               // Nếu chưa có medical record, tạo mới
               const createMedicalRecordResponse = await fetch(
@@ -109,6 +120,154 @@ const DoctorPrescription = () => {
 
     loadData();
   }, [appointmentId]);
+
+  // Load lịch sử sử dụng thuốc của bệnh nhân theo medical_record_id
+  const loadPatientMedicationHistory = async (medicalRecordId, token) => {
+    setLoadingHistory(true);
+    try {
+      const response = await fetch(
+        `http://localhost:8080/api/doctor/prescriptions/history/${medicalRecordId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success) {
+          const history = result.history || [];
+          setMedicationHistory(history);
+
+          // Nhóm lịch sử theo ngày
+          const grouped = groupMedicationHistoryByDate(history);
+          setGroupedHistory(grouped);
+        }
+      }
+    } catch (error) {
+      console.error("Lỗi load lịch sử thuốc:", error);
+      alert("Không thể tải lịch sử sử dụng thuốc");
+    } finally {
+      setLoadingHistory(false);
+    }
+  };
+
+  // Nhóm lịch sử theo ngày
+  const groupMedicationHistoryByDate = (history) => {
+    const grouped = {};
+
+    history.forEach((item) => {
+      if (!item.createdAt) return;
+
+      const date = new Date(item.createdAt);
+      const dateKey = date.toLocaleDateString("vi-VN", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+      });
+
+      if (!grouped[dateKey]) {
+        grouped[dateKey] = {
+          date: dateKey,
+          fullDate: item.createdAt,
+          items: [],
+        };
+      }
+
+      grouped[dateKey].items.push(item);
+    });
+
+    // Sắp xếp theo ngày mới nhất trước
+    return Object.values(grouped)
+      .sort((a, b) => new Date(b.fullDate) - new Date(a.fullDate))
+      .reduce((acc, group) => {
+        acc[group.date] = group;
+        return acc;
+      }, {});
+  };
+
+  // Load đơn thuốc đã có từ database
+  const loadExistingPrescription = async (medicalRecordId, token) => {
+    try {
+      const response = await fetch(
+        `http://localhost:8080/api/doctor/prescriptions/${medicalRecordId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (response.ok) {
+        const result = await response.json();
+        if (
+          result.success &&
+          result.prescription &&
+          result.prescription.length > 0
+        ) {
+          // Lưu đơn thuốc đã có để hiển thị
+          setExistingPrescription(result.prescription);
+
+          // Chuyển đổi prescription items từ database sang format cho state
+          const prescriptionItemsFromDB = result.prescription.map((item) => ({
+            medicineId: item.medicineId,
+            medicineName: item.medicineName,
+            strength: "", // Cần lấy từ medicines
+            unit: "", // Cần lấy từ medicines
+            unitPrice: item.unitPrice,
+            dosage: item.dosage,
+            frequency: item.frequency,
+            duration: item.duration,
+            quantity: item.quantity,
+            instructions: item.instructions || "",
+            notes: item.notes || "",
+            stockQuantity: 0, // Sẽ được cập nhật sau
+          }));
+
+          // Lấy thông tin chi tiết về thuốc từ danh sách medicines
+          const user = JSON.parse(localStorage.getItem("user"));
+          const medicinesResponse = await fetch(
+            `http://localhost:8080/api/doctor/prescriptions/medicines/active`,
+            {
+              headers: {
+                Authorization: `Bearer ${user.token}`,
+              },
+            }
+          );
+
+          if (medicinesResponse.ok) {
+            const medicinesResult = await medicinesResponse.json();
+            if (medicinesResult.success) {
+              const medicinesMap = {};
+              medicinesResult.medicines.forEach((med) => {
+                medicinesMap[med.id] = med;
+              });
+
+              // Cập nhật thông tin chi tiết cho prescription items
+              const updatedItems = prescriptionItemsFromDB.map((item) => {
+                const medicineDetail = medicinesMap[item.medicineId];
+                if (medicineDetail) {
+                  return {
+                    ...item,
+                    medicineName: medicineDetail.medicineName,
+                    strength: medicineDetail.strength || "",
+                    unit: medicineDetail.unit || "",
+                    stockQuantity: medicineDetail.stockQuantity || 0,
+                  };
+                }
+                return item;
+              });
+
+              setPrescriptionItems(updatedItems);
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Lỗi load đơn thuốc hiện có:", error);
+    }
+  };
 
   // Tìm kiếm thuốc
   useEffect(() => {
@@ -192,105 +351,161 @@ const DoctorPrescription = () => {
 
   // Lưu đơn thuốc
   const savePrescription = async () => {
-  if (prescriptionItems.length === 0) {
-    alert("Vui lòng thêm ít nhất một loại thuốc vào đơn");
-    return;
-  }
-
-  if (!medicalRecordId) {
-    alert("Không tìm thấy hồ sơ bệnh án. Vui lòng thử lại.");
-    return;
-  }
-
-  // Kiểm tra số lượng tồn kho
-  for (const item of prescriptionItems) {
-    if (item.quantity > item.stockQuantity) {
-      alert(
-        `Thuốc ${item.medicineName} chỉ còn ${item.stockQuantity} ${item.unit} trong kho`
-      );
+    if (prescriptionItems.length === 0) {
+      alert("Vui lòng thêm ít nhất một loại thuốc vào đơn");
       return;
     }
-  }
 
-  setSaving(true);
-  try {
-    const user = JSON.parse(localStorage.getItem("user"));
-    
-    if (!user || !user.token) {
-      throw new Error("Không tìm thấy thông tin đăng nhập");
+    if (!medicalRecordId) {
+      alert("Không tìm thấy hồ sơ bệnh án. Vui lòng thử lại.");
+      return;
     }
 
-    // Chuẩn bị data đúng format
-    const prescriptionData = prescriptionItems.map(item => ({
-      medicineId: item.medicineId,
-      medicineName: item.medicineName,
-      strength: item.strength,
-      unit: item.unit,
-      unitPrice: item.unitPrice,
-      dosage: item.dosage,
-      frequency: item.frequency,
-      duration: item.duration,
-      quantity: item.quantity,
-      instructions: item.instructions,
-      notes: item.notes || ""
-    }));
-
-    console.log("📤 Sending prescription data:", prescriptionData);
-    console.log("🎯 Medical Record ID:", medicalRecordId);
-
-    // Gọi API với endpoint đúng
-    const response = await fetch(
-      `http://localhost:8080/api/doctor/prescriptions/create/${medicalRecordId}`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${user.token}`,
-        },
-        body: JSON.stringify(prescriptionData),
+    // Kiểm tra số lượng tồn kho
+    for (const item of prescriptionItems) {
+      if (item.quantity > item.stockQuantity) {
+        alert(
+          `Thuốc ${item.medicineName} chỉ còn ${item.stockQuantity} ${item.unit} trong kho`
+        );
+        return;
       }
-    );
+    }
 
-    console.log("📡 Response status:", response.status);
-    console.log("📡 Response headers:", response.headers);
+    setSaving(true);
+    try {
+      const user = JSON.parse(localStorage.getItem("user"));
 
-    // Kiểm tra response status
-    if (!response.ok) {
-      if (response.status === 403) {
-        throw new Error("Truy cập bị từ chối. Vui lòng kiểm tra quyền truy cập.");
-      } else if (response.status === 401) {
-        localStorage.removeItem("user");
-        navigate("/login");
-        throw new Error("Phiên đăng nhập hết hạn");
+      if (!user || !user.token) {
+        throw new Error("Không tìm thấy thông tin đăng nhập");
+      }
+
+      // Chuẩn bị data đúng format
+      const prescriptionData = prescriptionItems.map((item) => ({
+        medicineId: item.medicineId,
+        medicineName: item.medicineName,
+        strength: item.strength,
+        unit: item.unit,
+        unitPrice: item.unitPrice,
+        dosage: item.dosage,
+        frequency: item.frequency,
+        duration: item.duration,
+        quantity: item.quantity,
+        instructions: item.instructions,
+        notes: item.notes || "",
+      }));
+
+      console.log("📤 Sending prescription data:", prescriptionData);
+      console.log("🎯 Medical Record ID:", medicalRecordId);
+
+      // Gọi API với endpoint đúng
+      const response = await fetch(
+        `http://localhost:8080/api/doctor/prescriptions/create/${medicalRecordId}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${user.token}`,
+          },
+          body: JSON.stringify(prescriptionData),
+        }
+      );
+
+      console.log("📡 Response status:", response.status);
+      console.log("📡 Response headers:", response.headers);
+
+      // Kiểm tra response status
+      if (!response.ok) {
+        if (response.status === 403) {
+          throw new Error(
+            "Truy cập bị từ chối. Vui lòng kiểm tra quyền truy cập."
+          );
+        } else if (response.status === 401) {
+          localStorage.removeItem("user");
+          navigate("/login");
+          throw new Error("Phiên đăng nhập hết hạn");
+        } else {
+          const errorText = await response.text();
+          console.error("❌ Server error response:", errorText);
+          throw new Error(`Lỗi server (${response.status}): ${errorText}`);
+        }
+      }
+
+      // Parse response
+      const result = await response.json();
+      console.log("📦 Response result:", result);
+
+      if (result.success) {
+        alert("✅ Đã lưu đơn thuốc thành công!");
+        // Chuyển về trang appointments
+        navigate("/doctor/appointments");
       } else {
-        const errorText = await response.text();
-        console.error("❌ Server error response:", errorText);
-        throw new Error(`Lỗi server (${response.status}): ${errorText}`);
+        throw new Error(result.message || "Không thể lưu đơn thuốc");
       }
+    } catch (error) {
+      console.error("❌ Lỗi lưu đơn thuốc:", error);
+      alert(`❌ Lỗi: ${error.message}`);
+    } finally {
+      setSaving(false);
     }
-
-    // Parse response
-    const result = await response.json();
-    console.log("📦 Response result:", result);
-
-    if (result.success) {
-      alert("✅ Đã lưu đơn thuốc thành công!");
-      // Chuyển về trang appointments
-      navigate("/doctor/appointments");
-    } else {
-      throw new Error(result.message || "Không thể lưu đơn thuốc");
-    }
-  } catch (error) {
-    console.error("❌ Lỗi lưu đơn thuốc:", error);
-    alert(`❌ Lỗi: ${error.message}`);
-  } finally {
-    setSaving(false);
-  }
-};
+  };
 
   // Hiển thị chi tiết thuốc
   const showMedicineDetails = (medicine) => {
     setShowMedicineDetail(medicine);
+  };
+
+  // Kiểm tra thuốc đã có trong đơn
+  const isMedicineInPrescription = (medicineId) => {
+    return prescriptionItems.some((item) => item.medicineId === medicineId);
+  };
+
+  // Hiển thị lịch sử sử dụng thuốc
+  const handleShowMedicationHistory = async () => {
+    if (!medicalRecordId) {
+      alert("Không tìm thấy hồ sơ bệnh án");
+      return;
+    }
+
+    const user = JSON.parse(localStorage.getItem("user"));
+    if (!user || !user.token) {
+      alert("Vui lòng đăng nhập lại");
+      return;
+    }
+
+    await loadPatientMedicationHistory(medicalRecordId, user.token);
+    setShowMedicationHistory(true);
+  };
+
+  // Format ngày tháng đầy đủ
+  const formatFullDate = (dateString) => {
+    if (!dateString) return "N/A";
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString("vi-VN", {
+        weekday: "long",
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    } catch {
+      return dateString;
+    }
+  };
+
+  // Tính tổng tiền của một ngày
+  const calculateDayTotal = (items) => {
+    return items.reduce((total, item) => {
+      return total + (parseFloat(item.totalPrice) || 0);
+    }, 0);
+  };
+
+  // Tính tổng tiền toàn bộ lịch sử
+  const calculateHistoryTotal = () => {
+    return medicationHistory.reduce((total, item) => {
+      return total + (parseFloat(item.totalPrice) || 0);
+    }, 0);
   };
 
   if (loading) {
@@ -323,6 +538,25 @@ const DoctorPrescription = () => {
                   : "N/A"}
               </span>
               <span>Giới tính: {patientInfo.gender}</span>
+              <button
+                className="btn-history-header"
+                onClick={handleShowMedicationHistory}
+                disabled={loadingHistory || !medicalRecordId}
+              >
+                {loadingHistory
+                  ? "⌛ Đang tải..."
+                  : medicalRecordId
+                  ? "📜 Lịch sử thuốc"
+                  : "⏳ Đang tải dữ liệu..."}
+              </button>
+              {existingPrescription.length > 0 && (
+                <span className="prescription-badge">
+                  📋 Đã có đơn ({existingPrescription.length} thuốc)
+                </span>
+              )}
+              {medicalRecordId && (
+                <span className="record-id">Mã HS: {medicalRecordId}</span>
+              )}
             </div>
           </div>
         )}
@@ -357,60 +591,84 @@ const DoctorPrescription = () => {
 
           <div className="medicine-grid">
             {filteredMedicines.length > 0 ? (
-              filteredMedicines.map((medicine) => (
-                <div key={medicine.id} className="medicine-card">
-                  <div className="medicine-header">
-                    <h4>{medicine.medicineName}</h4>
-                    <span
-                      className={`stock-badge ${
-                        medicine.stockQuantity <= (medicine.minStockLevel || 10)
-                          ? "low-stock"
-                          : "in-stock"
-                      }`}
-                    >
-                      {medicine.stockQuantity || 0} {medicine.unit}
-                    </span>
-                  </div>
+              filteredMedicines.map((medicine) => {
+                const isInPrescription = isMedicineInPrescription(medicine.id);
 
-                  <div className="medicine-info">
-                    <p>
-                      <strong>Mã:</strong> {medicine.medicineCode}
-                    </p>
-                    <p>
-                      <strong>Hoạt chất:</strong> {medicine.activeIngredient}
-                    </p>
-                    <p>
-                      <strong>Hàm lượng:</strong> {medicine.strength}
-                    </p>
-                    <p>
-                      <strong>Giá:</strong>{" "}
-                      {(medicine.unitPrice || 0).toLocaleString()} đ/
-                      {medicine.unit}
-                    </p>
-                    <p>
-                      <strong>Phân loại:</strong> {medicine.category}
-                    </p>
-                  </div>
+                return (
+                  <div
+                    key={medicine.id}
+                    className={`medicine-card ${
+                      isInPrescription ? "in-prescription" : ""
+                    }`}
+                  >
+                    <div className="medicine-header">
+                      <h4>{medicine.medicineName}</h4>
+                      <div className="medicine-header-right">
+                        {isInPrescription && (
+                          <span className="in-prescription-badge">
+                            ✓ Đã thêm
+                          </span>
+                        )}
+                        <span
+                          className={`stock-badge ${
+                            medicine.stockQuantity <=
+                            (medicine.minStockLevel || 10)
+                              ? "low-stock"
+                              : "in-stock"
+                          }`}
+                        >
+                          {medicine.stockQuantity || 0} {medicine.unit}
+                        </span>
+                      </div>
+                    </div>
 
-                  <div className="medicine-actions">
-                    <button
-                      className="btn-info"
-                      onClick={() => showMedicineDetails(medicine)}
-                    >
-                      ℹ️ Chi tiết
-                    </button>
-                    <button
-                      className="btn-add"
-                      onClick={() => addToPrescription(medicine)}
-                      disabled={(medicine.stockQuantity || 0) === 0}
-                    >
-                      {(medicine.stockQuantity || 0) === 0
-                        ? "❌ Hết hàng"
-                        : "➕ Thêm vào đơn"}
-                    </button>
+                    <div className="medicine-info">
+                      <p>
+                        <strong>Mã:</strong> {medicine.medicineCode}
+                      </p>
+                      <p>
+                        <strong>Hoạt chất:</strong> {medicine.activeIngredient}
+                      </p>
+                      <p>
+                        <strong>Hàm lượng:</strong> {medicine.strength}
+                      </p>
+                      <p>
+                        <strong>Giá:</strong>{" "}
+                        {(medicine.unitPrice || 0).toLocaleString()} đ/
+                        {medicine.unit}
+                      </p>
+                      <p>
+                        <strong>Phân loại:</strong> {medicine.category}
+                      </p>
+                    </div>
+
+                    <div className="medicine-actions">
+                      <button
+                        className="btn-info"
+                        onClick={() => showMedicineDetails(medicine)}
+                      >
+                        ℹ️ Chi tiết
+                      </button>
+                      <button
+                        className={`btn-add ${
+                          isInPrescription ? "btn-added" : ""
+                        }`}
+                        onClick={() => addToPrescription(medicine)}
+                        disabled={
+                          (medicine.stockQuantity || 0) === 0 ||
+                          isInPrescription
+                        }
+                      >
+                        {isInPrescription
+                          ? "✓ Đã thêm"
+                          : (medicine.stockQuantity || 0) === 0
+                          ? "❌ Hết hàng"
+                          : "➕ Thêm vào đơn"}
+                      </button>
+                    </div>
                   </div>
-                </div>
-              ))
+                );
+              })
             ) : (
               <div className="no-medicines">
                 <p>Không tìm thấy thuốc phù hợp</p>
@@ -444,6 +702,13 @@ const DoctorPrescription = () => {
                   <div className="item-header">
                     <h4>
                       {item.medicineName} ({item.strength})
+                      {existingPrescription.some(
+                        (p) => p.medicineId === item.medicineId
+                      ) && (
+                        <span className="existing-prescription-badge">
+                          (Đã kê)
+                        </span>
+                      )}
                     </h4>
                     <button
                       className="btn-remove"
@@ -672,6 +937,214 @@ const DoctorPrescription = () => {
                 >
                   Đóng
                 </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal lịch sử sử dụng thuốc */}
+      {showMedicationHistory && (
+        <div className="modal-overlay">
+          <div className="modal-content large-modal">
+            <div className="modal-header">
+              <h3>📜 Lịch Sử Thuốc Đã Sử Dụng</h3>
+              <button
+                className="btn-close"
+                onClick={() => setShowMedicationHistory(false)}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="medication-history">
+              {patientInfo && (
+                <div className="patient-summary">
+                  <h4>Bệnh nhân: {patientInfo.fullName}</h4>
+                  <p>Mã HS: {medicalRecordId}</p>
+                  <p>Mã đơn: {patientInfo.registrationNumber}</p>
+                  <div className="history-stats">
+                    <span>
+                      Tổng số đơn: {Object.keys(groupedHistory).length}
+                    </span>
+                    <span>Tổng số thuốc: {medicationHistory.length}</span>
+                    <span>
+                      Tổng chi phí: {calculateHistoryTotal().toLocaleString()} đ
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {loadingHistory ? (
+                <div className="loading-history">
+                  <div className="loading-spinner"></div>
+                  <p>Đang tải lịch sử thuốc...</p>
+                </div>
+              ) : medicationHistory.length === 0 ? (
+                <div className="empty-history">
+                  <div className="empty-icon">📊</div>
+                  <p>Chưa có lịch sử sử dụng thuốc</p>
+                  <small>Hồ sơ bệnh án này chưa từng được kê đơn thuốc</small>
+                </div>
+              ) : (
+                <div className="history-grouped-container">
+                  {Object.values(groupedHistory).map((group, groupIndex) => (
+                    <div key={groupIndex} className="history-day-group">
+                      <div className="day-header">
+                        <div className="day-title">
+                          <span className="day-icon">📅</span>
+                          <h4>{group.date}</h4>
+                        </div>
+                        <div className="day-total">
+                          <span className="total-label">Tổng ngày:</span>
+                          <span className="total-amount">
+                            {calculateDayTotal(group.items).toLocaleString()} đ
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="day-medicines">
+                        {group.items.map((item, itemIndex) => (
+                          <div
+                            key={itemIndex}
+                            className="medicine-item-history"
+                          >
+                            <div className="medicine-info-history">
+                              <div className="medicine-name-history">
+                                <strong>{item.medicineName}</strong>
+                                {item.strength && (
+                                  <span className="medicine-strength">
+                                    ({item.strength})
+                                  </span>
+                                )}
+                              </div>
+                              <div className="medicine-details-history">
+                                <div className="detail-row">
+                                  <span className="detail-label">
+                                    Liều dùng:
+                                  </span>
+                                  <span className="detail-value">
+                                    {item.dosage}
+                                  </span>
+                                </div>
+                                <div className="detail-row">
+                                  <span className="detail-label">
+                                    Tần suất:
+                                  </span>
+                                  <span className="detail-value">
+                                    {item.frequency}
+                                  </span>
+                                </div>
+                                <div className="detail-row">
+                                  <span className="detail-label">Số ngày:</span>
+                                  <span className="detail-value">
+                                    {item.duration}
+                                  </span>
+                                </div>
+                                <div className="detail-row">
+                                  <span className="detail-label">
+                                    Số lượng:
+                                  </span>
+                                  <span className="detail-value">
+                                    {item.quantity} {item.unit || ""}
+                                  </span>
+                                </div>
+                                <div className="detail-row">
+                                  <span className="detail-label">Giá:</span>
+                                  <span className="detail-value">
+                                    {parseFloat(
+                                      item.unitPrice || 0
+                                    ).toLocaleString()}{" "}
+                                    đ
+                                  </span>
+                                </div>
+                                <div className="detail-row">
+                                  <span className="detail-label">
+                                    Thành tiền:
+                                  </span>
+                                  <span className="detail-value total-price">
+                                    {parseFloat(
+                                      item.totalPrice || 0
+                                    ).toLocaleString()}{" "}
+                                    đ
+                                  </span>
+                                </div>
+                              </div>
+
+                              {item.instructions && (
+                                <div className="medicine-instructions">
+                                  <span className="instructions-label">
+                                    Hướng dẫn:
+                                  </span>
+                                  <span className="instructions-text">
+                                    {item.instructions}
+                                  </span>
+                                </div>
+                              )}
+
+                              {item.notes && (
+                                <div className="medicine-notes">
+                                  <span className="notes-label">Ghi chú:</span>
+                                  <span className="notes-text">
+                                    {item.notes}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+
+                            <div className="medicine-time">
+                              <span className="time-icon">🕒</span>
+                              <span className="time-text">
+                                {formatFullDate(item.createdAt)}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+
+                  {/* Tổng kết */}
+                  <div className="history-summary">
+                    <div className="summary-header">
+                      <h4>📊 Tổng Kết</h4>
+                    </div>
+                    <div className="summary-content">
+                      <div className="summary-row">
+                        <span className="summary-label">Tổng số ngày:</span>
+                        <span className="summary-value">
+                          {Object.keys(groupedHistory).length} ngày
+                        </span>
+                      </div>
+                      <div className="summary-row">
+                        <span className="summary-label">Tổng số thuốc:</span>
+                        <span className="summary-value">
+                          {medicationHistory.length} loại
+                        </span>
+                      </div>
+                      <div className="summary-row">
+                        <span className="summary-label">Tổng chi phí:</span>
+                        <span className="summary-value total-summary">
+                          {calculateHistoryTotal().toLocaleString()} đ
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="modal-actions">
+                <button
+                  className="btn-close"
+                  onClick={() => setShowMedicationHistory(false)}
+                >
+                  Đóng
+                </button>
+                {medicationHistory.length > 0 && (
+                  <button className="btn-print" onClick={() => window.print()}>
+                    🖨️ In báo cáo
+                  </button>
+                )}
               </div>
             </div>
           </div>

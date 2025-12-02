@@ -84,6 +84,60 @@ public class PrescriptionController {
         }
     }
     
+    @GetMapping("/history/{medicalRecordId}")
+    @PreAuthorize("hasRole('DOCTOR')")
+    public ResponseEntity<Map<String, Object>> getMedicationHistoryByMedicalRecord(
+        @PathVariable Long medicalRecordId) {
+    
+        logger.info("📞 GET /api/doctor/prescriptions/history/{} called", medicalRecordId);
+        
+        try {
+            if (medicalRecordId == null || medicalRecordId <= 0) {
+                return ResponseEntity.badRequest().body(Map.of(
+                    "success", false,
+                    "message", "Medical Record ID không hợp lệ"
+                ));
+            }
+            
+            Map<String, Object> response = prescriptionService.getMedicationHistoryByMedicalRecord(medicalRecordId);
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            logger.error("❌ Error getting medication history by medical record: {}", e.getMessage(), e);
+            return ResponseEntity.internalServerError().body(Map.of(
+                "success", false,
+                "message", "Internal server error: " + e.getMessage()
+            ));
+        }
+    }
+    
+    @GetMapping("/patient/{patientId}/history")
+    @PreAuthorize("hasRole('DOCTOR')")
+    public ResponseEntity<Map<String, Object>> getPatientMedicationHistory(
+            @PathVariable Long patientId) {
+        
+        logger.info("📞 GET /api/doctor/prescriptions/patient/{}/history called", patientId);
+        
+        try {
+            if (patientId == null || patientId <= 0) {
+                return ResponseEntity.badRequest().body(Map.of(
+                    "success", false,
+                    "message", "Patient ID không hợp lệ"
+                ));
+            }
+            
+            Map<String, Object> response = prescriptionService.getPatientMedicationHistory(patientId);
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            logger.error("❌ Error getting patient medication history: {}", e.getMessage(), e);
+            return ResponseEntity.internalServerError().body(Map.of(
+                "success", false,
+                "message", "Internal server error: " + e.getMessage()
+            ));
+        }
+    }
+    
     @GetMapping("/medicines/search")
     @PreAuthorize("hasRole('DOCTOR')")
     public ResponseEntity<Map<String, Object>> searchMedicines(
