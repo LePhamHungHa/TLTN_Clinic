@@ -7,8 +7,6 @@ import {
   MdKeyboardDoubleArrowRight,
 } from "react-icons/md";
 
-// data trượt
-
 const Home = () => {
   const navigate = useNavigate();
 

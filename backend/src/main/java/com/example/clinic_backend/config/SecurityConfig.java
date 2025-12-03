@@ -48,15 +48,15 @@ public class SecurityConfig {
                     "/api/wallet/**",
                     "/api/departments/**",
                     "/api/doctors/**",           
-                    "/api/doctor/appointments/test"
+                    "/api/doctor/appointments/**"
                 ).permitAll()
                 .requestMatchers("/api/admin/**").hasAuthority("ROLE_ADMIN")         
                 .requestMatchers(
                     "/api/doctor/**",
                     "/api/doctor/appointments/**",
-                    "/api/doctor/medical-records/**"
+                    "/api/doctor/medical-records/**",
+                    "/api/doctor/statistics/**"
                 ).hasAuthority("ROLE_DOCTOR")
-                .requestMatchers("/api/doctor/statistics/**").hasAuthority("ROLE_DOCTOR")
                 .requestMatchers("/api/patients/me").hasAuthority("ROLE_PATIENT")    
                 .requestMatchers("/api/wallets/**").hasAuthority("ROLE_PATIENT")    
                 .requestMatchers("/api/users/change-password").authenticated()

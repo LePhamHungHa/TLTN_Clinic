@@ -198,14 +198,14 @@ const Header = () => {
         >
           Lịch làm việc
         </Link>,
-        <Link
-          key="d-patients"
-          to="/doctor/patients"
-          className={linkClass}
-          onClick={isMobile ? toggleMobileMenu : undefined}
-        >
-          Quản lý bệnh nhân
-        </Link>,
+        // <Link
+        //   key="d-patients"
+        //   to="/doctor/patients"
+        //   className={linkClass}
+        //   onClick={isMobile ? toggleMobileMenu : undefined}
+        // >
+        //   Quản lý bệnh nhân
+        // </Link>,
         <Link
           key="d-appointments"
           to="/doctor/appointments"
