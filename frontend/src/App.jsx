@@ -31,6 +31,7 @@ import DoctorAppointments from "./pages/Doctor/DoctorAppointments.jsx";
 import DoctorExamination from "./pages/Doctor/DoctorExamination.jsx";
 import MedicalRecords from "./pages/Doctor/MedicalRecords.jsx";
 import DoctorPrescription from "./pages/Doctor/DoctorPrescription.jsx";
+import DoctorPersonalStatistics from "./pages/Doctor/DoctorPersonalStatistics.jsx";
 
 function App() {
   const user = JSON.parse(localStorage.getItem("user")) || null;
@@ -250,8 +251,19 @@ function App() {
           }
         />
 
-        {/* Kê đơn thuốc (có medicalRecordId) - Bác sĩ */}
+        {/* Thống kê cá nhân - Bác sĩ */}
         <Route
+          path="/doctor/Personal_statistics"
+          element={
+            <>
+              <Header />
+              <DoctorPersonalStatistics />
+            </>
+          }
+        />
+
+        {/* Kê đơn thuốc (có medicalRecordId) - Bác sĩ */}
+        {/* <Route
           path="/doctor/prescription/:appointmentId/:medicalRecordId"
           element={
             <>
@@ -259,7 +271,7 @@ function App() {
               <DoctorPrescription />
             </>
           }
-        />
+        /> */}
 
         {/* Đăng nhập / đăng ký */}
         <Route

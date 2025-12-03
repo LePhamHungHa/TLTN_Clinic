@@ -56,6 +56,7 @@ public class SecurityConfig {
                     "/api/doctor/appointments/**",
                     "/api/doctor/medical-records/**"
                 ).hasAuthority("ROLE_DOCTOR")
+                .requestMatchers("/api/doctor/statistics/**").hasAuthority("ROLE_DOCTOR")
                 .requestMatchers("/api/patients/me").hasAuthority("ROLE_PATIENT")    
                 .requestMatchers("/api/wallets/**").hasAuthority("ROLE_PATIENT")    
                 .requestMatchers("/api/users/change-password").authenticated()

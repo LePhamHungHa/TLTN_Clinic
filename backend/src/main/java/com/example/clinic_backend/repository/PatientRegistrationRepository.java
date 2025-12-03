@@ -78,10 +78,59 @@ public interface PatientRegistrationRepository extends JpaRepository<PatientRegi
         @Param("assignedSession") String assignedSession
     );
     
-    @Query("SELECT p FROM PatientRegistration p WHERE p.doctorId = :doctorId AND p.appointmentDate = :appointmentDate AND p.assignedSession = :assignedSession AND p.status = 'APPROVED'")
+    // ==================== METHOD QUAN TRỌNG CHO STATISTICS ====================
+    
+    // 1. Lấy appointments theo doctor và ngày (có hoặc không có session)
+    @Query("SELECT p FROM PatientRegistration p WHERE p.doctorId = :doctorId " +
+           "AND p.appointmentDate = :appointmentDate " +
+           "AND (:assignedSession IS NULL OR p.assignedSession = :assignedSession)")
     List<PatientRegistration> findByDoctorAndDateAndSession(
         @Param("doctorId") Long doctorId,
         @Param("appointmentDate") LocalDate appointmentDate,
         @Param("assignedSession") String assignedSession
+    );
+    
+    // 2. Lấy appointments theo doctor và khoảng thời gian (KHÔNG filter status)
+    @Query("SELECT p FROM PatientRegistration p WHERE p.doctorId = :doctorId " +
+           "AND p.appointmentDate BETWEEN :startDate AND :endDate " +
+           "ORDER BY p.appointmentDate ASC, p.assignedSession ASC")
+    List<PatientRegistration> findByDoctorIdAndDateRange(
+        @Param("doctorId") Long doctorId,
+        @Param("startDate") LocalDate startDate,
+        @Param("endDate") LocalDate endDate
+    );
+    
+    // 3. Lấy appointments theo doctor, khoảng thời gian và status
+    @Query("SELECT p FROM PatientRegistration p WHERE p.doctorId = :doctorId " +
+           "AND p.appointmentDate BETWEEN :startDate AND :endDate " +
+           "AND p.status = :status " +
+           "ORDER BY p.appointmentDate ASC, p.assignedSession ASC")
+    List<PatientRegistration> findByDoctorIdAndDateRangeAndStatus(
+        @Param("doctorId") Long doctorId,
+        @Param("startDate") LocalDate startDate,
+        @Param("endDate") LocalDate endDate,
+        @Param("status") String status
+    );
+    
+    // 4. Lấy appointments theo doctor, khoảng thời gian và nhiều status (dùng IN)
+    @Query("SELECT p FROM PatientRegistration p WHERE p.doctorId = :doctorId " +
+           "AND p.appointmentDate BETWEEN :startDate AND :endDate " +
+           "AND p.status IN :statusList " +
+           "ORDER BY p.appointmentDate ASC, p.assignedSession ASC")
+    List<PatientRegistration> findByDoctorIdAndDateRangeAndStatusIn(
+        @Param("doctorId") Long doctorId,
+        @Param("startDate") LocalDate startDate,
+        @Param("endDate") LocalDate endDate,
+        @Param("statusList") List<String> statusList
+    );
+    
+    // 5. Lấy appointments theo doctor và ngày với trạng thái cụ thể
+    @Query("SELECT p FROM PatientRegistration p WHERE p.doctorId = :doctorId " +
+           "AND p.appointmentDate = :appointmentDate " +
+           "AND p.status = :status")
+    List<PatientRegistration> findByDoctorIdAndAppointmentDateAndStatus(
+        @Param("doctorId") Long doctorId,
+        @Param("appointmentDate") LocalDate appointmentDate,
+        @Param("status") String status
     );
 }
