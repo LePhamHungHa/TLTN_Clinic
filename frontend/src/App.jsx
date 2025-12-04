@@ -25,7 +25,7 @@ import PaymentResult from "./pages/Patient/PaymentResult.jsx";
 // Import Admin
 import AdminUsers from "./pages/Admin/AdminUsers.jsx";
 import AdminAppointments from "./pages/Admin/AdminAppointments.jsx";
-
+import AdminStructure from "./pages/Admin/AdminStructure.jsx";
 // Import Doctor
 import DoctorAppointments from "./pages/Doctor/DoctorAppointments.jsx";
 import DoctorExamination from "./pages/Doctor/DoctorExamination.jsx";
@@ -195,6 +195,17 @@ function App() {
             <>
               <Header />
               <AdminUsers />
+              <Footer />
+            </>
+          }
+        />
+
+        <Route
+          path="/admin"
+          element={
+            <>
+              <Header />
+              <AdminStructure />
               <Footer />
             </>
           }

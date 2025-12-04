@@ -1,4 +1,3 @@
-// DoctorSlot.java
 package com.example.clinic_backend.model;
 
 import jakarta.persistence.*;
@@ -15,30 +14,35 @@ public class DoctorSlot {
     private Long doctorId;
 
     @Column(name = "appointment_date")
-    private String appointmentDate;
+    private String appointmentDate;  // Format: "yyyy-MM-dd"
 
     @Column(name = "time_slot")
-    private String timeSlot;
+    private String timeSlot;  // Format: "07:00-08:00", "08:00-09:00", etc.
 
     @Column(name = "max_patients")
-    private Integer maxPatients = 10;
+    private Integer maxPatients = 10;  // 👈 Số lượng tối đa có thể thay đổi
 
-    @Column(name = "current_patients")
-    private Integer currentPatients = 0;
+    @Column(name = "is_active")
+    private Boolean isActive = true;
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
+
     // Constructors
     public DoctorSlot() {
         this.createdAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
     }
 
-    public DoctorSlot(Long doctorId, String appointmentDate, String timeSlot) {
+    public DoctorSlot(Long doctorId, String appointmentDate, String timeSlot, Integer maxPatients) {
         this();
         this.doctorId = doctorId;
         this.appointmentDate = appointmentDate;
         this.timeSlot = timeSlot;
+        this.maxPatients = maxPatients != null ? maxPatients : 10;
     }
 
     // Getters and Setters
@@ -80,14 +84,16 @@ public class DoctorSlot {
 
     public void setMaxPatients(Integer maxPatients) {
         this.maxPatients = maxPatients;
+        this.updatedAt = LocalDateTime.now();
     }
 
-    public Integer getCurrentPatients() {
-        return currentPatients;
+    public Boolean getIsActive() {
+        return isActive;
     }
 
-    public void setCurrentPatients(Integer currentPatients) {
-        this.currentPatients = currentPatients;
+    public void setIsActive(Boolean isActive) {
+        this.isActive = isActive;
+        this.updatedAt = LocalDateTime.now();
     }
 
     public LocalDateTime getCreatedAt() {
@@ -96,5 +102,13 @@ public class DoctorSlot {
 
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(LocalDateTime updatedAt) {
+        this.updatedAt = updatedAt;
     }
 }

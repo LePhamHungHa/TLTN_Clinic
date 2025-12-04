@@ -19,7 +19,7 @@ public class DoctorController {
         this.doctorService = doctorService;
     }
 
-    // 🔹 GET danh sách bác sĩ (có thể lọc theo tên hoặc khoa)
+    // 🔹 GET danh sách bác sĩ (Mặc định trả về TẤT CẢ bác sĩ)
     @GetMapping
     public ResponseEntity<List<Doctor>> getAllDoctors(
             @RequestParam(required = false) String name,
@@ -36,8 +36,16 @@ public class DoctorController {
                 doctors = doctorService.getAllDoctors();
             }
             
+            // DEBUG: In ra số lượng bác sĩ trả về
+            System.out.println("📊 DoctorController: Trả về " + doctors.size() + " bác sĩ");
+            if (!doctors.isEmpty()) {
+                System.out.println("📋 Doctor đầu tiên: " + doctors.get(0).getFullName());
+            }
+            
             return ResponseEntity.ok(doctors);
         } catch (Exception e) {
+            System.err.println("❌ Lỗi DoctorController.getAllDoctors: " + e.getMessage());
+            e.printStackTrace();
             return ResponseEntity.internalServerError().build();
         }
     }
@@ -46,11 +54,13 @@ public class DoctorController {
     @PostMapping("/create")
     public ResponseEntity<?> createDoctor(@RequestBody Doctor doctor) {
         try {
+            System.out.println("➕ DoctorController.createDoctor: " + doctor.getFullName());
             Doctor createdDoctor = doctorService.createDoctor(doctor);
             return ResponseEntity.ok(createdDoctor);
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         } catch (Exception e) {
+            System.err.println("❌ Lỗi tạo bác sĩ: " + e.getMessage());
             return ResponseEntity.internalServerError().body("Lỗi server khi tạo bác sĩ");
         }
     }

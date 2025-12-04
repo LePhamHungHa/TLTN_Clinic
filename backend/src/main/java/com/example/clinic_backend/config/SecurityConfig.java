@@ -50,7 +50,8 @@ public class SecurityConfig {
                     "/api/doctors/**",           
                     "/api/doctor/appointments/**"
                 ).permitAll()
-                .requestMatchers("/api/admin/**").hasAuthority("ROLE_ADMIN")         
+                .requestMatchers("/api/admin/**").hasAuthority("ROLE_ADMIN")       
+                .requestMatchers("/api/admin/structure/**").hasAuthority("ROLE_ADMIN")  
                 .requestMatchers(
                     "/api/doctor/**",
                     "/api/doctor/appointments/**",

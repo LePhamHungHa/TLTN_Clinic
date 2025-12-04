@@ -14,7 +14,8 @@ public interface DoctorSlotRepository extends JpaRepository<DoctorSlot, Long> {
     
     List<DoctorSlot> findByDoctorIdAndAppointmentDate(Long doctorId, String appointmentDate);
     
-    DoctorSlot findByDoctorIdAndAppointmentDateAndTimeSlot(Long doctorId, String appointmentDate, String timeSlot);
+    // DoctorSlot findByDoctorIdAndAppointmentDateAndTimeSlot(Long doctorId, String appointmentDate, String timeSlot);
+    Optional<DoctorSlot> findByDoctorIdAndAppointmentDateAndTimeSlot(Long doctorId, String appointmentDate, String timeSlot);
     
     @Query("SELECT ds FROM DoctorSlot ds WHERE ds.doctorId = :doctorId AND ds.appointmentDate = :appointmentDate AND ds.timeSlot = :timeSlot")
     Optional<DoctorSlot> findAvailableSlot(@Param("doctorId") Long doctorId, 
@@ -22,4 +23,14 @@ public interface DoctorSlotRepository extends JpaRepository<DoctorSlot, Long> {
                                          @Param("timeSlot") String timeSlot);
     
     boolean existsByDoctorIdAndAppointmentDateAndTimeSlot(Long doctorId, String appointmentDate, String timeSlot);
+
+    @Query("SELECT ds FROM DoctorSlot ds WHERE ds.appointmentDate >= :date")
+    List<DoctorSlot> findByAppointmentDateGreaterThanEqual(@Param("date") String date);
+    
+ List<DoctorSlot> findByDoctorId(Long doctorId);
+ 
+    
+    // Thêm phương thức mới
+    @Query("SELECT ds FROM DoctorSlot ds WHERE ds.isActive = true")
+    List<DoctorSlot> findActiveSlots();
 }

@@ -39,6 +39,148 @@ public class PrescriptionService {
         this.jdbcTemplate = jdbcTemplate;
     }
     
+    // THAY THẾ CÁC METHOD KHÔNG TỒN TẠI BẰNG CÁCH XỬ LÝ TRONG JAVA
+    public Map<String, Object> searchMedicines(String keyword) {
+        Map<String, Object> response = new HashMap<>();
+        
+        try {
+            logger.info("🔍 Searching medicines with keyword: {}", keyword);
+            
+            // Lấy tất cả thuốc và filter trong Java
+            List<Medicine> allMedicines = medicineRepository.findAll();
+            List<Medicine> filteredMedicines = new ArrayList<>();
+            
+            if (keyword == null || keyword.trim().isEmpty()) {
+                // Nếu không có keyword, lấy tất cả thuốc còn hàng và active
+                filteredMedicines = allMedicines.stream()
+                    .filter(m -> "ACTIVE".equals(m.getStatus()) && m.getStockQuantity() > 0)
+                    .collect(Collectors.toList());
+            } else {
+                String lowerKeyword = keyword.toLowerCase().trim();
+                // Tìm kiếm theo tên thuốc, mã thuốc, hoạt chất, danh mục
+                filteredMedicines = allMedicines.stream()
+                    .filter(m -> "ACTIVE".equals(m.getStatus()) && m.getStockQuantity() > 0)
+                    .filter(m -> 
+                        (m.getMedicineName() != null && m.getMedicineName().toLowerCase().contains(lowerKeyword)) ||
+                        (m.getMedicineCode() != null && m.getMedicineCode().toLowerCase().contains(lowerKeyword)) ||
+                        (m.getActiveIngredient() != null && m.getActiveIngredient().toLowerCase().contains(lowerKeyword)) ||
+                        (m.getCategory() != null && m.getCategory().toLowerCase().contains(lowerKeyword))
+                    )
+                    .collect(Collectors.toList());
+            }
+            
+            response.put("success", true);
+            response.put("medicines", filteredMedicines);
+            response.put("count", filteredMedicines.size());
+            
+            logger.info("✅ Found {} medicines for keyword: {}", filteredMedicines.size(), keyword);
+            
+        } catch (Exception e) {
+            logger.error("💥 Error searching medicines: {}", e.getMessage(), e);
+            response.put("success", false);
+            response.put("message", "Lỗi khi tìm kiếm thuốc: " + e.getMessage());
+        }
+        
+        return response;
+    }
+    
+    public Map<String, Object> getActiveMedicines() {
+        Map<String, Object> response = new HashMap<>();
+        
+        try {
+            logger.info("📊 Getting all active medicines");
+            
+            // Lấy tất cả thuốc và filter trong Java
+            List<Medicine> allMedicines = medicineRepository.findAll();
+            List<Medicine> activeMedicines = allMedicines.stream()
+                .filter(m -> "ACTIVE".equals(m.getStatus()) && m.getStockQuantity() > 0)
+                .collect(Collectors.toList());
+            
+            response.put("success", true);
+            response.put("medicines", activeMedicines);
+            response.put("count", activeMedicines.size());
+            
+            logger.info("✅ Found {} active medicines", activeMedicines.size());
+            
+        } catch (Exception e) {
+            logger.error("💥 Error getting active medicines: {}", e.getMessage(), e);
+            response.put("success", false);
+            response.put("message", "Lỗi khi lấy danh sách thuốc: " + e.getMessage());
+        }
+        
+        return response;
+    }
+    
+    public Map<String, Object> getMedicinesByCategory(String category) {
+        Map<String, Object> response = new HashMap<>();
+        
+        try {
+            logger.info("📊 Getting medicines by category: {}", category);
+            
+            if ("Tất cả".equals(category) || category == null || category.trim().isEmpty()) {
+                // Lấy tất cả thuốc còn hàng
+                return getActiveMedicines();
+            }
+            
+            // Lấy theo category
+            List<Medicine> medicines = medicineRepository.findAll().stream()
+                .filter(m -> category.equals(m.getCategory()) && 
+                           "ACTIVE".equals(m.getStatus()) && 
+                           m.getStockQuantity() > 0)
+                .collect(Collectors.toList());
+            
+            response.put("success", true);
+            response.put("medicines", medicines);
+            response.put("count", medicines.size());
+            
+            logger.info("✅ Found {} medicines in category {}", medicines.size(), category);
+            
+        } catch (Exception e) {
+            logger.error("💥 Error getting medicines by category: {}", e.getMessage(), e);
+            response.put("success", false);
+            response.put("message", "Lỗi khi lấy thuốc theo danh mục: " + e.getMessage());
+        }
+        
+        return response;
+    }
+    
+    public Map<String, Object> getMedicineCategories() {
+        Map<String, Object> response = new HashMap<>();
+        
+        try {
+            logger.info("📊 Getting medicine categories");
+            
+            // Lấy tất cả thuốc còn hàng và active
+            List<Medicine> allMedicines = medicineRepository.findAll();
+            List<String> categories = allMedicines.stream()
+                .filter(m -> "ACTIVE".equals(m.getStatus()) && m.getStockQuantity() > 0)
+                .map(Medicine::getCategory)
+                .filter(category -> category != null && !category.trim().isEmpty())
+                .distinct()
+                .sorted()
+                .collect(Collectors.toList());
+            
+            // Thêm "Tất cả" vào đầu danh sách
+            List<String> allCategories = new ArrayList<>();
+            allCategories.add("Tất cả");
+            allCategories.addAll(categories);
+            
+            response.put("success", true);
+            response.put("categories", allCategories);
+            response.put("count", allCategories.size());
+            
+            logger.info("✅ Found {} categories", allCategories.size());
+            
+        } catch (Exception e) {
+            logger.error("💥 Error getting medicine categories: {}", e.getMessage(), e);
+            response.put("success", false);
+            response.put("message", "Lỗi khi lấy danh mục thuốc: " + e.getMessage());
+        }
+        
+        return response;
+    }
+    
+    // CÁC METHOD CŨ GIỮ NGUYÊN
     public Map<String, Object> getPrescriptionByMedicalRecord(Long medicalRecordId) {
         Map<String, Object> response = new HashMap<>();
         
@@ -485,87 +627,5 @@ public class PrescriptionService {
     private String extractString(Object value) {
         if (value == null) return null;
         return value.toString();
-    }
-    
-    public Map<String, Object> searchMedicines(String keyword) {
-        Map<String, Object> response = new HashMap<>();
-        
-        try {
-            logger.info("🔍 Searching medicines with keyword: {}", keyword);
-            List<Medicine> medicines = medicineRepository.searchMedicinesForPrescription(keyword);
-            response.put("success", true);
-            response.put("medicines", medicines);
-            response.put("count", medicines.size());
-            
-        } catch (Exception e) {
-            logger.error("💥 Error searching medicines: {}", e.getMessage(), e);
-            response.put("success", false);
-            response.put("message", "Lỗi khi tìm kiếm thuốc: " + e.getMessage());
-        }
-        
-        return response;
-    }
-    
-    public Map<String, Object> getActiveMedicines() {
-        Map<String, Object> response = new HashMap<>();
-        
-        try {
-            logger.info("📊 Getting all active medicines");
-            List<Medicine> medicines = medicineRepository.findAllAvailableMedicines();
-            response.put("success", true);
-            response.put("medicines", medicines);
-            response.put("count", medicines.size());
-            
-            logger.info("✅ Found {} active medicines", medicines.size());
-            
-        } catch (Exception e) {
-            logger.error("💥 Error getting active medicines: {}", e.getMessage(), e);
-            response.put("success", false);
-            response.put("message", "Lỗi khi lấy danh sách thuốc: " + e.getMessage());
-        }
-        
-        return response;
-    }
-    
-    public Map<String, Object> getMedicinesByCategory(String category) {
-        Map<String, Object> response = new HashMap<>();
-        
-        try {
-            logger.info("📊 Getting medicines by category: {}", category);
-            List<Medicine> medicines = medicineRepository.findAvailableMedicinesByCategory(category);
-            response.put("success", true);
-            response.put("medicines", medicines);
-            response.put("count", medicines.size());
-            
-            logger.info("✅ Found {} medicines in category {}", medicines.size(), category);
-            
-        } catch (Exception e) {
-            logger.error("💥 Error getting medicines by category: {}", e.getMessage(), e);
-            response.put("success", false);
-            response.put("message", "Lỗi khi lấy thuốc theo danh mục: " + e.getMessage());
-        }
-        
-        return response;
-    }
-    
-    public Map<String, Object> getMedicineCategories() {
-        Map<String, Object> response = new HashMap<>();
-        
-        try {
-            logger.info("📊 Getting medicine categories");
-            List<String> categories = medicineRepository.findAvailableCategories();
-            response.put("success", true);
-            response.put("categories", categories);
-            response.put("count", categories.size());
-            
-            logger.info("✅ Found {} categories", categories.size());
-            
-        } catch (Exception e) {
-            logger.error("💥 Error getting medicine categories: {}", e.getMessage(), e);
-            response.put("success", false);
-            response.put("message", "Lỗi khi lấy danh mục thuốc: " + e.getMessage());
-        }
-        
-        return response;
     }
 }

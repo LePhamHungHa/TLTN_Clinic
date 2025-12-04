@@ -104,84 +104,219 @@ public class Medicine {
     }
 
     // Getters and Setters
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
+    public Long getId() {
+        return id;
+    }
 
-    public String getMedicineCode() { return medicineCode; }
-    public void setMedicineCode(String medicineCode) { this.medicineCode = medicineCode; }
+    public void setId(Long id) {
+        this.id = id;
+    }
 
-    public String getMedicineName() { return medicineName; }
-    public void setMedicineName(String medicineName) { this.medicineName = medicineName; }
+    public String getMedicineCode() {
+        return medicineCode;
+    }
 
-    public String getActiveIngredient() { return activeIngredient; }
-    public void setActiveIngredient(String activeIngredient) { this.activeIngredient = activeIngredient; }
+    public void setMedicineCode(String medicineCode) {
+        this.medicineCode = medicineCode;
+    }
 
-    public String getDosageForm() { return dosageForm; }
-    public void setDosageForm(String dosageForm) { this.dosageForm = dosageForm; }
+    public String getMedicineName() {
+        return medicineName;
+    }
 
-    public String getStrength() { return strength; }
-    public void setStrength(String strength) { this.strength = strength; }
+    public void setMedicineName(String medicineName) {
+        this.medicineName = medicineName;
+    }
 
-    public String getUnit() { return unit; }
-    public void setUnit(String unit) { this.unit = unit; }
+    public String getActiveIngredient() {
+        return activeIngredient;
+    }
 
-    public String getPackageType() { return packageType; }
-    public void setPackageType(String packageType) { this.packageType = packageType; }
+    public void setActiveIngredient(String activeIngredient) {
+        this.activeIngredient = activeIngredient;
+    }
 
-    public Integer getQuantityPerPackage() { return quantityPerPackage; }
-    public void setQuantityPerPackage(Integer quantityPerPackage) { this.quantityPerPackage = quantityPerPackage; }
+    public String getDosageForm() {
+        return dosageForm;
+    }
 
-    public String getManufacturer() { return manufacturer; }
-    public void setManufacturer(String manufacturer) { this.manufacturer = manufacturer; }
+    public void setDosageForm(String dosageForm) {
+        this.dosageForm = dosageForm;
+    }
 
-    public String getCountryOrigin() { return countryOrigin; }
-    public void setCountryOrigin(String countryOrigin) { this.countryOrigin = countryOrigin; }
+    public String getStrength() {
+        return strength;
+    }
 
-    public String getLotNumber() { return lotNumber; }
-    public void setLotNumber(String lotNumber) { this.lotNumber = lotNumber; }
+    public void setStrength(String strength) {
+        this.strength = strength;
+    }
 
-    public LocalDate getExpiryDate() { return expiryDate; }
-    public void setExpiryDate(LocalDate expiryDate) { this.expiryDate = expiryDate; }
+    public String getUnit() {
+        return unit;
+    }
 
-    public BigDecimal getUnitPrice() { return unitPrice; }
-    public void setUnitPrice(BigDecimal unitPrice) { this.unitPrice = unitPrice; }
+    public void setUnit(String unit) {
+        this.unit = unit;
+    }
 
-    public Integer getStockQuantity() { return stockQuantity; }
-    public void setStockQuantity(Integer stockQuantity) { this.stockQuantity = stockQuantity; }
+    public String getPackageType() {
+        return packageType;
+    }
 
-    public Integer getMinStockLevel() { return minStockLevel; }
-    public void setMinStockLevel(Integer minStockLevel) { this.minStockLevel = minStockLevel; }
+    public void setPackageType(String packageType) {
+        this.packageType = packageType;
+    }
 
-    public Integer getMaxStockLevel() { return maxStockLevel; }
-    public void setMaxStockLevel(Integer maxStockLevel) { this.maxStockLevel = maxStockLevel; }
+    public Integer getQuantityPerPackage() {
+        return quantityPerPackage;
+    }
 
-    public Boolean getPrescriptionRequired() { return prescriptionRequired; }
-    public void setPrescriptionRequired(Boolean prescriptionRequired) { this.prescriptionRequired = prescriptionRequired; }
+    public void setQuantityPerPackage(Integer quantityPerPackage) {
+        this.quantityPerPackage = quantityPerPackage;
+    }
 
-    public String getDescription() { return description; }
-    public void setDescription(String description) { this.description = description; }
+    public String getManufacturer() {
+        return manufacturer;
+    }
 
-    public String getSideEffects() { return sideEffects; }
-    public void setSideEffects(String sideEffects) { this.sideEffects = sideEffects; }
+    public void setManufacturer(String manufacturer) {
+        this.manufacturer = manufacturer;
+    }
 
-    public String getContraindications() { return contraindications; }
-    public void setContraindications(String contraindications) { this.contraindications = contraindications; }
+    public String getCountryOrigin() {
+        return countryOrigin;
+    }
 
-    public String getUsageInstructions() { return usageInstructions; }
-    public void setUsageInstructions(String usageInstructions) { this.usageInstructions = usageInstructions; }
+    public void setCountryOrigin(String countryOrigin) {
+        this.countryOrigin = countryOrigin;
+    }
 
-    public String getStorageConditions() { return storageConditions; }
-    public void setStorageConditions(String storageConditions) { this.storageConditions = storageConditions; }
+    public String getLotNumber() {
+        return lotNumber;
+    }
 
-    public String getCategory() { return category; }
-    public void setCategory(String category) { this.category = category; }
+    public void setLotNumber(String lotNumber) {
+        this.lotNumber = lotNumber;
+    }
 
-    public String getStatus() { return status; }
-    public void setStatus(String status) { this.status = status; }
+    public LocalDate getExpiryDate() {
+        return expiryDate;
+    }
 
-    public LocalDateTime getCreatedAt() { return createdAt; }
-    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+    public void setExpiryDate(LocalDate expiryDate) {
+        this.expiryDate = expiryDate;
+    }
 
-    public LocalDateTime getUpdatedAt() { return updatedAt; }
-    public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
+    public BigDecimal getUnitPrice() {
+        return unitPrice;
+    }
+
+    public void setUnitPrice(BigDecimal unitPrice) {
+        this.unitPrice = unitPrice;
+    }
+
+    public Integer getStockQuantity() {
+        return stockQuantity;
+    }
+
+    public void setStockQuantity(Integer stockQuantity) {
+        this.stockQuantity = stockQuantity;
+    }
+
+    public Integer getMinStockLevel() {
+        return minStockLevel;
+    }
+
+    public void setMinStockLevel(Integer minStockLevel) {
+        this.minStockLevel = minStockLevel;
+    }
+
+    public Integer getMaxStockLevel() {
+        return maxStockLevel;
+    }
+
+    public void setMaxStockLevel(Integer maxStockLevel) {
+        this.maxStockLevel = maxStockLevel;
+    }
+
+    public Boolean getPrescriptionRequired() {
+        return prescriptionRequired;
+    }
+
+    public void setPrescriptionRequired(Boolean prescriptionRequired) {
+        this.prescriptionRequired = prescriptionRequired;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    public String getSideEffects() {
+        return sideEffects;
+    }
+
+    public void setSideEffects(String sideEffects) {
+        this.sideEffects = sideEffects;
+    }
+
+    public String getContraindications() {
+        return contraindications;
+    }
+
+    public void setContraindications(String contraindications) {
+        this.contraindications = contraindications;
+    }
+
+    public String getUsageInstructions() {
+        return usageInstructions;
+    }
+
+    public void setUsageInstructions(String usageInstructions) {
+        this.usageInstructions = usageInstructions;
+    }
+
+    public String getStorageConditions() {
+        return storageConditions;
+    }
+
+    public void setStorageConditions(String storageConditions) {
+        this.storageConditions = storageConditions;
+    }
+
+    public String getCategory() {
+        return category;
+    }
+
+    public void setCategory(String category) {
+        this.category = category;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(LocalDateTime updatedAt) {
+        this.updatedAt = updatedAt;
+    }
 }

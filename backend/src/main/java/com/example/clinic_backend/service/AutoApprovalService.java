@@ -1,6 +1,8 @@
 package com.example.clinic_backend.service;
 
+import com.example.clinic_backend.model.DoctorSlot;
 import com.example.clinic_backend.model.PatientRegistration;
+import com.example.clinic_backend.repository.DoctorSlotRepository;
 import com.example.clinic_backend.repository.PatientRegistrationRepository;
 import com.example.clinic_backend.repository.DoctorRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,6 +14,7 @@ import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Date;
+import java.util.Optional;
 import java.util.Random;
 
 @Service
@@ -26,6 +29,9 @@ public class AutoApprovalService {
     
     @Autowired
     private DoctorSlotService doctorSlotService;
+    
+    @Autowired
+    private DoctorSlotRepository doctorSlotRepository;
 
     @Autowired
     private EmailService emailService;
@@ -35,11 +41,26 @@ public class AutoApprovalService {
         "11:00-12:00", "13:00-14:00", "14:00-15:00", "15:00-16:00", "16:00-17:00"
     };
     
-    private static final int MAX_PATIENTS_PER_SLOT = 10;
-    
     public boolean checkAvailableSlots(Long doctorId, LocalDate appointmentDate, String timeSlot) {
         try {
             System.out.println("🔍 Kiểm tra slot cho bác sĩ: " + doctorId + ", ngày: " + appointmentDate + ", khung giờ: " + timeSlot);
+            
+            // Tìm slot từ database
+            Optional<DoctorSlot> slotOpt = doctorSlotRepository.findByDoctorIdAndAppointmentDateAndTimeSlot(doctorId, appointmentDate.toString(), timeSlot);
+            
+            int maxPatients;
+            if (slotOpt.isPresent()) {
+                DoctorSlot slot = slotOpt.get();
+                if (slot.getIsActive() != null && !slot.getIsActive()) {
+                    System.out.println("❌ Slot đã bị vô hiệu hóa");
+                    return false;
+                }
+                maxPatients = slot.getMaxPatients() != null ? slot.getMaxPatients() : 10;
+                System.out.println("📊 Slot từ DB - Max patients: " + maxPatients);
+            } else {
+                maxPatients = 10; // Mặc định
+                System.out.println("📊 Slot mặc định - Max patients: " + maxPatients);
+            }
             
             Integer approvedCount = repository.countByDoctorIdAndAppointmentDateAndAssignedSessionAndStatus(
                 doctorId, appointmentDate, timeSlot, "APPROVED"
@@ -49,9 +70,9 @@ public class AutoApprovalService {
                 approvedCount = 0;
             }
             
-            System.out.println("📊 Kiểm tra slot - " + timeSlot + ": " + approvedCount + "/" + MAX_PATIENTS_PER_SLOT + " đơn được duyệt");
+            System.out.println("📊 Kiểm tra slot - " + timeSlot + ": " + approvedCount + "/" + maxPatients + " đơn được duyệt");
             
-            return approvedCount < MAX_PATIENTS_PER_SLOT;
+            return approvedCount < maxPatients;
         } catch (Exception e) {
             System.err.println("❌ Lỗi khi kiểm tra slot: " + e.getMessage());
             e.printStackTrace();
@@ -109,6 +130,7 @@ public class AutoApprovalService {
     }
     
     private String findAvailableSlot(Long doctorId, LocalDate appointmentDate) {
+        // Ưu tiên kiểm tra slot từ database
         for (String timeSlot : TIME_SLOTS) {
             boolean available = checkAvailableSlots(doctorId, appointmentDate, timeSlot);
             if (available) {

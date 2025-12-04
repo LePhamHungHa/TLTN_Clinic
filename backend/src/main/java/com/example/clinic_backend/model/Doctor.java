@@ -39,6 +39,7 @@ public class Doctor {
     private String roomNumber;
     
     private String floor;
+    private String specialty;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "department_id", insertable = false, updatable = false)
@@ -102,4 +103,7 @@ public class Doctor {
 
     public Department getDepartment() { return department; }
     public void setDepartment(Department department) { this.department = department; }
+    
+     public String getSpecialty() { return specialty; }
+    public void setSpecialty(String specialty) { this.specialty = specialty; }
 }

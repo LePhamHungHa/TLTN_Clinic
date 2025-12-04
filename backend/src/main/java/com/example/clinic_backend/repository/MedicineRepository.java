@@ -11,29 +11,39 @@ import java.util.Optional;
 @Repository
 public interface MedicineRepository extends JpaRepository<Medicine, Long> {
     
-    // 1. Tìm kiếm thuốc cho kê đơn (chỉ thuốc còn hàng và đang active)
-    @Query("SELECT m FROM Medicine m WHERE m.status = 'ACTIVE' AND m.stockQuantity > 0 " +
-           "AND (LOWER(m.medicineName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
-           "LOWER(m.medicineCode) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
-           "LOWER(m.activeIngredient) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
-           "LOWER(m.category) LIKE LOWER(CONCAT('%', :keyword, '%')))")
-    List<Medicine> searchMedicinesForPrescription(@Param("keyword") String keyword);
+    // Tìm thuốc theo mã
+    Optional<Medicine> findByMedicineCode(String medicineCode);
     
-    // 2. Lấy tất cả thuốc còn hàng để hiển thị
+    // Tìm thuốc theo tên (tìm kiếm không phân biệt hoa thường)
+    List<Medicine> findByMedicineNameContainingIgnoreCase(String medicineName);
+    
+    // Tìm thuốc theo danh mục
+    List<Medicine> findByCategory(String category);
+    
+    // Tìm thuốc theo trạng thái
+    List<Medicine> findByStatus(String status);
+    
+    // Tìm thuốc còn hàng
     @Query("SELECT m FROM Medicine m WHERE m.status = 'ACTIVE' AND m.stockQuantity > 0")
-    List<Medicine> findAllAvailableMedicines();
+    List<Medicine> findAvailableMedicines();
     
-    // 3. Lấy thuốc theo danh mục (để filter)
-    @Query("SELECT m FROM Medicine m WHERE m.status = 'ACTIVE' AND m.stockQuantity > 0 " +
-           "AND (:category = 'Tất cả' OR m.category = :category)")
-    List<Medicine> findAvailableMedicinesByCategory(@Param("category") String category);
+    // Tìm thuốc sắp hết hàng
+    @Query("SELECT m FROM Medicine m WHERE m.stockQuantity <= m.minStockLevel")
+    List<Medicine> findLowStockMedicines();
     
-    // 4. Kiểm tra và lấy thông tin thuốc theo ID (cho kiểm tra tồn kho)
-    Optional<Medicine> findByIdAndStatusAndStockQuantityGreaterThan(
-        Long id, String status, Integer minStock);
+    // Tìm thuốc theo nhiều tiêu chí
+    @Query("SELECT m FROM Medicine m WHERE " +
+           "(:keyword IS NULL OR :keyword = '' OR " +
+           "LOWER(m.medicineCode) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+           "LOWER(m.medicineName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+           "LOWER(m.activeIngredient) LIKE LOWER(CONCAT('%', :keyword, '%'))) AND " +
+           "(:category IS NULL OR :category = '' OR m.category = :category) AND " +
+           "(:status IS NULL OR :status = '' OR m.status = :status)")
+    List<Medicine> searchMedicines(@Param("keyword") String keyword,
+                                   @Param("category") String category,
+                                   @Param("status") String status);
     
-    // 5. Lấy danh sách các danh mục thuốc (cho dropdown filter)
-    @Query("SELECT DISTINCT m.category FROM Medicine m WHERE m.status = 'ACTIVE' " +
-           "AND m.category IS NOT NULL AND m.stockQuantity > 0")
-    List<String> findAvailableCategories();
+    // Lấy danh sách danh mục duy nhất
+    @Query("SELECT DISTINCT m.category FROM Medicine m WHERE m.category IS NOT NULL")
+    List<String> findDistinctCategories();
 }
