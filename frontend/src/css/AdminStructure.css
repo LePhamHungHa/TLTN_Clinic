@@ -1018,15 +1018,6 @@
             color: #6c757d;
             font-style: italic;
           }
-
-          .debug-id {
-            display: block;
-            font-size: 10px;
-            color: #666;
-            margin-top: 2px;
-            font-family: monospace;
-            opacity: 0.7;
-          }
         }
 
         .gender-badge {
@@ -1106,7 +1097,6 @@
       }
     }
 
-    /* Additional Styles for Departments */
     .table-container .data-table {
       th:nth-child(4),
       td:nth-child(4) {
@@ -1133,152 +1123,72 @@
     }
   }
 
-  /* Department select specific styling */
-  .doctor-management .add-doctor-form .form-grid .form-field {
-    &:has(select[name="departmentId"]) {
-      label:after {
-        content: " (tùy chọn)";
-        font-size: 12px;
-        color: #999;
-        font-weight: normal;
-      }
+  /* ========== ANIMATIONS ========== */
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
     }
   }
 
-  /* Form validation styles */
-  .doctor-management .add-doctor-form {
-    .form-field {
-      input:invalid,
-      select:invalid {
-        border-color: #f44336 !important;
-      }
-      
-      input:valid,
-      select:valid {
-        border-color: #4caf50 !important;
-      }
-    }
-  }
-
-  /* Loading overlay for form submission */
-  .loading-overlay {
-    position: relative;
-    
-    &:after {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: rgba(255, 255, 255, 0.8);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 8px;
-      z-index: 10;
-    }
-    
-    &:before {
-      content: '';
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      width: 30px;
-      height: 30px;
-      border: 3px solid #f3f3f3;
-      border-top: 3px solid #1976d2;
-      border-radius: 50%;
-      animation: spin 1s linear infinite;
-      z-index: 11;
-      transform: translate(-50%, -50%);
-    }
-  }
-
-  /* Status indicators */
-  .status-indicator {
-    display: inline-block;
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    margin-right: 6px;
-    vertical-align: middle;
-    
-    &.active {
-      background-color: #4caf50;
-      box-shadow: 0 0 4px rgba(76, 175, 80, 0.5);
-    }
-    
-    &.inactive {
-      background-color: #f44336;
-      box-shadow: 0 0 4px rgba(244, 67, 54, 0.5);
-    }
-    
-    &.warning {
-      background-color: #ff9800;
-      box-shadow: 0 0 4px rgba(255, 152, 0, 0.5);
-    }
-  }
-
-  /* Department badge styling */
-  .department-badge {
-    display: inline-flex;
-    align-items: center;
-    padding: 4px 10px;
-    background-color: #e3f2fd;
-    color: #1565c0;
-    border-radius: 12px;
-    font-size: 12px;
-    font-weight: 500;
-    border: 1px solid #bbdefb;
-    
-    &.no-department {
-      background-color: #f5f5f5;
-      color: #757575;
-      border-color: #e0e0e0;
-    }
-  }
-
-  /* Empty state for departments */
-  .departments-empty-state {
-    padding: 20px;
-    text-align: center;
-    background-color: #f8f9fa;
-    border-radius: 6px;
-    border: 2px dashed #dee2e6;
-    margin: 10px 0;
-    
-    p {
-      margin: 0 0 10px 0;
-      color: #6c757d;
-      font-size: 14px;
-    }
-    
-    .add-department-button {
-      padding: 6px 12px;
-      background-color: #9c27b0;
-      color: white;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-      font-size: 12px;
-      
-      &:hover {
-        background-color: #7b1fa2;
-      }
-    }
-  }
-
-  /* Responsive adjustments for new department column */
+  /* ========== RESPONSIVE ========== */
   @media (max-width: 768px) {
-    .doctor-management {
-      .table-container {
-        .data-table {
-          min-width: 1100px;
+    .admin-structure {
+      .tabs-container {
+        flex-direction: column;
+
+        .tab-button {
+          width: 100%;
+          border-radius: 4px;
+          margin-bottom: 2px;
           
-          th:nth-child(4),
-          td:nth-child(4) {
-            min-width: 120px;
+          &.active {
+            border-radius: 4px;
+          }
+        }
+      }
+
+      .slot-management,
+      .medicine-management,
+      .doctor-management {
+        .section-header {
+          flex-direction: column;
+          align-items: flex-start;
+
+          .action-buttons {
+            width: 100%;
+            justify-content: flex-start;
+          }
+        }
+
+        .add-slot-form,
+        .add-medicine-form,
+        .add-doctor-form {
+          .form-grid {
+            grid-template-columns: 1fr;
+          }
+        }
+
+        .stats-grid {
+          grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        }
+
+        .table-container {
+          .data-table {
+            min-width: 700px;
+
+            .doctor-actions {
+              flex-direction: column;
+            }
           }
         }
       }
@@ -1286,167 +1196,14 @@
   }
 
   @media (max-width: 480px) {
-    .doctor-management {
-      .add-doctor-form {
-        .form-grid {
-          .form-field {
-            &:has(select[name="departmentId"]) {
-              grid-column: 1 / -1;
-            }
-          }
-        }
-      }
-    }
-  }
-}
-
-/* ========== ANIMATIONS ========== */
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(-10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes shake {
-  0%, 100% { transform: translateX(0); }
-  10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
-  20%, 40%, 60%, 80% { transform: translateX(5px); }
-}
-
-/* ========== PRINT STYLES ========== */
-@media print {
-  .admin-structure {
-    .doctor-management {
-      .section-header,
-      .action-buttons,
-      .doctor-actions {
-        display: none !important;
-      }
-      
-      .table-container {
-        box-shadow: none !important;
-        border: 1px solid #000 !important;
-        
-        .data-table {
-          min-width: auto !important;
-          
-          th, td {
-            border: 1px solid #000 !important;
-          }
-        }
-      }
-    }
-  }
-}
-
-/* ========== RESPONSIVE ========== */
-@media (max-width: 768px) {
-  .admin-structure {
-    .tabs-container {
-      flex-direction: column;
-
-      .tab-button {
-        width: 100%;
-        border-radius: 4px;
-        margin-bottom: 2px;
-        
-        &.active {
-          border-radius: 4px;
-        }
-      }
-    }
-
-    .slot-management,
-    .medicine-management,
-    .doctor-management {
-      .section-header {
-        flex-direction: column;
-        align-items: flex-start;
-
-        .action-buttons {
-          width: 100%;
-          justify-content: flex-start;
-        }
-      }
-
-      .add-slot-form,
-      .add-medicine-form,
-      .add-doctor-form {
-        .form-grid {
+    .admin-structure {
+      .slot-management,
+      .medicine-management,
+      .doctor-management {
+        .stats-grid {
           grid-template-columns: 1fr;
         }
       }
-
-      .stats-grid {
-        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-      }
-
-      .table-container {
-        .data-table {
-          min-width: 700px;
-
-          .doctor-actions {
-            flex-direction: column;
-          }
-        }
-      }
     }
   }
 }
-
-@media (max-width: 480px) {
-  .admin-structure {
-    .slot-management,
-    .medicine-management,
-    .doctor-management {
-      .stats-grid {
-        grid-template-columns: 1fr;
-      }
-    }
-  }
-}
-
-/* ========== UTILITY CLASSES ========== */
-.text-center { text-align: center; }
-.text-right { text-align: right; }
-.text-left { text-align: left; }
-.mt-0 { margin-top: 0; }
-.mb-0 { margin-bottom: 0; }
-.mb-10 { margin-bottom: 10px; }
-.mb-20 { margin-bottom: 20px; }
-.ml-10 { margin-left: 10px; }
-.mr-10 { margin-right: 10px; }
-.d-flex { display: flex; }
-.align-center { align-items: center; }
-.justify-between { justify-content: space-between; }
-.gap-10 { gap: 10px; }
-.gap-20 { gap: 20px; }
-.w-100 { width: 100%; }
-.w-auto { width: auto; }
-.flex-column { flex-direction: column; }
-.align-start { align-items: flex-start; }
-.justify-start { justify-content: flex-start; }
-.mt-10 { margin-top: 10px; }
-.mt-20 { margin-top: 20px; }
-.p-10 { padding: 10px; }
-.p-20 { padding: 20px; }
-.bg-white { background-color: white; }
-.bg-light { background-color: #f8f9fa; }
-.text-muted { color: #6c757d; }
-.text-success { color: #28a745; }
-.text-warning { color: #ffc107; }
-.text-danger { color: #dc3545; }
-.border { border: 1px solid #dee2e6; }
-.border-radius { border-radius: 4px; }
-.shadow-sm { box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-.shadow { box-shadow: 0 2px 4px rgba(0,0,0,0.1); }

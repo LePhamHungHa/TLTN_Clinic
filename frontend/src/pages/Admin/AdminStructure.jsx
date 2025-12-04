@@ -1,5 +1,8 @@
 import React, { useState, useEffect, useRef } from "react";
 import "../../css/AdminStructure.css";
+import SlotManagement from "./SlotManagement";
+import MedicineManagement from "./MedicineManagement";
+import DoctorManagement from "./DoctorManagement";
 
 const AdminStructure = () => {
   const [activeTab, setActiveTab] = useState(0);
@@ -114,7 +117,6 @@ const AdminStructure = () => {
   ];
 
   // ========== SCROLL FUNCTIONS ==========
-
   const scrollToDoctorForm = () => {
     if (doctorFormRef.current) {
       if (activeTab !== 2) {
@@ -173,7 +175,6 @@ const AdminStructure = () => {
   };
 
   // ========== FETCH DATA ==========
-
   useEffect(() => {
     fetchData();
   }, []);
@@ -191,8 +192,6 @@ const AdminStructure = () => {
         return;
       }
 
-      console.log("🔍 Fetching admin structure data...");
-
       // Fetch departments
       try {
         const departmentsResponse = await fetch(
@@ -208,15 +207,9 @@ const AdminStructure = () => {
         if (departmentsResponse.ok) {
           const departmentsData = await departmentsResponse.json();
           setDepartments(Array.isArray(departmentsData) ? departmentsData : []);
-          console.log("✅ Departments loaded:", departmentsData.length);
-        } else {
-          console.warn(
-            "⚠️ Failed to fetch departments:",
-            departmentsResponse.status
-          );
         }
-      } catch (deptErr) {
-        console.warn("⚠️ Error fetching departments:", deptErr.message);
+      } catch {
+        //e
       }
 
       // Fetch slots
@@ -263,17 +256,11 @@ const AdminStructure = () => {
 
       if (doctorsResponse.ok) {
         const doctorsData = await doctorsResponse.json();
-        console.log("✅ Doctors loaded:", doctorsData.length);
-        if (doctorsData.length > 0) {
-          console.log("📋 First doctor:", doctorsData[0]);
-        }
         setDoctors(Array.isArray(doctorsData) ? doctorsData : []);
       } else {
-        console.error("Failed to fetch doctors:", doctorsResponse.status);
         setDoctors([]);
       }
     } catch (err) {
-      console.error("💥 Fetch error:", err);
       setError(`Lỗi: ${err.message}`);
       setSlots([]);
       setMedicines([]);
@@ -285,7 +272,6 @@ const AdminStructure = () => {
   };
 
   // ========== HELPER FUNCTIONS ==========
-
   const getDepartmentName = (departmentId) => {
     if (!departmentId) return "Chưa phân khoa";
     const dept = departments.find(
@@ -326,7 +312,6 @@ const AdminStructure = () => {
   };
 
   // ========== SLOT MANAGEMENT FUNCTIONS ==========
-
   const handleCreateSlot = async () => {
     if (!newSlot.doctorId || !newSlot.appointmentDate) {
       alert("Vui lòng chọn bác sĩ và ngày khám");
@@ -517,7 +502,6 @@ const AdminStructure = () => {
   };
 
   // ========== MEDICINE MANAGEMENT FUNCTIONS ==========
-
   const handleAddMedicine = async () => {
     if (!newMedicine.medicineName || !newMedicine.unitPrice) {
       alert("Vui lòng điền tên thuốc và đơn giá");
@@ -698,7 +682,6 @@ const AdminStructure = () => {
   };
 
   // ========== DOCTOR MANAGEMENT FUNCTIONS ==========
-
   const handleAddDoctor = async () => {
     if (
       !newDoctor.fullName ||
@@ -724,8 +707,6 @@ const AdminStructure = () => {
         username: newDoctor.username || newDoctor.email.split("@")[0],
       };
 
-      console.log("📤 Sending doctor data:", doctorToSend);
-
       const response = await fetch("http://localhost:8080/api/doctors/create", {
         method: "POST",
         headers: {
@@ -737,25 +718,21 @@ const AdminStructure = () => {
 
       if (response.ok) {
         const addedDoctor = await response.json();
-        console.log("✅ Doctor created:", addedDoctor);
         setDoctors([...doctors, addedDoctor]);
         setShowDoctorForm(false);
         resetDoctorForm();
         setEditingDoctor(null);
         alert("✅ Thêm bác sĩ thành công!");
       } else {
-        const errorText = await response.text();
-        console.error("❌ Error response:", errorText);
+        await response.text(); // Đọc response để tránh memory leak
         throw new Error("Lỗi khi thêm bác sĩ");
       }
     } catch (err) {
-      console.error("❌ Error adding doctor:", err);
       alert(`❌ Lỗi: ${err.message}`);
     }
   };
 
   const handleEditDoctor = (doctor) => {
-    console.log("✏️ Editing doctor:", doctor);
     setEditingDoctor(doctor);
     setNewDoctor({
       fullName: doctor.fullName || "",
@@ -811,9 +788,6 @@ const AdminStructure = () => {
           : null,
       };
 
-      console.log("📤 Updating doctor ID:", editingDoctor.id);
-      console.log("📤 Update data:", doctorToSend);
-
       const response = await fetch(
         `http://localhost:8080/api/doctors/${editingDoctor.id}`,
         {
@@ -828,7 +802,6 @@ const AdminStructure = () => {
 
       if (response.ok) {
         const updatedDoctor = await response.json();
-        console.log("✅ Doctor updated:", updatedDoctor);
         setDoctors(
           doctors.map((doctor) =>
             doctor.id === editingDoctor.id ? updatedDoctor : doctor
@@ -839,19 +812,15 @@ const AdminStructure = () => {
         setEditingDoctor(null);
         alert("✅ Cập nhật bác sĩ thành công!");
       } else {
-        const errorText = await response.text();
-        console.error("❌ Error response:", errorText);
+        await response.text(); // Đọc response để tránh memory leak
         throw new Error("Lỗi khi cập nhật bác sĩ");
       }
     } catch (err) {
-      console.error("❌ Error updating doctor:", err);
       alert(`❌ Lỗi: ${err.message}`);
     }
   };
 
   const deleteDoctor = async (doctorId) => {
-    console.log("🗑️ Deleting doctor ID:", doctorId);
-
     if (!doctorId) {
       alert("Không tìm thấy ID bác sĩ");
       return;
@@ -863,7 +832,6 @@ const AdminStructure = () => {
       const user = JSON.parse(localStorage.getItem("user"));
       const token = user?.token;
 
-      console.log("📤 Sending delete request...");
       const response = await fetch(
         `http://localhost:8080/api/doctors/${doctorId}`,
         {
@@ -874,18 +842,14 @@ const AdminStructure = () => {
         }
       );
 
-      console.log("🗑️ Delete response status:", response.status);
-
       if (response.ok) {
         setDoctors(doctors.filter((doctor) => doctor.id !== doctorId));
         alert("✅ Xóa bác sĩ thành công!");
       } else {
-        const errorText = await response.text();
-        console.error("❌ Error response:", errorText);
+        await response.text(); // Đọc response để tránh memory leak
         throw new Error("Lỗi khi xóa bác sĩ");
       }
     } catch (err) {
-      console.error("❌ Error deleting doctor:", err);
       alert(`❌ Lỗi: ${err.message}`);
     }
   };
@@ -912,7 +876,6 @@ const AdminStructure = () => {
   };
 
   // ========== CLICK HANDLERS ==========
-
   const handleAddDoctorClick = () => {
     setEditingDoctor(null);
     resetDoctorForm();
@@ -949,7 +912,6 @@ const AdminStructure = () => {
   };
 
   // ========== RENDER ==========
-
   if (loading) {
     return (
       <div className="admin-structure">
@@ -999,875 +961,77 @@ const AdminStructure = () => {
 
         {/* Slot Management Tab */}
         {activeTab === 0 && (
-          <div className="slot-management">
-            <div className="section-header">
-              <h2>Quản lý Slot khám bệnh ({slots.length})</h2>
-              <div className="action-buttons">
-                <button
-                  className="warning-button"
-                  onClick={() => {
-                    setShowBulkForm(!showBulkForm);
-                    if (showBulkForm && slotFormRef.current) {
-                      setTimeout(() => {
-                        slotFormRef.current.scrollIntoView({
-                          behavior: "smooth",
-                          block: "center",
-                        });
-                      }, 50);
-                    }
-                  }}
-                >
-                  📊 Cập nhật hàng loạt
-                </button>
-                <button className="primary-button" onClick={handleAddSlotClick}>
-                  ➕ Thêm Slot mới
-                </button>
-              </div>
-            </div>
-
-            {/* Add Slot Form */}
-            {showSlotForm && (
-              <div className="add-slot-form" ref={slotFormRef}>
-                <h3>Thêm Slot mới</h3>
-                <div className="form-grid">
-                  <div className="form-field">
-                    <label>Bác sĩ *:</label>
-                    <select
-                      value={newSlot.doctorId}
-                      onChange={(e) =>
-                        setNewSlot({ ...newSlot, doctorId: e.target.value })
-                      }
-                      required
-                    >
-                      <option value="">Chọn bác sĩ</option>
-                      {doctors.map((doctor) => (
-                        <option key={doctor.id} value={doctor.id}>
-                          {doctor.fullName} - {doctor.specialty}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="form-field">
-                    <label>Ngày khám *:</label>
-                    <input
-                      type="date"
-                      value={newSlot.appointmentDate}
-                      onChange={(e) =>
-                        setNewSlot({
-                          ...newSlot,
-                          appointmentDate: e.target.value,
-                        })
-                      }
-                      min={new Date().toISOString().split("T")[0]}
-                      required
-                    />
-                  </div>
-                  <div className="form-field">
-                    <label>Khung giờ *:</label>
-                    <select
-                      value={newSlot.timeSlot}
-                      onChange={(e) =>
-                        setNewSlot({ ...newSlot, timeSlot: e.target.value })
-                      }
-                    >
-                      <option value="07:00-08:00">07:00 - 08:00</option>
-                      <option value="08:00-09:00">08:00 - 09:00</option>
-                      <option value="09:00-10:00">09:00 - 10:00</option>
-                      <option value="10:00-11:00">10:00 - 11:00</option>
-                      <option value="11:00-12:00">11:00 - 12:00</option>
-                      <option value="13:00-14:00">13:00 - 14:00</option>
-                      <option value="14:00-15:00">14:00 - 15:00</option>
-                      <option value="15:00-16:00">15:00 - 16:00</option>
-                      <option value="16:00-17:00">16:00 - 17:00</option>
-                    </select>
-                  </div>
-                  <div className="form-field">
-                    <label>Số bệnh nhân tối đa:</label>
-                    <input
-                      type="number"
-                      min="1"
-                      value={newSlot.maxPatients}
-                      onChange={(e) =>
-                        setNewSlot({
-                          ...newSlot,
-                          maxPatients: parseInt(e.target.value) || 1,
-                        })
-                      }
-                    />
-                  </div>
-                </div>
-                <div className="form-actions">
-                  <button className="success-button" onClick={handleCreateSlot}>
-                    💾 Lưu Slot
-                  </button>
-                  <button
-                    className="danger-button"
-                    onClick={() => setShowSlotForm(false)}
-                  >
-                    ❌ Hủy
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Bulk Update Form */}
-            {showBulkForm && (
-              <div className="bulk-form" ref={slotFormRef}>
-                <h3>Cập nhật số bệnh nhân tối đa hàng loạt</h3>
-                <div className="form-group">
-                  <label>Số bệnh nhân tối đa:</label>
-                  <input
-                    type="number"
-                    min="1"
-                    value={bulkMaxPatients}
-                    onChange={(e) =>
-                      setBulkMaxPatients(parseInt(e.target.value) || 1)
-                    }
-                    className="number-input"
-                  />
-                  <span>người/slot</span>
-                </div>
-                <div className="note">
-                  <p>
-                    <strong>Phạm vi áp dụng:</strong> Tất cả các slot hiện có
-                  </p>
-                  <p>
-                    <em>
-                      Lưu ý: Số lượng tối đa không được nhỏ hơn số bệnh nhân
-                      hiện tại
-                    </em>
-                  </p>
-                </div>
-                <div className="form-actions">
-                  <button className="success-button" onClick={handleBulkUpdate}>
-                    ✅ Áp dụng
-                  </button>
-                  <button
-                    className="danger-button"
-                    onClick={() => setShowBulkForm(false)}
-                  >
-                    ❌ Hủy
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {slots.length === 0 ? (
-              <div className="empty-state">
-                <p>Không có slot nào</p>
-              </div>
-            ) : (
-              <div className="table-container">
-                <table className="data-table">
-                  <thead>
-                    <tr>
-                      <th>Bác sĩ</th>
-                      <th>Ngày</th>
-                      <th>Khung giờ</th>
-                      <th>Số bệnh nhân hiện tại</th>
-                      <th>Số bệnh nhân tối đa</th>
-                      <th>Trạng thái</th>
-                      <th>Thao tác</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {slots.map((slot) => (
-                      <tr key={slot.id}>
-                        <td>{getDoctorName(slot.doctorId)}</td>
-                        <td>{slot.appointmentDate || "N/A"}</td>
-                        <td>{slot.timeSlot || "N/A"}</td>
-                        <td>
-                          <span
-                            className={`patient-count ${
-                              slot.currentPatients >= slot.maxPatients
-                                ? "full"
-                                : "normal"
-                            }`}
-                          >
-                            {slot.currentPatients || 0}
-                          </span>
-                        </td>
-                        <td>
-                          <div className="max-patients-input">
-                            <input
-                              type="number"
-                              min={slot.currentPatients || 0}
-                              value={slot.maxPatients || 5}
-                              onBlur={(e) =>
-                                updateSlotMaxPatients(
-                                  slot.id,
-                                  parseInt(e.target.value) || 1
-                                )
-                              }
-                            />
-                            <span>người</span>
-                          </div>
-                        </td>
-                        <td>
-                          <span
-                            className={`status-badge ${
-                              slot.isActive ? "active" : "inactive"
-                            }`}
-                            onClick={() =>
-                              toggleSlotStatus(slot.id, slot.isActive)
-                            }
-                            title="Nhấn để thay đổi trạng thái"
-                            style={{ cursor: "pointer" }}
-                          >
-                            {slot.isActive ? "Hoạt động" : "Vô hiệu"}
-                          </span>
-                        </td>
-                        <td className="slot-actions">
-                          <button
-                            className="delete-button"
-                            onClick={() => deleteSlot(slot.id)}
-                            disabled={(slot.currentPatients || 0) > 0}
-                            title={
-                              (slot.currentPatients || 0) > 0
-                                ? "Không thể xóa slot đã có bệnh nhân"
-                                : "Xóa slot"
-                            }
-                          >
-                            🗑️ Xóa
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
+          <SlotManagement
+            slots={slots}
+            doctors={doctors}
+            showSlotForm={showSlotForm}
+            newSlot={newSlot}
+            slotFormRef={slotFormRef}
+            showBulkForm={showBulkForm}
+            bulkMaxPatients={bulkMaxPatients}
+            getDoctorName={getDoctorName}
+            handleAddSlotClick={handleAddSlotClick}
+            handleCreateSlot={handleCreateSlot}
+            setNewSlot={setNewSlot}
+            setShowSlotForm={setShowSlotForm}
+            setShowBulkForm={setShowBulkForm}
+            setBulkMaxPatients={setBulkMaxPatients}
+            handleBulkUpdate={handleBulkUpdate}
+            updateSlotMaxPatients={updateSlotMaxPatients}
+            toggleSlotStatus={toggleSlotStatus}
+            deleteSlot={deleteSlot}
+          />
         )}
 
         {/* Medicine Management Tab */}
         {activeTab === 1 && (
-          <div className="medicine-management">
-            <div className="section-header">
-              <h2>Quản lý Thuốc ({medicines.length})</h2>
-              <div className="action-buttons">
-                <button className="warning-button" onClick={handleImportClick}>
-                  📄 Import từ Excel
-                </button>
-                <button
-                  className="primary-button"
-                  onClick={handleAddMedicineClick}
-                >
-                  ➕ Thêm thuốc mới
-                </button>
-              </div>
-            </div>
-
-            {/* Import Form */}
-            {showImportForm && (
-              <div className="import-form" ref={medicineFormRef}>
-                <h3>Import thuốc từ Excel</h3>
-                <div className="form-content">
-                  <p>Vui lòng chọn file Excel theo đúng định dạng mẫu</p>
-                  <div className="file-input">
-                    <input
-                      type="file"
-                      accept=".xlsx,.xls"
-                      onChange={(e) => setImportFile(e.target.files[0])}
-                    />
-                    {importFile && (
-                      <p className="file-name">Đã chọn: {importFile.name}</p>
-                    )}
-                  </div>
-                </div>
-                <div className="form-actions">
-                  <button
-                    className="success-button"
-                    onClick={handleImportExcel}
-                    disabled={!importFile}
-                  >
-                    📤 Upload & Import
-                  </button>
-                  <button
-                    className="danger-button"
-                    onClick={() => {
-                      setShowImportForm(false);
-                      setImportFile(null);
-                    }}
-                  >
-                    ❌ Hủy
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Add Medicine Form */}
-            {showMedicineForm && (
-              <div className="add-medicine-form" ref={medicineFormRef}>
-                <h3>Thêm thuốc mới</h3>
-                <div className="form-grid">
-                  <div className="form-field">
-                    <label>Mã thuốc:</label>
-                    <input
-                      type="text"
-                      value={newMedicine.medicineCode}
-                      onChange={(e) =>
-                        setNewMedicine({
-                          ...newMedicine,
-                          medicineCode: e.target.value,
-                        })
-                      }
-                    />
-                  </div>
-                  <div className="form-field">
-                    <label>Tên thuốc *:</label>
-                    <input
-                      type="text"
-                      value={newMedicine.medicineName}
-                      onChange={(e) =>
-                        setNewMedicine({
-                          ...newMedicine,
-                          medicineName: e.target.value,
-                        })
-                      }
-                      required
-                    />
-                  </div>
-                  <div className="form-field">
-                    <label>Hoạt chất:</label>
-                    <input
-                      type="text"
-                      value={newMedicine.activeIngredient}
-                      onChange={(e) =>
-                        setNewMedicine({
-                          ...newMedicine,
-                          activeIngredient: e.target.value,
-                        })
-                      }
-                    />
-                  </div>
-                  <div className="form-field">
-                    <label>Đơn vị:</label>
-                    <select
-                      value={newMedicine.unit}
-                      onChange={(e) =>
-                        setNewMedicine({ ...newMedicine, unit: e.target.value })
-                      }
-                    >
-                      <option value="viên">Viên</option>
-                      <option value="chai">Chai</option>
-                      <option value="tuýp">Tuýp</option>
-                      <option value="hộp">Hộp</option>
-                      <option value="vỉ">Vỉ</option>
-                    </select>
-                  </div>
-                  <div className="form-field">
-                    <label>Đơn giá (VNĐ) *:</label>
-                    <input
-                      type="number"
-                      min="0"
-                      value={newMedicine.unitPrice}
-                      onChange={(e) =>
-                        setNewMedicine({
-                          ...newMedicine,
-                          unitPrice: e.target.value,
-                        })
-                      }
-                      required
-                    />
-                  </div>
-                  <div className="form-field">
-                    <label>Số lượng tồn:</label>
-                    <input
-                      type="number"
-                      min="0"
-                      value={newMedicine.stockQuantity}
-                      onChange={(e) =>
-                        setNewMedicine({
-                          ...newMedicine,
-                          stockQuantity: e.target.value,
-                        })
-                      }
-                    />
-                  </div>
-                  <div className="form-field">
-                    <label>Danh mục:</label>
-                    <input
-                      type="text"
-                      value={newMedicine.category}
-                      onChange={(e) =>
-                        setNewMedicine({
-                          ...newMedicine,
-                          category: e.target.value,
-                        })
-                      }
-                    />
-                  </div>
-                  <div className="form-field">
-                    <label>Cần kê đơn:</label>
-                    <select
-                      value={newMedicine.prescriptionRequired}
-                      onChange={(e) =>
-                        setNewMedicine({
-                          ...newMedicine,
-                          prescriptionRequired: e.target.value === "true",
-                        })
-                      }
-                    >
-                      <option value="true">Có</option>
-                      <option value="false">Không</option>
-                    </select>
-                  </div>
-                </div>
-                <div className="form-actions">
-                  <button
-                    className="success-button"
-                    onClick={handleAddMedicine}
-                  >
-                    💾 Lưu thuốc
-                  </button>
-                  <button
-                    className="danger-button"
-                    onClick={() => setShowMedicineForm(false)}
-                  >
-                    ❌ Hủy
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Stats */}
-            <div className="stats-grid">
-              <div className="stat-card">
-                <div className="stat-title">Tổng số thuốc</div>
-                <div className="stat-value">{medicines.length}</div>
-              </div>
-              <div className="stat-card">
-                <div className="stat-title">Đang hoạt động</div>
-                <div className="stat-value active">
-                  {medicines.filter((m) => m.status === "ACTIVE").length}
-                </div>
-              </div>
-              <div className="stat-card">
-                <div className="stat-title">Sắp hết hàng</div>
-                <div className="stat-value warning">
-                  {
-                    medicines.filter(
-                      (m) => m.stockQuantity <= (m.minStockLevel || 10)
-                    ).length
-                  }
-                </div>
-              </div>
-            </div>
-
-            {medicines.length === 0 ? (
-              <div className="empty-state">
-                <p>Không có thuốc nào</p>
-              </div>
-            ) : (
-              <div className="table-container">
-                <table className="data-table">
-                  <thead>
-                    <tr>
-                      <th>Mã thuốc</th>
-                      <th>Tên thuốc</th>
-                      <th>Hoạt chất</th>
-                      <th>Số lượng</th>
-                      <th>Đơn giá</th>
-                      <th>Trạng thái</th>
-                      <th>Thao tác</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {medicines.map((medicine) => (
-                      <tr key={medicine.id}>
-                        <td>{medicine.medicineCode || "N/A"}</td>
-                        <td>{medicine.medicineName || "N/A"}</td>
-                        <td>{medicine.activeIngredient || "N/A"}</td>
-                        <td>
-                          <div className="stock-info">
-                            <span>
-                              {medicine.stockQuantity || 0}{" "}
-                              {medicine.unit || ""}
-                            </span>
-                            {medicine.stockQuantity <=
-                              (medicine.minStockLevel || 10) && (
-                              <span className="low-stock-badge">Sắp hết</span>
-                            )}
-                          </div>
-                        </td>
-                        <td>{formatCurrency(medicine.unitPrice)}</td>
-                        <td>
-                          <span
-                            className={`status-badge ${
-                              medicine.status === "ACTIVE"
-                                ? "active"
-                                : medicine.status === "INACTIVE"
-                                ? "inactive"
-                                : medicine.status === "OUT_OF_STOCK"
-                                ? "out-of-stock"
-                                : "low-stock"
-                            }`}
-                            onClick={() =>
-                              toggleMedicineStatus(medicine.id, medicine.status)
-                            }
-                            title="Nhấn để thay đổi trạng thái"
-                          >
-                            {getStatusLabel(medicine.status)}
-                          </span>
-                        </td>
-                        <td className="medicine-actions">
-                          <button
-                            className="delete-button"
-                            onClick={() => deleteMedicine(medicine.id)}
-                          >
-                            🗑️ Xóa
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
+          <MedicineManagement
+            medicines={medicines}
+            showMedicineForm={showMedicineForm}
+            showImportForm={showImportForm}
+            importFile={importFile}
+            newMedicine={newMedicine}
+            medicineFormRef={medicineFormRef}
+            formatCurrency={formatCurrency}
+            getStatusLabel={getStatusLabel}
+            handleAddMedicineClick={handleAddMedicineClick}
+            handleImportClick={handleImportClick}
+            handleAddMedicine={handleAddMedicine}
+            handleImportExcel={handleImportExcel}
+            setNewMedicine={setNewMedicine}
+            setShowMedicineForm={setShowMedicineForm}
+            setShowImportForm={setShowImportForm}
+            setImportFile={setImportFile}
+            toggleMedicineStatus={toggleMedicineStatus}
+            deleteMedicine={deleteMedicine}
+          />
         )}
 
         {/* Doctor Management Tab */}
         {activeTab === 2 && (
-          <div className="doctor-management">
-            <div className="section-header">
-              <h2>Quản lý Bác sĩ</h2>
-              <div className="action-buttons">
-                <button
-                  className="primary-button"
-                  onClick={handleAddDoctorClick}
-                >
-                  👨‍⚕️ Thêm Bác sĩ mới
-                </button>
-              </div>
-            </div>
-
-            {/* Add/Edit Doctor Form */}
-            {showDoctorForm && (
-              <div className="add-doctor-form" ref={doctorFormRef}>
-                <h3>
-                  {editingDoctor ? "Chỉnh sửa Bác sĩ" : "Thêm Bác sĩ mới"}
-                </h3>
-                <div className="form-grid">
-                  <div className="form-field">
-                    <label>Họ và tên *:</label>
-                    <input
-                      type="text"
-                      value={newDoctor.fullName}
-                      onChange={(e) =>
-                        setNewDoctor({ ...newDoctor, fullName: e.target.value })
-                      }
-                      required
-                    />
-                  </div>
-                  <div className="form-field">
-                    <label>Ngày sinh:</label>
-                    <input
-                      type="date"
-                      value={newDoctor.dateOfBirth}
-                      onChange={(e) =>
-                        setNewDoctor({
-                          ...newDoctor,
-                          dateOfBirth: e.target.value,
-                        })
-                      }
-                    />
-                  </div>
-                  <div className="form-field">
-                    <label>Giới tính:</label>
-                    <select
-                      value={newDoctor.gender}
-                      onChange={(e) =>
-                        setNewDoctor({ ...newDoctor, gender: e.target.value })
-                      }
-                    >
-                      {genderOptions.map((option) => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="form-field">
-                    <label>CMND/CCCD:</label>
-                    <input
-                      type="text"
-                      value={newDoctor.citizenId}
-                      onChange={(e) =>
-                        setNewDoctor({
-                          ...newDoctor,
-                          citizenId: e.target.value,
-                        })
-                      }
-                    />
-                  </div>
-                  <div className="form-field">
-                    <label>Địa chỉ:</label>
-                    <input
-                      type="text"
-                      value={newDoctor.address}
-                      onChange={(e) =>
-                        setNewDoctor({ ...newDoctor, address: e.target.value })
-                      }
-                    />
-                  </div>
-
-                  {/* THÊM SELECT KHOA */}
-                  <div className="form-field">
-                    <label>Khoa:</label>
-                    <select
-                      value={newDoctor.departmentId}
-                      onChange={(e) =>
-                        setNewDoctor({
-                          ...newDoctor,
-                          departmentId: e.target.value,
-                        })
-                      }
-                    >
-                      <option value="">Chọn khoa (tùy chọn)</option>
-                      {departments.map((dept) => (
-                        <option key={dept.id} value={dept.id}>
-                          {dept.departmentName}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="form-field">
-                    <label>Chuyên khoa *:</label>
-                    <select
-                      value={newDoctor.specialty}
-                      onChange={(e) =>
-                        setNewDoctor({
-                          ...newDoctor,
-                          specialty: e.target.value,
-                        })
-                      }
-                      required
-                    >
-                      <option value="">Chọn chuyên khoa</option>
-                      {specialtyOptions.map((specialty, index) => (
-                        <option key={index} value={specialty}>
-                          {specialty}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="form-field">
-                    <label>Số điện thoại *:</label>
-                    <input
-                      type="tel"
-                      value={newDoctor.phone}
-                      onChange={(e) =>
-                        setNewDoctor({ ...newDoctor, phone: e.target.value })
-                      }
-                      required
-                    />
-                  </div>
-                  <div className="form-field">
-                    <label>Email *:</label>
-                    <input
-                      type="email"
-                      value={newDoctor.email}
-                      onChange={(e) =>
-                        setNewDoctor({ ...newDoctor, email: e.target.value })
-                      }
-                      required
-                    />
-                  </div>
-                  <div className="form-field">
-                    <label>Bằng cấp:</label>
-                    <select
-                      value={newDoctor.degree}
-                      onChange={(e) =>
-                        setNewDoctor({ ...newDoctor, degree: e.target.value })
-                      }
-                    >
-                      <option value="">Chọn bằng cấp</option>
-                      {degreeOptions.map((degree, index) => (
-                        <option key={index} value={degree}>
-                          {degree}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="form-field">
-                    <label>Vị trí:</label>
-                    <select
-                      value={newDoctor.position}
-                      onChange={(e) =>
-                        setNewDoctor({ ...newDoctor, position: e.target.value })
-                      }
-                    >
-                      <option value="">Chọn vị trí</option>
-                      {positionOptions.map((position, index) => (
-                        <option key={index} value={position}>
-                          {position}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="form-field">
-                    <label>Username:</label>
-                    <input
-                      type="text"
-                      value={newDoctor.username}
-                      onChange={(e) =>
-                        setNewDoctor({ ...newDoctor, username: e.target.value })
-                      }
-                      placeholder="Tự động tạo từ email nếu để trống"
-                    />
-                  </div>
-                  {!editingDoctor && (
-                    <div className="form-field">
-                      <label>Mật khẩu:</label>
-                      <input
-                        type="password"
-                        value={newDoctor.password}
-                        onChange={(e) =>
-                          setNewDoctor({
-                            ...newDoctor,
-                            password: e.target.value,
-                          })
-                        }
-                        placeholder="Để trống sẽ tạo mật khẩu mặc định"
-                      />
-                    </div>
-                  )}
-                  <div className="form-field">
-                    <label>Số phòng:</label>
-                    <input
-                      type="text"
-                      value={newDoctor.roomNumber}
-                      onChange={(e) =>
-                        setNewDoctor({
-                          ...newDoctor,
-                          roomNumber: e.target.value,
-                        })
-                      }
-                    />
-                  </div>
-                  <div className="form-field">
-                    <label>Tầng:</label>
-                    <input
-                      type="text"
-                      value={newDoctor.floor}
-                      onChange={(e) =>
-                        setNewDoctor({ ...newDoctor, floor: e.target.value })
-                      }
-                    />
-                  </div>
-                </div>
-                <div className="form-actions">
-                  <button
-                    className="success-button"
-                    onClick={
-                      editingDoctor ? handleUpdateDoctor : handleAddDoctor
-                    }
-                  >
-                    💾 {editingDoctor ? "Cập nhật" : "Lưu"} Bác sĩ
-                  </button>
-                  <button
-                    className="danger-button"
-                    onClick={() => {
-                      setShowDoctorForm(false);
-                      setEditingDoctor(null);
-                      resetDoctorForm();
-                    }}
-                  >
-                    ❌ Hủy
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Stats */}
-            <div className="stats-grid">
-              <div className="stat-card">
-                <div className="stat-title">Tổng số bác sĩ</div>
-                <div className="stat-value">{doctors.length}</div>
-              </div>
-              <div className="stat-card">
-                <div className="stat-title">Đã phân khoa</div>
-                <div className="stat-value">
-                  {doctors.filter((d) => d.departmentId).length}
-                </div>
-              </div>
-              <div className="stat-card">
-                <div className="stat-title">Số khoa</div>
-                <div className="stat-value">{departments.length}</div>
-              </div>
-            </div>
-
-            {doctors.length === 0 ? (
-              <div className="empty-state">
-                <p>Không có bác sĩ nào</p>
-              </div>
-            ) : (
-              <div className="table-container">
-                <table className="data-table">
-                  <thead>
-                    <tr>
-                      <th>Họ tên</th>
-                      <th>Giới tính</th>
-                      <th>Chuyên khoa</th>
-                      <th>Khoa</th>
-                      <th>SĐT</th>
-                      <th>Email</th>
-                      <th>Bằng cấp</th>
-                      <th>Phòng</th>
-                      <th>Thao tác</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {doctors.map((doctor) => (
-                      <tr key={doctor.id}>
-                        <td>
-                          <div className="doctor-info">
-                            <strong>{doctor.fullName || "N/A"}</strong>
-                            <small>{doctor.position || "Bác sĩ"}</small>
-                            <small className="debug-id">
-                              ID: {doctor.id || "N/A"}
-                            </small>
-                          </div>
-                        </td>
-                        <td>{getGenderLabel(doctor.gender)}</td>
-                        <td>{doctor.specialty || "N/A"}</td>
-                        <td>{getDepartmentName(doctor.departmentId)}</td>
-                        <td>{doctor.phone || "N/A"}</td>
-                        <td>{doctor.email || "N/A"}</td>
-                        <td>{doctor.degree || "N/A"}</td>
-                        <td>
-                          {doctor.roomNumber
-                            ? `P${doctor.roomNumber} - T${doctor.floor || "1"}`
-                            : "N/A"}
-                        </td>
-                        <td className="doctor-actions">
-                          <button
-                            className="edit-button"
-                            onClick={() => handleEditDoctor(doctor)}
-                            title="Chỉnh sửa"
-                            disabled={!doctor.id}
-                          >
-                            ✏️ Sửa
-                          </button>
-                          <button
-                            className="delete-button"
-                            onClick={() => deleteDoctor(doctor.id)}
-                            title="Xóa"
-                            disabled={!doctor.id}
-                          >
-                            🗑️ Xóa
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
+          <DoctorManagement
+            doctors={doctors}
+            departments={departments}
+            genderOptions={genderOptions}
+            specialtyOptions={specialtyOptions}
+            degreeOptions={degreeOptions}
+            positionOptions={positionOptions}
+            showDoctorForm={showDoctorForm}
+            editingDoctor={editingDoctor}
+            newDoctor={newDoctor}
+            doctorFormRef={doctorFormRef}
+            handleAddDoctorClick={handleAddDoctorClick}
+            handleEditDoctor={handleEditDoctor}
+            handleAddDoctor={handleAddDoctor}
+            handleUpdateDoctor={handleUpdateDoctor}
+            deleteDoctor={deleteDoctor}
+            setNewDoctor={setNewDoctor}
+            setShowDoctorForm={setShowDoctorForm}
+            setEditingDoctor={setEditingDoctor}
+            resetDoctorForm={resetDoctorForm}
+            getDepartmentName={getDepartmentName}
+            getGenderLabel={getGenderLabel}
+          />
         )}
       </div>
     </div>
