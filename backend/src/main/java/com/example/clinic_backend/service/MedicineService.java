@@ -12,11 +12,12 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.InputStream;
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 @Service
@@ -26,26 +27,23 @@ public class MedicineService {
     private MedicineRepository medicineRepository;
     
     public List<Medicine> getAllMedicines() {
-        return medicineRepository.findAll();
+        // Sử dụng findAll() thay vì findAllByOrderByMedicineNameAsc()
+        List<Medicine> medicines = medicineRepository.findAll();
+        // Sắp xếp theo tên thuốc
+        medicines.sort(Comparator.comparing(Medicine::getMedicineName));
+        return medicines;
     }
     
     public Medicine getMedicineById(Long id) {
-        Medicine medicine = medicineRepository.findById(id).orElse(null);
-        if (medicine == null) {
+        Optional<Medicine> medicine = medicineRepository.findById(id);
+        if (medicine.isEmpty()) {
             throw new RuntimeException("Thuốc không tồn tại với ID: " + id);
         }
-        return medicine;
+        return medicine.get();
     }
     
     public List<Medicine> getActiveMedicines() {
-        List<Medicine> allMedicines = medicineRepository.findAll();
-        List<Medicine> activeMedicines = new ArrayList<>();
-        for (Medicine medicine : allMedicines) {
-            if ("ACTIVE".equals(medicine.getStatus())) {
-                activeMedicines.add(medicine);
-            }
-        }
-        return activeMedicines;
+        return medicineRepository.findByStatus("ACTIVE");
     }
     
     public List<String> getAllCategories() {
@@ -63,12 +61,9 @@ public class MedicineService {
     public Medicine createMedicine(Medicine medicine) {
         // Kiểm tra mã thuốc đã tồn tại
         if (medicine.getMedicineCode() != null && !medicine.getMedicineCode().isEmpty()) {
-            List<Medicine> existing = medicineRepository.findAll();
-            for (Medicine med : existing) {
-                if (med.getMedicineCode() != null && 
-                    med.getMedicineCode().equalsIgnoreCase(medicine.getMedicineCode())) {
-                    throw new RuntimeException("Mã thuốc đã tồn tại");
-                }
+            Optional<Medicine> existing = medicineRepository.findByMedicineCode(medicine.getMedicineCode());
+            if (existing.isPresent()) {
+                throw new RuntimeException("Mã thuốc đã tồn tại: " + medicine.getMedicineCode());
             }
         } else {
             // Tạo mã thuốc mới
@@ -108,9 +103,19 @@ public class MedicineService {
     public Medicine updateMedicine(Long id, Medicine medicineDetails) {
         Medicine medicine = getMedicineById(id);
         
-        // Cập nhật từng trường nếu có
+        // Cập nhật từng trường
         if (medicineDetails.getMedicineName() != null) {
             medicine.setMedicineName(medicineDetails.getMedicineName());
+        }
+        if (medicineDetails.getMedicineCode() != null) {
+            // Kiểm tra mã thuốc trùng (trừ chính nó)
+            if (!medicine.getMedicineCode().equals(medicineDetails.getMedicineCode())) {
+                Optional<Medicine> existing = medicineRepository.findByMedicineCode(medicineDetails.getMedicineCode());
+                if (existing.isPresent() && !existing.get().getId().equals(id)) {
+                    throw new RuntimeException("Mã thuốc đã tồn tại: " + medicineDetails.getMedicineCode());
+                }
+                medicine.setMedicineCode(medicineDetails.getMedicineCode());
+            }
         }
         if (medicineDetails.getActiveIngredient() != null) {
             medicine.setActiveIngredient(medicineDetails.getActiveIngredient());
@@ -136,12 +141,6 @@ public class MedicineService {
         if (medicineDetails.getCountryOrigin() != null) {
             medicine.setCountryOrigin(medicineDetails.getCountryOrigin());
         }
-        if (medicineDetails.getLotNumber() != null) {
-            medicine.setLotNumber(medicineDetails.getLotNumber());
-        }
-        if (medicineDetails.getExpiryDate() != null) {
-            medicine.setExpiryDate(medicineDetails.getExpiryDate());
-        }
         if (medicineDetails.getUnitPrice() != null) {
             medicine.setUnitPrice(medicineDetails.getUnitPrice());
         }
@@ -156,21 +155,6 @@ public class MedicineService {
         }
         if (medicineDetails.getPrescriptionRequired() != null) {
             medicine.setPrescriptionRequired(medicineDetails.getPrescriptionRequired());
-        }
-        if (medicineDetails.getDescription() != null) {
-            medicine.setDescription(medicineDetails.getDescription());
-        }
-        if (medicineDetails.getSideEffects() != null) {
-            medicine.setSideEffects(medicineDetails.getSideEffects());
-        }
-        if (medicineDetails.getContraindications() != null) {
-            medicine.setContraindications(medicineDetails.getContraindications());
-        }
-        if (medicineDetails.getUsageInstructions() != null) {
-            medicine.setUsageInstructions(medicineDetails.getUsageInstructions());
-        }
-        if (medicineDetails.getStorageConditions() != null) {
-            medicine.setStorageConditions(medicineDetails.getStorageConditions());
         }
         if (medicineDetails.getCategory() != null) {
             medicine.setCategory(medicineDetails.getCategory());
@@ -263,14 +247,40 @@ public class MedicineService {
                     continue;
                 }
                 
-                Medicine medicine = mapRowToMedicine(row);
-                medicines.add(medicine);
+                try {
+                    Medicine medicine = mapRowToMedicine(row);
+                    
+                    // Kiểm tra nếu thuốc đã tồn tại (theo mã thuốc)
+                    if (medicine.getMedicineCode() != null && !medicine.getMedicineCode().isEmpty()) {
+                        Optional<Medicine> existing = medicineRepository.findByMedicineCode(medicine.getMedicineCode());
+                        if (existing.isPresent()) {
+                            // Cập nhật thuốc đã tồn tại
+                            Medicine existingMedicine = existing.get();
+                            existingMedicine.setMedicineName(medicine.getMedicineName());
+                            existingMedicine.setActiveIngredient(medicine.getActiveIngredient());
+                            existingMedicine.setUnit(medicine.getUnit());
+                            existingMedicine.setUnitPrice(medicine.getUnitPrice());
+                            existingMedicine.setStockQuantity(medicine.getStockQuantity());
+                            existingMedicine.setCategory(medicine.getCategory());
+                            existingMedicine.setPrescriptionRequired(medicine.getPrescriptionRequired());
+                            updateMedicineStatus(existingMedicine);
+                            existingMedicine.setUpdatedAt(LocalDateTime.now());
+                            medicineRepository.save(existingMedicine);
+                            continue;
+                        }
+                    }
+                    
+                    medicines.add(medicine);
+                } catch (Exception e) {
+                    System.err.println("Lỗi khi xử lý dòng " + (i + 1) + ": " + e.getMessage());
+                    // Tiếp tục với các dòng khác
+                }
             }
             
             workbook.close();
         }
         
-        // Lưu tất cả thuốc
+        // Lưu tất cả thuốc mới
         if (!medicines.isEmpty()) {
             medicineRepository.saveAll(medicines);
         }
@@ -287,170 +297,67 @@ public class MedicineService {
     }
     
     private Medicine mapRowToMedicine(Row row) {
-        Medicine medicine = new Medicine();
+    Medicine medicine = new Medicine();
+    
+    try {
+        medicine.setMedicineCode(getCellStringValue(row.getCell(0)));
+        medicine.setMedicineName(getCellStringValue(row.getCell(1)));
+        medicine.setActiveIngredient(getCellStringValue(row.getCell(2)));
+        medicine.setDosageForm(getCellStringValue(row.getCell(3)));
+        medicine.setStrength(getCellStringValue(row.getCell(4)));
+        medicine.setUnit(getCellStringValue(row.getCell(5)));
+        medicine.setPackageType(getCellStringValue(row.getCell(6)));
         
-        // Đọc từng ô theo cột
-        medicine.setMedicineCode(getCellValue(row.getCell(0)));
-        medicine.setMedicineName(getCellValue(row.getCell(1)));
-        medicine.setActiveIngredient(getCellValue(row.getCell(2)));
-        medicine.setDosageForm(getCellValue(row.getCell(3)));
-        medicine.setStrength(getCellValue(row.getCell(4)));
-        medicine.setUnit(getCellValue(row.getCell(5)));
-        medicine.setPackageType(getCellValue(row.getCell(6)));
+        Integer quantityPerPackage = getCellIntegerValue(row.getCell(7), 1);
+        medicine.setQuantityPerPackage(quantityPerPackage);
         
-        // Quantity per package
-        try {
-            Cell cell = row.getCell(7);
-            if (cell != null && cell.getCellType() == CellType.NUMERIC) {
-                medicine.setQuantityPerPackage((int) cell.getNumericCellValue());
-            } else if (cell != null && cell.getCellType() == CellType.STRING) {
-                String value = cell.getStringCellValue().trim();
-                if (!value.isEmpty()) {
-                    medicine.setQuantityPerPackage(Integer.parseInt(value));
-                }
+        medicine.setManufacturer(getCellStringValue(row.getCell(8)));
+        medicine.setCountryOrigin(getCellStringValue(row.getCell(9)));
+        medicine.setLotNumber(getCellStringValue(row.getCell(10)));
+        
+        Cell expiryCell = row.getCell(11);
+        if (expiryCell != null && expiryCell.getCellType() == CellType.NUMERIC) {
+            if (DateUtil.isCellDateFormatted(expiryCell)) {
+                medicine.setExpiryDate(expiryCell.getLocalDateTimeCellValue().toLocalDate());
             }
-        } catch (Exception e) {
-            medicine.setQuantityPerPackage(1);
         }
         
-        medicine.setManufacturer(getCellValue(row.getCell(8)));
-        medicine.setCountryOrigin(getCellValue(row.getCell(9)));
-        medicine.setLotNumber(getCellValue(row.getCell(10)));
+        medicine.setUnitPrice(getCellBigDecimalValue(row.getCell(12)));
         
-        // Expiry date
-        try {
-            Cell cell = row.getCell(11);
-            if (cell != null) {
-                if (cell.getCellType() == CellType.NUMERIC && DateUtil.isCellDateFormatted(cell)) {
-                    medicine.setExpiryDate(cell.getLocalDateTimeCellValue().toLocalDate());
-                } else if (cell.getCellType() == CellType.STRING) {
-                    String dateStr = cell.getStringCellValue().trim();
-                    if (!dateStr.isEmpty()) {
-                        medicine.setExpiryDate(LocalDate.parse(dateStr));
-                    }
-                }
-            }
-        } catch (Exception e) {
-            medicine.setExpiryDate(null);
+        medicine.setStockQuantity(getCellIntegerValue(row.getCell(13), 0));
+        medicine.setMinStockLevel(getCellIntegerValue(row.getCell(14), 10));
+        medicine.setMaxStockLevel(getCellIntegerValue(row.getCell(15), 100));
+        
+        medicine.setPrescriptionRequired(getCellBooleanValue(row.getCell(16), true));
+        
+        medicine.setDescription(getCellStringValue(row.getCell(17)));
+        medicine.setSideEffects(getCellStringValue(row.getCell(18)));
+        medicine.setContraindications(getCellStringValue(row.getCell(19)));
+        medicine.setUsageInstructions(getCellStringValue(row.getCell(20)));
+        medicine.setStorageConditions(getCellStringValue(row.getCell(21)));
+        
+        medicine.setCategory(getCellStringValue(row.getCell(22)));
+        
+        String status = getCellStringValue(row.getCell(23));
+        if (status != null && !status.isEmpty()) {
+            medicine.setStatus(status);
+        } else {
+            medicine.setStatus("ACTIVE");
         }
         
-        // Unit price
-        try {
-            Cell cell = row.getCell(12);
-            if (cell != null && cell.getCellType() == CellType.NUMERIC) {
-                medicine.setUnitPrice(BigDecimal.valueOf(cell.getNumericCellValue()));
-            } else if (cell != null && cell.getCellType() == CellType.STRING) {
-                String value = cell.getStringCellValue().trim();
-                if (!value.isEmpty()) {
-                    medicine.setUnitPrice(new BigDecimal(value));
-                } else {
-                    medicine.setUnitPrice(BigDecimal.ZERO);
-                }
-            } else {
-                medicine.setUnitPrice(BigDecimal.ZERO);
-            }
-        } catch (Exception e) {
-            medicine.setUnitPrice(BigDecimal.ZERO);
-        }
-        
-        // Stock quantity
-        try {
-            Cell cell = row.getCell(13);
-            if (cell != null && cell.getCellType() == CellType.NUMERIC) {
-                medicine.setStockQuantity((int) cell.getNumericCellValue());
-            } else if (cell != null && cell.getCellType() == CellType.STRING) {
-                String value = cell.getStringCellValue().trim();
-                if (!value.isEmpty()) {
-                    medicine.setStockQuantity(Integer.parseInt(value));
-                } else {
-                    medicine.setStockQuantity(0);
-                }
-            } else {
-                medicine.setStockQuantity(0);
-            }
-        } catch (Exception e) {
-            medicine.setStockQuantity(0);
-        }
-        
-        // Min stock level
-        try {
-            Cell cell = row.getCell(14);
-            if (cell != null && cell.getCellType() == CellType.NUMERIC) {
-                medicine.setMinStockLevel((int) cell.getNumericCellValue());
-            } else if (cell != null && cell.getCellType() == CellType.STRING) {
-                String value = cell.getStringCellValue().trim();
-                if (!value.isEmpty()) {
-                    medicine.setMinStockLevel(Integer.parseInt(value));
-                } else {
-                    medicine.setMinStockLevel(10);
-                }
-            } else {
-                medicine.setMinStockLevel(10);
-            }
-        } catch (Exception e) {
-            medicine.setMinStockLevel(10);
-        }
-        
-        // Max stock level
-        try {
-            Cell cell = row.getCell(15);
-            if (cell != null && cell.getCellType() == CellType.NUMERIC) {
-                medicine.setMaxStockLevel((int) cell.getNumericCellValue());
-            } else if (cell != null && cell.getCellType() == CellType.STRING) {
-                String value = cell.getStringCellValue().trim();
-                if (!value.isEmpty()) {
-                    medicine.setMaxStockLevel(Integer.parseInt(value));
-                } else {
-                    medicine.setMaxStockLevel(100);
-                }
-            } else {
-                medicine.setMaxStockLevel(100);
-            }
-        } catch (Exception e) {
-            medicine.setMaxStockLevel(100);
-        }
-        
-        // Prescription required
-        try {
-            Cell cell = row.getCell(16);
-            if (cell != null) {
-                if (cell.getCellType() == CellType.BOOLEAN) {
-                    medicine.setPrescriptionRequired(cell.getBooleanCellValue());
-                } else if (cell.getCellType() == CellType.STRING) {
-                    String value = cell.getStringCellValue().trim().toLowerCase();
-                    medicine.setPrescriptionRequired(
-                        value.equals("true") || value.equals("1") || value.equals("yes")
-                    );
-                } else if (cell.getCellType() == CellType.NUMERIC) {
-                    medicine.setPrescriptionRequired(cell.getNumericCellValue() == 1);
-                } else {
-                    medicine.setPrescriptionRequired(true);
-                }
-            } else {
-                medicine.setPrescriptionRequired(true);
-            }
-        } catch (Exception e) {
-            medicine.setPrescriptionRequired(true);
-        }
-        
-        medicine.setDescription(getCellValue(row.getCell(17)));
-        medicine.setSideEffects(getCellValue(row.getCell(18)));
-        medicine.setContraindications(getCellValue(row.getCell(19)));
-        medicine.setUsageInstructions(getCellValue(row.getCell(20)));
-        medicine.setStorageConditions(getCellValue(row.getCell(21)));
-        medicine.setCategory(getCellValue(row.getCell(22)));
-        medicine.setStatus("ACTIVE");
-        
-        // Cập nhật trạng thái
         updateMedicineStatus(medicine);
         
         medicine.setCreatedAt(LocalDateTime.now());
         medicine.setUpdatedAt(LocalDateTime.now());
         
-        return medicine;
+    } catch (Exception e) {
+        throw new RuntimeException("Lỗi khi đọc dữ liệu từ file Excel: " + e.getMessage());
     }
     
-    private String getCellValue(Cell cell) {
+    return medicine;
+}
+    
+    private String getCellStringValue(Cell cell) {
         if (cell == null) {
             return "";
         }
@@ -460,7 +367,7 @@ public class MedicineService {
                 return cell.getStringCellValue().trim();
             case NUMERIC:
                 if (DateUtil.isCellDateFormatted(cell)) {
-                    return cell.getLocalDateTimeCellValue().toLocalDate().toString();
+                    return cell.getLocalDateTimeCellValue().toString();
                 } else {
                     double value = cell.getNumericCellValue();
                     // Nếu là số nguyên
@@ -478,12 +385,82 @@ public class MedicineService {
                     try {
                         return String.valueOf(cell.getNumericCellValue());
                     } catch (Exception ex) {
-                        return "";
+                        return cell.getCellFormula();
                     }
                 }
             default:
                 return "";
         }
+    }
+    
+    private BigDecimal getCellBigDecimalValue(Cell cell) {
+        if (cell == null) {
+            return BigDecimal.ZERO;
+        }
+        
+        try {
+            if (cell.getCellType() == CellType.NUMERIC) {
+                return BigDecimal.valueOf(cell.getNumericCellValue());
+            } else if (cell.getCellType() == CellType.STRING) {
+                String value = cell.getStringCellValue().trim();
+                if (!value.isEmpty()) {
+                    // Loại bỏ ký tự không phải số
+                    value = value.replaceAll("[^\\d.,]", "").replace(",", ".");
+                    return new BigDecimal(value);
+                }
+            }
+        } catch (Exception e) {
+            // Nếu có lỗi, trả về 0
+        }
+        
+        return BigDecimal.ZERO;
+    }
+    
+    private Integer getCellIntegerValue(Cell cell, Integer defaultValue) {
+        if (cell == null) {
+            return defaultValue;
+        }
+        
+        try {
+            if (cell.getCellType() == CellType.NUMERIC) {
+                return (int) cell.getNumericCellValue();
+            } else if (cell.getCellType() == CellType.STRING) {
+                String value = cell.getStringCellValue().trim();
+                if (!value.isEmpty()) {
+                    // Loại bỏ ký tự không phải số
+                    value = value.replaceAll("[^\\d]", "");
+                    if (!value.isEmpty()) {
+                        return Integer.parseInt(value);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            // Nếu có lỗi, trả về giá trị mặc định
+        }
+        
+        return defaultValue;
+    }
+    
+    private Boolean getCellBooleanValue(Cell cell, Boolean defaultValue) {
+        if (cell == null) {
+            return defaultValue;
+        }
+        
+        try {
+            if (cell.getCellType() == CellType.BOOLEAN) {
+                return cell.getBooleanCellValue();
+            } else if (cell.getCellType() == CellType.STRING) {
+                String value = cell.getStringCellValue().trim().toLowerCase();
+                return value.equals("true") || value.equals("1") || value.equals("yes") || 
+                       value.equals("có") || value.equals("c") || value.equals("y");
+            } else if (cell.getCellType() == CellType.NUMERIC) {
+                return cell.getNumericCellValue() == 1;
+            }
+        } catch (Exception e) {
+            // Nếu có lỗi, trả về giá trị mặc định
+        }
+        
+        return defaultValue;
     }
     
     private void updateMedicineStatus(Medicine medicine) {
@@ -498,10 +475,10 @@ public class MedicineService {
     
     private String generateMedicineCode() {
         String prefix = "MED";
-        List<Medicine> allMedicines = medicineRepository.findAll();
+        List<Medicine> medicines = medicineRepository.findAll();
         
         long maxNumber = 0;
-        for (Medicine medicine : allMedicines) {
+        for (Medicine medicine : medicines) {
             if (medicine.getMedicineCode() != null && medicine.getMedicineCode().startsWith(prefix)) {
                 try {
                     String numberStr = medicine.getMedicineCode().substring(prefix.length());
@@ -510,7 +487,7 @@ public class MedicineService {
                         maxNumber = number;
                     }
                 } catch (NumberFormatException e) {
-                    // Bỏ qua nếu không parse được
+                    // Bỏ qua nếu không phải số
                 }
             }
         }

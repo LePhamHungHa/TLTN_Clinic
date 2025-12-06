@@ -4,13 +4,21 @@ import com.example.clinic_backend.model.Doctor;
 import com.example.clinic_backend.service.DoctorService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/doctors")
-@CrossOrigin(origins = "*")
+@CrossOrigin(origins = {"http://localhost:5173", "http://localhost:3000"}, 
+             allowedHeaders = "*", 
+             methods = {RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, 
+                       RequestMethod.PATCH, RequestMethod.DELETE, RequestMethod.OPTIONS},
+             allowCredentials = "true",
+             maxAge = 3600)
 public class DoctorController {
 
     private final DoctorService doctorService;
@@ -19,7 +27,7 @@ public class DoctorController {
         this.doctorService = doctorService;
     }
 
-    // 🔹 GET danh sách bác sĩ (Mặc định trả về TẤT CẢ bác sĩ)
+    // GET danh sách bác sĩ
     @GetMapping
     public ResponseEntity<List<Doctor>> getAllDoctors(
             @RequestParam(required = false) String name,
@@ -36,12 +44,6 @@ public class DoctorController {
                 doctors = doctorService.getAllDoctors();
             }
             
-            // DEBUG: In ra số lượng bác sĩ trả về
-            System.out.println("📊 DoctorController: Trả về " + doctors.size() + " bác sĩ");
-            if (!doctors.isEmpty()) {
-                System.out.println("📋 Doctor đầu tiên: " + doctors.get(0).getFullName());
-            }
-            
             return ResponseEntity.ok(doctors);
         } catch (Exception e) {
             System.err.println("❌ Lỗi DoctorController.getAllDoctors: " + e.getMessage());
@@ -54,7 +56,6 @@ public class DoctorController {
     @PostMapping("/create")
     public ResponseEntity<?> createDoctor(@RequestBody Doctor doctor) {
         try {
-            System.out.println("➕ DoctorController.createDoctor: " + doctor.getFullName());
             Doctor createdDoctor = doctorService.createDoctor(doctor);
             return ResponseEntity.ok(createdDoctor);
         } catch (RuntimeException e) {
@@ -125,4 +126,37 @@ public class DoctorController {
             return ResponseEntity.internalServerError().build();
         }
     }
+
+    // ========== IMPORT EXCEL ==========
+    // Trong DoctorController, đảm bảo endpoint import đúng
+@PostMapping("/import")
+public ResponseEntity<Map<String, Object>> importDoctors(@RequestParam("file") MultipartFile file) {
+    Map<String, Object> response = new HashMap<>();
+    
+    try {
+        if (file.isEmpty()) {
+            response.put("success", false);
+            response.put("message", "File không được để trống");
+            return ResponseEntity.badRequest().body(response);
+        }
+        
+        String fileName = file.getOriginalFilename();
+        if (fileName == null || (!fileName.endsWith(".xlsx") && !fileName.endsWith(".xls"))) {
+            response.put("success", false);
+            response.put("message", "Chỉ hỗ trợ file Excel (.xlsx, .xls)");
+            return ResponseEntity.badRequest().body(response);
+        }
+        
+        doctorService.importFromExcel(file);
+        
+        response.put("success", true);
+        response.put("message", "Import bác sĩ thành công");
+        return ResponseEntity.ok(response);
+        
+    } catch (Exception e) {
+        response.put("success", false);
+        response.put("message", "Import thất bại: " + e.getMessage());
+        return ResponseEntity.badRequest().body(response);
+    }
+}
 }
