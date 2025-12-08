@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import java.time.LocalDate;
 
 @Repository
 public interface MedicalRecordRepository extends JpaRepository<MedicalRecord, Long> {
@@ -43,4 +44,22 @@ public interface MedicalRecordRepository extends JpaRepository<MedicalRecord, Lo
            "WHERE mr.doctorId = :doctorId " +
            "ORDER BY mr.examinationDate DESC, mr.updatedAt DESC, mr.createdAt DESC")
     List<MedicalRecord> findAllByDoctorIdOrderByDateDesc(@Param("doctorId") Long doctorId);
+    
+    @Query("SELECT mr FROM MedicalRecord mr WHERE mr.appointmentId IN :appointmentIds ORDER BY mr.examinationDate DESC")
+    Page<MedicalRecord> findByAppointmentIdIn(@Param("appointmentIds") List<Long> appointmentIds, Pageable pageable);
+
+    @Query("SELECT mr FROM MedicalRecord mr WHERE mr.appointmentId IN :appointmentIds AND " +
+           "(mr.chiefComplaint LIKE %:keyword% OR mr.finalDiagnosis LIKE %:keyword% OR " +
+           "mr.treatmentPlan LIKE %:keyword%) ORDER BY mr.examinationDate DESC")
+    Page<MedicalRecord> searchByPatientAndKeyword(@Param("appointmentIds") List<Long> appointmentIds, 
+                                                 @Param("keyword") String keyword, 
+                                                 Pageable pageable);
+
+    @Query("SELECT mr FROM MedicalRecord mr WHERE mr.appointmentId IN :appointmentIds AND " +
+           "mr.examinationDate BETWEEN :fromDate AND :toDate ORDER BY mr.examinationDate DESC")
+    Page<MedicalRecord> findByAppointmentIdInAndExaminationDateBetween(
+            @Param("appointmentIds") List<Long> appointmentIds,
+            @Param("fromDate") LocalDate fromDate,
+            @Param("toDate") LocalDate toDate,
+            Pageable pageable);
 }

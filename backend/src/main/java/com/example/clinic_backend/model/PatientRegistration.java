@@ -47,6 +47,10 @@ public class PatientRegistration {
     @Column(name = "doctor_id")
     private Long doctorId;
 
+    // 🔥 THÊM FIELD MỚI: user_id để lưu ID của bệnh nhân
+    @Column(name = "user_id")
+    private Long userId;
+
     // 🔥 SỬA: Thay LAZY bằng EAGER và bỏ @JsonIgnore
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "doctor_id", referencedColumnName = "id", insertable = false, updatable = false)
@@ -171,6 +175,19 @@ public class PatientRegistration {
     public Long getDoctorId() { return doctorId; }
     public void setDoctorId(Long doctorId) { this.doctorId = doctorId; }
 
+    // 🔥 THÊM GETTER VÀ SETTER CHO USER_ID
+    public Long getUserId() { return userId; }
+    public void setUserId(Long userId) { this.userId = userId; }
+
+    // 🔥 THÊM METHOD GETPATIENTID ĐỂ TƯƠNG THÍCH VỚI SERVICE
+    public Long getPatientId() { 
+        return userId; 
+    }
+    
+    public void setPatientId(Long patientId) { 
+        this.userId = patientId; 
+    }
+
     public Doctor getDoctor() { return doctor; }
     public void setDoctor(Doctor doctor) { this.doctor = doctor; }
 
@@ -245,6 +262,7 @@ public class PatientRegistration {
                 ", department='" + department + '\'' +
                 ", appointmentDate=" + appointmentDate +
                 ", doctorId=" + doctorId +
+                ", userId=" + userId +
                 ", doctor=" + (doctor != null ? doctor.getFullName() : "null") +
                 ", assignedSession='" + assignedSession + '\'' +
                 ", status='" + status + '\'' +

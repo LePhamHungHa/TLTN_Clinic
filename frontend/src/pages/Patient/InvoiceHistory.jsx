@@ -367,6 +367,11 @@ const InvoiceHistory = () => {
               <p>
                 Tìm thấy <strong>{invoices.length}</strong> hóa đơn
               </p>
+              {/* <button
+                className="btn-refresh"
+                onClick={handleRefresh}
+                title="Làm mới danh sách" 
+              ></button> */}
             </div>
             <p>
               Tổng số tiền đã thanh toán:{" "}

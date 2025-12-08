@@ -23,6 +23,7 @@ import BMIPage from "./pages/Patient/BMIPage.jsx";
 import PaymentResult from "./pages/Patient/PaymentResult.jsx";
 import InvoiceHistory from "./pages/Patient/InvoiceHistory";
 import InvoiceDetail from "./pages/Patient/InvoiceDetail";
+import MedicalExaminationResults from "./pages/Patient/MedicalExaminationResults";
 
 // Import Admin
 import AdminUsers from "./pages/Admin/AdminUsers.jsx";
@@ -166,6 +167,19 @@ function App() {
           }
         />
 
+        {/* Kết quả khám của bệnh nhân */}
+        <Route
+          path="/patient/medical-examination-results"
+          element={
+            <PrivateRoute role="PATIENT">
+              <>
+                <Header />
+                <MedicalExaminationResults />
+              </>
+            </PrivateRoute>
+          }
+        />
+
         <Route
           path="/payment-result"
           element={
@@ -296,17 +310,6 @@ function App() {
             </>
           }
         />
-
-        {/* Kê đơn thuốc (có medicalRecordId) - Bác sĩ */}
-        {/* <Route
-          path="/doctor/prescription/:appointmentId/:medicalRecordId"
-          element={
-            <>
-              <Header />
-              <DoctorPrescription />
-            </>
-          }
-        /> */}
 
         {/* Đăng nhập / đăng ký */}
         <Route

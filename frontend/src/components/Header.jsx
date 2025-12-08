@@ -169,8 +169,8 @@ const Header = () => {
           BMI
         </Link>,
         <Link
-          key="p-health-tracking"
-          to="/patient/health-tracking"
+          key="p-examination-results"
+          to="/patient/medical-examination-results"
           className={linkClass}
           onClick={isMobile ? toggleMobileMenu : undefined}
         >

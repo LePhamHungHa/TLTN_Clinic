@@ -133,4 +133,18 @@ public interface PatientRegistrationRepository extends JpaRepository<PatientRegi
         @Param("appointmentDate") LocalDate appointmentDate,
         @Param("status") String status
     );
+    
+    // ==================== THÊM PHƯƠNG THỨC MỚI CHO PATIENT MEDICAL RECORDS ====================
+    
+    // 🔥 SỬA: Thay findByPatientId thành findByUserId (vì model có userId, không có patientId)
+    @Query("SELECT p FROM PatientRegistration p WHERE p.userId = :userId ORDER BY p.appointmentDate DESC")
+    List<PatientRegistration> findByUserId(@Param("userId") Long userId);
+    
+    // 🔥 THÊM PHƯƠNG THỨC TÌM THEO PATIENT_CODE
+    @Query("SELECT p FROM PatientRegistration p WHERE p.patientCode = :patientCode ORDER BY p.appointmentDate DESC")
+    List<PatientRegistration> findByPatientCode(@Param("patientCode") String patientCode);
+    
+    // 🔥 THÊM PHƯƠNG THỨC TÌM THEO EMAIL VÀ SẮP XẾP THEO NGÀY HẸN
+    @Query("SELECT p FROM PatientRegistration p WHERE p.email = :email ORDER BY p.appointmentDate DESC")
+    List<PatientRegistration> findByEmailOrderByAppointmentDateDesc(@Param("email") String email);
 }
