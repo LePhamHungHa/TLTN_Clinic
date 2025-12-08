@@ -145,6 +145,14 @@ const Header = () => {
           Lịch hẹn
         </Link>,
         <Link
+          key="p-invoices"
+          to="/invoices"
+          className={linkClass}
+          onClick={isMobile ? toggleMobileMenu : undefined}
+        >
+          Hóa đơn
+        </Link>,
+        <Link
           key="p-health-records"
           to="/patient/health-records"
           className={linkClass}
@@ -185,10 +193,9 @@ const Header = () => {
           Thông tin cá nhân
         </Link>
       );
-    }
 
-    // Menu doctor
-    else if (user.role === "DOCTOR") {
+      // Menu doctor
+    } else if (user.role === "DOCTOR") {
       links.push(
         <Link
           key="d-dashboard"
@@ -198,14 +205,6 @@ const Header = () => {
         >
           Lịch làm việc
         </Link>,
-        // <Link
-        //   key="d-patients"
-        //   to="/doctor/patients"
-        //   className={linkClass}
-        //   onClick={isMobile ? toggleMobileMenu : undefined}
-        // >
-        //   Quản lý bệnh nhân
-        // </Link>,
         <Link
           key="d-appointments"
           to="/doctor/appointments"
@@ -258,6 +257,14 @@ const Header = () => {
           onClick={isMobile ? toggleMobileMenu : undefined}
         >
           Quản lý Lịch hẹn
+        </Link>,
+        <Link
+          key="a-invoices"
+          to="/admin/invoices"
+          className={linkClass}
+          onClick={isMobile ? toggleMobileMenu : undefined}
+        >
+          📋 Quản lý Hóa đơn
         </Link>,
         <Link
           key="a-data"

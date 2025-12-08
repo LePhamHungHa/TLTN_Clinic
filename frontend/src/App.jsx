@@ -21,6 +21,8 @@ import PatientInfo from "./pages/Patient/PatientInfo.jsx";
 import AppointmentsPage from "./pages/Patient/Appointments.jsx";
 import BMIPage from "./pages/Patient/BMIPage.jsx";
 import PaymentResult from "./pages/Patient/PaymentResult.jsx";
+import InvoiceHistory from "./pages/Patient/InvoiceHistory";
+import InvoiceDetail from "./pages/Patient/InvoiceDetail";
 
 // Import Admin
 import AdminUsers from "./pages/Admin/AdminUsers.jsx";
@@ -170,6 +172,28 @@ function App() {
             <>
               <Header />
               <PaymentResult />
+              <Footer />
+            </>
+          }
+        />
+
+        <Route
+          path="/invoices"
+          element={
+            <>
+              <Header />
+              <InvoiceHistory />
+              <Footer />
+            </>
+          }
+        />
+
+        <Route
+          path="/invoice/:invoiceNumber"
+          element={
+            <>
+              <Header />
+              <InvoiceDetail />
               <Footer />
             </>
           }

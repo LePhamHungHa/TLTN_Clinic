@@ -9,11 +9,33 @@ const PaymentResult = () => {
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(true);
   const [paymentDetails, setPaymentDetails] = useState(null);
+  const [apiCallCount, setApiCallCount] = useState(0); // Theo dõi số lần gọi API
+  const [debugInfo, setDebugInfo] = useState([]); // Lưu debug info
+
+  // Thêm debug log
+  const addDebugLog = (message) => {
+    const timestamp = new Date().toLocaleTimeString();
+    const log = `[${timestamp}] ${message}`;
+    console.log(log);
+    setDebugInfo((prev) => [...prev, log]);
+
+    // Giới hạn số lượng log
+    if (debugInfo.length > 20) {
+      setDebugInfo((prev) => prev.slice(-20));
+    }
+  };
 
   useEffect(() => {
+    addDebugLog("🔵 PaymentResult component MOUNTED");
+    addDebugLog(
+      `📊 Search params: ${Array.from(searchParams.entries())
+        .map(([k, v]) => `${k}=${v}`)
+        .join(", ")}`
+    );
+
     const checkPaymentResult = async () => {
       try {
-        console.log("🔄 Checking payment result...");
+        addDebugLog("🔄 Starting payment result check");
 
         // Lấy các tham số từ URL trả về từ VNPay
         const vnp_ResponseCode = searchParams.get("vnp_ResponseCode");
@@ -24,39 +46,10 @@ const PaymentResult = () => {
         const vnp_PayDate = searchParams.get("vnp_PayDate");
         const vnp_TxnRef = searchParams.get("vnp_TxnRef");
 
-        console.log("📦 Payment return params:", {
-          vnp_ResponseCode,
-          vnp_TransactionNo,
-          vnp_Amount,
-          vnp_OrderInfo,
-          vnp_BankCode,
-          vnp_PayDate,
-          vnp_TxnRef,
-        });
-
-        // Nếu có response code từ VNPay, gọi API để cập nhật trạng thái
-        if (vnp_ResponseCode && vnp_TxnRef) {
-          try {
-            console.log("🔄 Calling payment-return API...");
-            const updateResponse = await axios.get(
-              "http://localhost:8080/api/vnpay/payment-return",
-              {
-                params: {
-                  vnp_ResponseCode,
-                  vnp_TransactionNo,
-                  vnp_Amount,
-                  vnp_OrderInfo,
-                  vnp_BankCode,
-                  vnp_PayDate,
-                  vnp_TxnRef,
-                },
-              }
-            );
-            console.log("✅ Payment status updated:", updateResponse.data);
-          } catch (updateError) {
-            console.error("❌ Failed to update payment status:", updateError);
-          }
-        }
+        addDebugLog(`📦 Params decoded: 
+          ResponseCode=${vnp_ResponseCode}
+          TransactionNo=${vnp_TransactionNo}
+          TxnRef=${vnp_TxnRef}`);
 
         // Tạo object chứa thông tin thanh toán
         const paymentInfo = {
@@ -79,6 +72,7 @@ const PaymentResult = () => {
             message: "Cảm ơn bạn đã sử dụng dịch vụ của chúng tôi.",
             icon: "✅",
           });
+          addDebugLog("✅ Payment successful according to response code");
         } else {
           const errorMessages = {
             "07": "Giao dịch bị nghi ngờ gian lận",
@@ -104,8 +98,48 @@ const PaymentResult = () => {
             message: errorMessage,
             icon: "❌",
           });
+          addDebugLog(`❌ Payment failed: ${errorMessage}`);
+        }
+
+        // Nếu có response code từ VNPay, gọi API để cập nhật trạng thái
+        if (vnp_ResponseCode && vnp_TxnRef) {
+          try {
+            const callNumber = apiCallCount + 1;
+            setApiCallCount(callNumber);
+            addDebugLog(
+              `📞 Calling payment-return API (call #${callNumber})...`
+            );
+
+            const updateResponse = await axios.get(
+              "http://localhost:8080/api/vnpay/payment-return",
+              {
+                params: {
+                  vnp_ResponseCode,
+                  vnp_TransactionNo,
+                  vnp_Amount,
+                  vnp_OrderInfo,
+                  vnp_BankCode,
+                  vnp_PayDate,
+                  vnp_TxnRef,
+                },
+              }
+            );
+
+            addDebugLog(
+              `✅ Payment status updated: ${JSON.stringify(
+                updateResponse.data
+              )}`
+            );
+            addDebugLog(`📊 Total API calls made: ${callNumber}`);
+          } catch (updateError) {
+            addDebugLog(
+              `❌ Failed to update payment status: ${updateError.message}`
+            );
+            console.error("❌ Failed to update payment status:", updateError);
+          }
         }
       } catch (error) {
+        addDebugLog(`❌ Error checking payment result: ${error.message}`);
         console.error("❌ Lỗi khi kiểm tra kết quả thanh toán:", error);
         setResult({
           status: "error",
@@ -115,12 +149,28 @@ const PaymentResult = () => {
           icon: "⚠️",
         });
       } finally {
+        addDebugLog("🏁 Finished payment result check");
         setLoading(false);
       }
     };
 
+    // Kiểm tra nếu component bị re-render nhiều lần
+    const checkRenderCount = () => {
+      const renderKey = "payment_result_renders";
+      const currentCount = parseInt(localStorage.getItem(renderKey) || "0") + 1;
+      localStorage.setItem(renderKey, currentCount.toString());
+      addDebugLog(`🔄 Component render count: ${currentCount}`);
+      return currentCount;
+    };
+
+    checkRenderCount();
     checkPaymentResult();
-  }, [searchParams]);
+
+    // Cleanup function
+    return () => {
+      addDebugLog("🔴 PaymentResult component UNMOUNTED");
+    };
+  }, [searchParams]); // Chỉ phụ thuộc vào searchParams
 
   const formatCurrency = (amount) => {
     return amount ? amount.toLocaleString("vi-VN") + " ₫" : "N/A";
@@ -251,6 +301,12 @@ const PaymentResult = () => {
             <>
               <button
                 className="btn-primary"
+                onClick={() => navigate("/invoices")}
+              >
+                📋 Xem hóa đơn
+              </button>
+              <button
+                className="btn-secondary"
                 onClick={() => navigate("/patient/appointments")}
               >
                 📅 Xem lịch hẹn
