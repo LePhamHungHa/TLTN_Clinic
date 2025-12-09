@@ -259,14 +259,6 @@ const Header = () => {
           Quản lý Lịch hẹn
         </Link>,
         <Link
-          key="a-invoices"
-          to="/admin/invoices"
-          className={linkClass}
-          onClick={isMobile ? toggleMobileMenu : undefined}
-        >
-          📋 Quản lý Hóa đơn
-        </Link>,
-        <Link
           key="a-data"
           to="/admin/data"
           className={linkClass}

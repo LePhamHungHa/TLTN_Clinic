@@ -1,11 +1,9 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import vi from "date-fns/locale/vi";
 import "../../css/MedicalExaminationResults.css";
 
 const MedicalExaminationResults = () => {
-  const navigate = useNavigate();
   const [user, setUser] = useState(null);
   const [medicalRecords, setMedicalRecords] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -13,12 +11,12 @@ const MedicalExaminationResults = () => {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [totalRecords, setTotalRecords] = useState(0);
-  
+
   // States for search
   const [searchKeyword, setSearchKeyword] = useState("");
   const [searchFromDate, setSearchFromDate] = useState("");
   const [searchToDate, setSearchToDate] = useState("");
-  
+
   // States for detail view
   const [selectedRecord, setSelectedRecord] = useState(null);
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
@@ -42,16 +40,16 @@ const MedicalExaminationResults = () => {
   const fetchMedicalRecords = async (patientId) => {
     setLoading(true);
     setError("");
-    
+
     try {
       const token = localStorage.getItem("token");
       const response = await fetch(
         `http://localhost:8080/api/patient/medical-records?patientId=${patientId}&page=${page}&size=${rowsPerPage}`,
         {
           headers: {
-            "Authorization": `Bearer ${token}`,
-            "Content-Type": "application/json"
-          }
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
         }
       );
 
@@ -60,7 +58,7 @@ const MedicalExaminationResults = () => {
       }
 
       const data = await response.json();
-      
+
       if (data.success) {
         setMedicalRecords(data.medicalRecords || []);
         setTotalRecords(data.totalItems || 0);
@@ -77,14 +75,14 @@ const MedicalExaminationResults = () => {
 
   const handleSearch = async () => {
     if (!user?.id) return;
-    
+
     setLoading(true);
     setError("");
-    
+
     try {
       const token = localStorage.getItem("token");
       let url = `http://localhost:8080/api/patient/medical-records/search?patientId=${user.id}&page=0&size=${rowsPerPage}`;
-      
+
       if (searchKeyword) {
         url += `&keyword=${encodeURIComponent(searchKeyword)}`;
       }
@@ -97,9 +95,9 @@ const MedicalExaminationResults = () => {
 
       const response = await fetch(url, {
         headers: {
-          "Authorization": `Bearer ${token}`,
-          "Content-Type": "application/json"
-        }
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
       });
 
       if (!response.ok) {
@@ -107,7 +105,7 @@ const MedicalExaminationResults = () => {
       }
 
       const data = await response.json();
-      
+
       if (data.success) {
         setMedicalRecords(data.medicalRecords || []);
         setTotalRecords(data.totalItems || 0);
@@ -134,16 +132,16 @@ const MedicalExaminationResults = () => {
 
   const handleViewDetail = async (recordId) => {
     setDetailLoading(true);
-    
+
     try {
       const token = localStorage.getItem("token");
       const response = await fetch(
         `http://localhost:8080/api/patient/medical-records/${recordId}?patientId=${user.id}`,
         {
           headers: {
-            "Authorization": `Bearer ${token}`,
-            "Content-Type": "application/json"
-          }
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
         }
       );
 
@@ -152,7 +150,7 @@ const MedicalExaminationResults = () => {
       }
 
       const data = await response.json();
-      
+
       if (data.success) {
         setSelectedRecord(data.medicalRecord);
         setDetailDialogOpen(true);
@@ -196,7 +194,9 @@ const MedicalExaminationResults = () => {
             <div class="section-title">THÔNG TIN CHUNG</div>
             <div class="info-grid">
               <div class="info-label">Ngày khám:</div>
-              <div>${format(new Date(record.examinationDate), "dd/MM/yyyy", { locale: vi })}</div>
+              <div>${format(new Date(record.examinationDate), "dd/MM/yyyy", {
+                locale: vi,
+              })}</div>
               
               <div class="info-label">Bác sĩ khám:</div>
               <div>${record.doctorName || "Không xác định"}</div>
@@ -231,7 +231,9 @@ const MedicalExaminationResults = () => {
             </div>
           </div>
           
-          ${record.medications && record.medications.length > 0 ? `
+          ${
+            record.medications && record.medications.length > 0
+              ? `
           <div class="section">
             <div class="section-title">THUỐC ĐƯỢC KÊ</div>
             <table class="medication-table">
@@ -245,7 +247,9 @@ const MedicalExaminationResults = () => {
                 </tr>
               </thead>
               <tbody>
-                ${record.medications.map(med => `
+                ${record.medications
+                  .map(
+                    (med) => `
                   <tr>
                     <td>${med.name || ""}</td>
                     <td>${med.dosage || ""}</td>
@@ -253,11 +257,15 @@ const MedicalExaminationResults = () => {
                     <td>${med.duration || ""}</td>
                     <td>${med.instructions || ""}</td>
                   </tr>
-                `).join('')}
+                `
+                  )
+                  .join("")}
               </tbody>
             </table>
           </div>
-          ` : ''}
+          `
+              : ""
+          }
           
           <div class="section">
             <div class="section-title">HƯỚNG DẪN & LỜI KHUYÊN</div>
@@ -288,8 +296,8 @@ const MedicalExaminationResults = () => {
   const getStatusChip = (status) => {
     let className = "status-badge ";
     let label = status || "Không xác định";
-    
-    switch(status) {
+
+    switch (status) {
       case "COMPLETED":
         className += "status-completed";
         label = "Đã hoàn thành";
@@ -309,7 +317,7 @@ const MedicalExaminationResults = () => {
       default:
         className += "status-default";
     }
-    
+
     return <span className={className}>{label}</span>;
   };
 
@@ -340,7 +348,7 @@ const MedicalExaminationResults = () => {
           <h3 className="search-title">
             <i className="fas fa-search"></i> Tìm kiếm kết quả khám
           </h3>
-          
+
           <div className="search-form">
             <div className="form-row">
               <div className="form-group">
@@ -402,7 +410,7 @@ const MedicalExaminationResults = () => {
             <div className="empty-state">
               <i className="fas fa-file-medical-alt"></i>
               <p>
-                {searchKeyword || searchFromDate || searchToDate 
+                {searchKeyword || searchFromDate || searchToDate
                   ? "Không tìm thấy kết quả khám nào phù hợp"
                   : "Chưa có kết quả khám nào"}
               </p>
@@ -427,21 +435,33 @@ const MedicalExaminationResults = () => {
                       <tr key={record.id}>
                         <td>{startIndex + index + 1}</td>
                         <td>
-                          {record.examinationDate 
-                            ? format(new Date(record.examinationDate), "dd/MM/yyyy", { locale: vi })
+                          {record.examinationDate
+                            ? format(
+                                new Date(record.examinationDate),
+                                "dd/MM/yyyy",
+                                { locale: vi }
+                              )
                             : "Không xác định"}
                         </td>
-                        <td className="text-truncate" title={record.chiefComplaint || "Không có"}>
+                        <td
+                          className="text-truncate"
+                          title={record.chiefComplaint || "Không có"}
+                        >
                           {record.chiefComplaint || "Không có"}
                         </td>
-                        <td className="text-truncate" title={record.finalDiagnosis || "Không có"}>
+                        <td
+                          className="text-truncate"
+                          title={record.finalDiagnosis || "Không có"}
+                        >
                           {record.finalDiagnosis || "Không có"}
                         </td>
                         <td>
                           <div className="doctor-info">
                             <i className="fas fa-user-md"></i>
                             <div>
-                              <strong>{record.doctorName || "Không xác định"}</strong>
+                              <strong>
+                                {record.doctorName || "Không xác định"}
+                              </strong>
                               <small>{record.doctorSpecialty || ""}</small>
                             </div>
                           </div>
@@ -471,10 +491,11 @@ const MedicalExaminationResults = () => {
                   </tbody>
                 </table>
               </div>
-              
+
               <div className="table-footer">
                 <div className="pagination-info">
-                  Hiển thị {startIndex + 1} - {endIndex} trên {totalRecords} kết quả
+                  Hiển thị {startIndex + 1} - {endIndex} trên {totalRecords} kết
+                  quả
                 </div>
                 <div className="pagination-controls">
                   <button
@@ -498,7 +519,11 @@ const MedicalExaminationResults = () => {
                 <div className="page-size-selector">
                   <select
                     value={rowsPerPage}
-                    onChange={(e) => handleChangeRowsPerPage({ target: { value: e.target.value } })}
+                    onChange={(e) =>
+                      handleChangeRowsPerPage({
+                        target: { value: e.target.value },
+                      })
+                    }
                     className="form-control-sm"
                   >
                     <option value="5">5 dòng/trang</option>
@@ -514,7 +539,10 @@ const MedicalExaminationResults = () => {
 
         {/* Detail Dialog */}
         {detailDialogOpen && (
-          <div className="modal-overlay" onClick={() => setDetailDialogOpen(false)}>
+          <div
+            className="modal-overlay"
+            onClick={() => setDetailDialogOpen(false)}
+          >
             <div className="modal-content" onClick={(e) => e.stopPropagation()}>
               {detailLoading ? (
                 <div className="modal-loading">
@@ -525,7 +553,8 @@ const MedicalExaminationResults = () => {
                 <>
                   <div className="modal-header">
                     <h3>
-                      <i className="fas fa-file-medical-alt"></i> Chi tiết kết quả khám
+                      <i className="fas fa-file-medical-alt"></i> Chi tiết kết
+                      quả khám
                     </h3>
                     <button
                       className="btn btn-close"
@@ -534,7 +563,7 @@ const MedicalExaminationResults = () => {
                       <i className="fas fa-times"></i>
                     </button>
                   </div>
-                  
+
                   <div className="modal-body">
                     {/* Thông tin chung */}
                     <div className="detail-section">
@@ -543,8 +572,12 @@ const MedicalExaminationResults = () => {
                         <div className="info-row">
                           <span className="info-label">Ngày khám:</span>
                           <span className="info-value">
-                            {selectedRecord.examinationDate 
-                              ? format(new Date(selectedRecord.examinationDate), "dd/MM/yyyy", { locale: vi })
+                            {selectedRecord.examinationDate
+                              ? format(
+                                  new Date(selectedRecord.examinationDate),
+                                  "dd/MM/yyyy",
+                                  { locale: vi }
+                                )
                               : "Không xác định"}
                           </span>
                         </div>
@@ -605,7 +638,9 @@ const MedicalExaminationResults = () => {
                           </div>
                         </div>
                         <div className="info-row full-width">
-                          <span className="info-label">Chẩn đoán chính thức:</span>
+                          <span className="info-label">
+                            Chẩn đoán chính thức:
+                          </span>
                           <div className="info-value multiline">
                             {selectedRecord.finalDiagnosis || "Không có"}
                           </div>
@@ -614,35 +649,38 @@ const MedicalExaminationResults = () => {
                     </div>
 
                     {/* Thuốc */}
-                    {selectedRecord.medications && selectedRecord.medications.length > 0 && (
-                      <div className="detail-section">
-                        <h4 className="section-title">Thuốc được kê</h4>
-                        <div className="table-responsive">
-                          <table className="medication-table">
-                            <thead>
-                              <tr>
-                                <th>Tên thuốc</th>
-                                <th>Liều lượng</th>
-                                <th>Tần suất</th>
-                                <th>Thời gian</th>
-                                <th>Hướng dẫn</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {selectedRecord.medications.map((med, index) => (
-                                <tr key={index}>
-                                  <td>{med.name || ""}</td>
-                                  <td>{med.dosage || ""}</td>
-                                  <td>{med.frequency || ""}</td>
-                                  <td>{med.duration || ""}</td>
-                                  <td>{med.instructions || ""}</td>
+                    {selectedRecord.medications &&
+                      selectedRecord.medications.length > 0 && (
+                        <div className="detail-section">
+                          <h4 className="section-title">Thuốc được kê</h4>
+                          <div className="table-responsive">
+                            <table className="medication-table">
+                              <thead>
+                                <tr>
+                                  <th>Tên thuốc</th>
+                                  <th>Liều lượng</th>
+                                  <th>Tần suất</th>
+                                  <th>Thời gian</th>
+                                  <th>Hướng dẫn</th>
                                 </tr>
-                              ))}
-                            </tbody>
-                          </table>
+                              </thead>
+                              <tbody>
+                                {selectedRecord.medications.map(
+                                  (med, index) => (
+                                    <tr key={index}>
+                                      <td>{med.name || ""}</td>
+                                      <td>{med.dosage || ""}</td>
+                                      <td>{med.frequency || ""}</td>
+                                      <td>{med.duration || ""}</td>
+                                      <td>{med.instructions || ""}</td>
+                                    </tr>
+                                  )
+                                )}
+                              </tbody>
+                            </table>
+                          </div>
                         </div>
-                      </div>
-                    )}
+                      )}
 
                     {/* Lời khuyên */}
                     <div className="detail-section">
@@ -652,14 +690,17 @@ const MedicalExaminationResults = () => {
                       </div>
                       {selectedRecord.followUpDate && (
                         <div className="follow-up-info">
-                          <strong>Hẹn tái khám:</strong> {
-                            format(new Date(selectedRecord.followUpDate), "dd/MM/yyyy", { locale: vi })
-                          }
+                          <strong>Hẹn tái khám:</strong>{" "}
+                          {format(
+                            new Date(selectedRecord.followUpDate),
+                            "dd/MM/yyyy",
+                            { locale: vi }
+                          )}
                         </div>
                       )}
                     </div>
                   </div>
-                  
+
                   <div className="modal-footer">
                     <button
                       className="btn btn-secondary"

@@ -242,9 +242,12 @@ public class InvoiceService {
         if (invoiceOpt.isPresent()) {
             Invoice invoice = invoiceOpt.get();
             invoice.setStatus(status);
-            if ("PAID".equals(status)) {
+            invoice.setUpdatedAt(LocalDateTime.now());
+            
+            if ("PAID".equals(status) && invoice.getPaymentDate() == null) {
                 invoice.setPaymentDate(LocalDateTime.now());
             }
+            
             return invoiceRepository.save(invoice);
         }
         return null;

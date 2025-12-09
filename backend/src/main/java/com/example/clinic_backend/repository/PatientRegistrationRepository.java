@@ -46,6 +46,9 @@ public interface PatientRegistrationRepository extends JpaRepository<PatientRegi
     
     List<PatientRegistration> findByPhone(String phone);
     List<PatientRegistration> findByStatus(String status);
+    
+    // 🔥 THÊM PHƯƠNG THỨC MỚI: Tìm theo paymentStatus (đã sửa lỗi)
+    List<PatientRegistration> findByPaymentStatus(String paymentStatus);
 
     @Query("SELECT COUNT(r) FROM PatientRegistration r WHERE DATE(r.createdAt) = CURRENT_DATE")
     Long countByCreatedAtToday();

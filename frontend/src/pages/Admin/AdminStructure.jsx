@@ -4,6 +4,7 @@ import SlotManagement from "./SlotManagement";
 import MedicineManagement from "./MedicineManagement";
 import DoctorManagement from "./DoctorManagement";
 import DepartmentManagement from "./DepartmentManagement";
+import InvoiceManagement from "./InvoiceManagement";
 
 const AdminStructure = () => {
   const [activeTab, setActiveTab] = useState(0);
@@ -11,6 +12,7 @@ const AdminStructure = () => {
   const [medicines, setMedicines] = useState([]);
   const [doctors, setDoctors] = useState([]);
   const [departments, setDepartments] = useState([]);
+  const [invoices, setInvoices] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -33,7 +35,7 @@ const AdminStructure = () => {
       }
 
       // Fetch all data in parallel
-      const [departmentsRes, slotsRes, medicinesRes, doctorsRes] =
+      const [departmentsRes, slotsRes, medicinesRes, doctorsRes, invoicesRes] =
         await Promise.all([
           fetch("http://localhost:8080/api/departments", {
             headers: { Authorization: `Bearer ${token}` },
@@ -50,18 +52,25 @@ const AdminStructure = () => {
           fetch("http://localhost:8080/api/doctors", {
             headers: { Authorization: `Bearer ${token}` },
           }).then((res) => (res.ok ? res.json() : [])),
+
+          // Fetch invoices
+          fetch("http://localhost:8080/api/invoices/all", {
+            headers: { Authorization: `Bearer ${token}` },
+          }).then((res) => (res.ok ? res.json() : [])),
         ]);
 
       setDepartments(Array.isArray(departmentsRes) ? departmentsRes : []);
       setSlots(Array.isArray(slotsRes) ? slotsRes : []);
       setMedicines(Array.isArray(medicinesRes) ? medicinesRes : []);
       setDoctors(Array.isArray(doctorsRes) ? doctorsRes : []);
+      setInvoices(Array.isArray(invoicesRes) ? invoicesRes : []);
     } catch (err) {
       setError(`Lỗi: ${err.message}`);
       setDepartments([]);
       setSlots([]);
       setMedicines([]);
       setDoctors([]);
+      setInvoices([]);
     } finally {
       setLoading(false);
     }
@@ -92,6 +101,10 @@ const AdminStructure = () => {
       INACTIVE: "Ngừng hoạt động",
       OUT_OF_STOCK: "Hết hàng",
       LOW_STOCK: "Sắp hết",
+      PAID: "Đã thanh toán",
+      PENDING: "Chờ thanh toán",
+      CANCELLED: "Đã hủy",
+      REFUNDED: "Đã hoàn tiền",
     };
     return statusMap[status] || status;
   };
@@ -157,6 +170,12 @@ const AdminStructure = () => {
           >
             🏥 Quản lý Khoa ({departments.length})
           </button>
+          <button
+            className={`tab-button ${activeTab === 4 ? "active" : ""}`}
+            onClick={() => setActiveTab(4)}
+          >
+            🧾 Quản lý Hóa đơn ({invoices.length})
+          </button>
         </div>
 
         {/* Slot Management Tab */}
@@ -195,6 +214,16 @@ const AdminStructure = () => {
           <DepartmentManagement
             departments={departments}
             doctors={doctors}
+            onRefresh={fetchData}
+          />
+        )}
+
+        {/* Invoice Management Tab */}
+        {activeTab === 4 && (
+          <InvoiceManagement
+            invoices={invoices}
+            formatCurrency={formatCurrency}
+            getStatusLabel={getStatusLabel}
             onRefresh={fetchData}
           />
         )}

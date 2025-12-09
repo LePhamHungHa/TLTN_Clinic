@@ -4,6 +4,7 @@ import com.example.clinic_backend.model.Invoice;
 import com.example.clinic_backend.service.InvoiceService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
@@ -129,19 +130,120 @@ public class InvoiceController {
         }
     }
     
-    // Lấy tất cả hóa đơn (cho admin)
+    // Lấy tất cả hóa đơn (cho admin) - SỬA LẠI ĐỂ PHÙ HỢP VỚI FRONTEND
     @GetMapping("/all")
     public ResponseEntity<?> getAllInvoices() {
         try {
             System.out.println("📋 Getting all invoices");
             
             List<Invoice> invoices = invoiceService.getAllInvoices();
+            
+            // Return as array for frontend compatibility
             return ResponseEntity.ok(invoices);
             
         } catch (Exception e) {
             System.err.println("❌ Error getting all invoices: " + e.getMessage());
             Map<String, String> error = new HashMap<>();
             error.put("error", "Không thể lấy danh sách hóa đơn");
+            return ResponseEntity.badRequest().body(error);
+        }
+    }
+    
+    // API mới: Lấy tất cả hóa đơn với định dạng response chuẩn
+    @GetMapping("/admin/all")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> getAllInvoicesForAdmin() {
+        try {
+            System.out.println("📋 ADMIN - Getting all invoices");
+            
+            List<Invoice> invoices = invoiceService.getAllInvoices();
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("count", invoices.size());
+            response.put("invoices", invoices);
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            System.err.println("❌ ADMIN - Error getting invoices: " + e.getMessage());
+            Map<String, Object> error = new HashMap<>();
+            error.put("success", false);
+            error.put("error", "Không thể lấy danh sách hóa đơn");
+            return ResponseEntity.badRequest().body(error);
+        }
+    }
+    
+    // API để lấy hóa đơn theo trạng thái
+    @GetMapping("/status/{status}")
+    public ResponseEntity<?> getInvoicesByStatus(@PathVariable String status) {
+        try {
+            System.out.println("📊 Getting invoices by status: " + status);
+            
+            List<Invoice> invoices = invoiceService.getInvoicesByStatus(status);
+            return ResponseEntity.ok(invoices);
+            
+        } catch (Exception e) {
+            System.err.println("❌ Error getting invoices by status: " + e.getMessage());
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Không thể lấy danh sách hóa đơn theo trạng thái");
+            return ResponseEntity.badRequest().body(error);
+        }
+    }
+    
+    // API để cập nhật trạng thái hóa đơn
+    @PutMapping("/{invoiceNumber}/status")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> updateInvoiceStatus(
+            @PathVariable String invoiceNumber,
+            @RequestBody Map<String, String> request) {
+        try {
+            System.out.println("🔄 Updating invoice status: " + invoiceNumber);
+            
+            String status = request.get("status");
+            if (status == null || status.isEmpty()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Trạng thái không được để trống");
+                return ResponseEntity.badRequest().body(error);
+            }
+            
+            Invoice updatedInvoice = invoiceService.updateInvoiceStatus(invoiceNumber, status);
+            if (updatedInvoice != null) {
+                return ResponseEntity.ok(updatedInvoice);
+            } else {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Không tìm thấy hóa đơn");
+                return ResponseEntity.notFound().build();
+            }
+            
+        } catch (Exception e) {
+            System.err.println("❌ Error updating invoice status: " + e.getMessage());
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Không thể cập nhật trạng thái hóa đơn");
+            return ResponseEntity.badRequest().body(error);
+        }
+    }
+    
+    // API để xóa hóa đơn
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> deleteInvoice(@PathVariable Long id) {
+        try {
+            System.out.println("🗑️ Deleting invoice: " + id);
+            
+            invoiceService.deleteInvoice(id);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("message", "Xóa hóa đơn thành công");
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            System.err.println("❌ Error deleting invoice: " + e.getMessage());
+            Map<String, Object> error = new HashMap<>();
+            error.put("success", false);
+            error.put("error", "Không thể xóa hóa đơn");
             return ResponseEntity.badRequest().body(error);
         }
     }
@@ -207,6 +309,31 @@ public class InvoiceController {
             Map<String, Object> error = new HashMap<>();
             error.put("success", false);
             error.put("error", "Không thể lấy thông tin hóa đơn: " + e.getMessage());
+            return ResponseEntity.badRequest().body(error);
+        }
+    }
+    
+    // API thống kê hóa đơn
+    @GetMapping("/statistics")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> getInvoiceStatistics(
+            @RequestParam(required = false) String startDate,
+            @RequestParam(required = false) String endDate) {
+        try {
+            System.out.println("📊 Getting invoice statistics from " + startDate + " to " + endDate);
+            
+            // Implement statistics logic here
+            Map<String, Object> statistics = new HashMap<>();
+            statistics.put("success", true);
+            statistics.put("message", "API thống kê đang được phát triển");
+            
+            return ResponseEntity.ok(statistics);
+            
+        } catch (Exception e) {
+            System.err.println("❌ Error getting statistics: " + e.getMessage());
+            Map<String, Object> error = new HashMap<>();
+            error.put("success", false);
+            error.put("error", "Không thể lấy thống kê hóa đơn");
             return ResponseEntity.badRequest().body(error);
         }
     }

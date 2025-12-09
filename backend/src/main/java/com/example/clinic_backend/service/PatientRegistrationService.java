@@ -10,6 +10,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.math.BigDecimal;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.ArrayList;
 
 @Service
 @Transactional
@@ -36,6 +39,8 @@ public class PatientRegistrationService {
         this.emailService = emailService;
     }
 
+    // ========== CÁC METHOD HIỆN CÓ - GIỮ NGUYÊN ==========
+    
     public List<PatientRegistration> getAll() {
         return repository.findAll();
     }
@@ -345,5 +350,245 @@ public class PatientRegistrationService {
 
     private String generateRegistrationNumber() {
         return "REG-" + System.currentTimeMillis();
+    }
+    
+    // ========== THÊM METHOD MỚI CHO THỐNG KÊ ==========
+    
+    /**
+     * Lấy thống kê tổng quan từ patient_registrations
+     * KHÔNG ẢNH HƯỞNG ĐẾN LOGIC CŨ
+     */
+    public Map<String, Object> getRegistrationStatistics() {
+        Map<String, Object> statistics = new HashMap<>();
+        
+        try {
+            // Lấy tất cả đăng ký
+            List<PatientRegistration> allRegistrations = repository.findAll();
+            
+            // Tổng số lịch hẹn
+            int totalAppointments = allRegistrations.size();
+            
+            // Đếm theo trạng thái thanh toán
+            int paidCount = 0;
+            int unpaidCount = 0;
+            int pendingCount = 0;
+            
+            BigDecimal totalRevenue = BigDecimal.ZERO;
+            BigDecimal paidRevenue = BigDecimal.ZERO;
+            BigDecimal pendingRevenue = BigDecimal.ZERO;
+            
+            for (PatientRegistration registration : allRegistrations) {
+                if (registration.getPaymentStatus() != null) {
+                    switch (registration.getPaymentStatus()) {
+                        case "PAID":
+                            paidCount++;
+                            if (registration.getPaidAmount() != null) {
+                                paidRevenue = paidRevenue.add(registration.getPaidAmount());
+                                totalRevenue = totalRevenue.add(registration.getPaidAmount());
+                            }
+                            break;
+                        case "PENDING":
+                            pendingCount++;
+                            if (registration.getExaminationFee() != null) {
+                                pendingRevenue = pendingRevenue.add(registration.getExaminationFee());
+                            }
+                            break;
+                        default:
+                            unpaidCount++;
+                            break;
+                    }
+                } else {
+                    unpaidCount++;
+                }
+            }
+            
+            // Tính tỷ lệ
+            double paidRate = totalAppointments > 0 ? (paidCount * 100.0 / totalAppointments) : 0;
+            double unpaidRate = totalAppointments > 0 ? (unpaidCount * 100.0 / totalAppointments) : 0;
+            double pendingRate = totalAppointments > 0 ? (pendingCount * 100.0 / totalAppointments) : 0;
+            
+            // Thống kê theo ngày (7 ngày gần nhất)
+            Map<String, Object> dailyStats = getDailyRegistrationStats(7);
+            
+            // Thống kê theo trạng thái khám
+            Map<String, Long> examStatusStats = new HashMap<>();
+            allRegistrations.stream()
+                .filter(r -> r.getExaminationStatus() != null)
+                .forEach(r -> {
+                    examStatusStats.put(r.getExaminationStatus(), 
+                        examStatusStats.getOrDefault(r.getExaminationStatus(), 0L) + 1);
+                });
+            
+            // Thống kê theo khoa
+            Map<String, Long> departmentStats = new HashMap<>();
+            allRegistrations.stream()
+                .filter(r -> r.getDepartment() != null)
+                .forEach(r -> {
+                    departmentStats.put(r.getDepartment(), 
+                        departmentStats.getOrDefault(r.getDepartment(), 0L) + 1);
+                });
+            
+            statistics.put("success", true);
+            statistics.put("totalAppointments", totalAppointments);
+            statistics.put("paidCount", paidCount);
+            statistics.put("unpaidCount", unpaidCount);
+            statistics.put("pendingCount", pendingCount);
+            statistics.put("paidRate", Math.round(paidRate * 100.0) / 100.0);
+            statistics.put("unpaidRate", Math.round(unpaidRate * 100.0) / 100.0);
+            statistics.put("pendingRate", Math.round(pendingRate * 100.0) / 100.0);
+            statistics.put("totalRevenue", totalRevenue);
+            statistics.put("paidRevenue", paidRevenue);
+            statistics.put("pendingRevenue", pendingRevenue);
+            statistics.put("dailyStats", dailyStats);
+            statistics.put("examStatusStats", examStatusStats);
+            statistics.put("departmentStats", departmentStats);
+            statistics.put("lastUpdated", LocalDateTime.now().toString());
+            
+        } catch (Exception e) {
+            System.err.println("❌ Error calculating registration statistics: " + e.getMessage());
+            statistics.put("success", false);
+            statistics.put("error", "Không thể tính thống kê đăng ký");
+        }
+        
+        return statistics;
+    }
+    
+    /**
+     * Thống kê theo ngày
+     */
+    private Map<String, Object> getDailyRegistrationStats(int days) {
+        Map<String, Object> dailyStats = new HashMap<>();
+        List<Map<String, Object>> dailyData = new ArrayList<>();
+        
+        try {
+            LocalDate endDate = LocalDate.now();
+            LocalDate startDate = endDate.minusDays(days - 1);
+            
+            // Lấy tất cả đăng ký
+            List<PatientRegistration> allRegistrations = repository.findAll();
+            
+            for (int i = 0; i < days; i++) {
+                LocalDate currentDate = startDate.plusDays(i);
+                String dateKey = currentDate.toString();
+                
+                List<PatientRegistration> dailyRegistrations = new ArrayList<>();
+                for (PatientRegistration r : allRegistrations) {
+                    if (r.getAppointmentDate() != null) {
+                        // ĐÚNG: appointmentDate đã là LocalDate, không cần toLocalDate()
+                        LocalDate appointmentDate = r.getAppointmentDate();
+                        if (appointmentDate.equals(currentDate)) {
+                            dailyRegistrations.add(r);
+                        }
+                    }
+                }
+                
+                int dailyTotal = dailyRegistrations.size();
+                int dailyPaid = 0;
+                int dailyPending = 0;
+                
+                for (PatientRegistration r : dailyRegistrations) {
+                    if ("PAID".equals(r.getPaymentStatus())) {
+                        dailyPaid++;
+                    } else if ("PENDING".equals(r.getPaymentStatus())) {
+                        dailyPending++;
+                    }
+                }
+                
+                BigDecimal dailyRevenue = BigDecimal.ZERO;
+                for (PatientRegistration r : dailyRegistrations) {
+                    if ("PAID".equals(r.getPaymentStatus()) && r.getPaidAmount() != null) {
+                        dailyRevenue = dailyRevenue.add(r.getPaidAmount());
+                    }
+                }
+                
+                Map<String, Object> dayData = new HashMap<>();
+                dayData.put("date", dateKey);
+                dayData.put("total", dailyTotal);
+                dayData.put("paid", dailyPaid);
+                dayData.put("pending", dailyPending);
+                dayData.put("revenue", dailyRevenue);
+                
+                dailyData.add(dayData);
+            }
+            
+            dailyStats.put("days", days);
+            dailyStats.put("startDate", startDate.toString());
+            dailyStats.put("endDate", endDate.toString());
+            dailyStats.put("data", dailyData);
+            
+        } catch (Exception e) {
+            System.err.println("❌ Error getting daily registration stats: " + e.getMessage());
+        }
+        
+        return dailyStats;
+    }
+    
+    /**
+     * Lấy danh sách đăng ký theo trạng thái thanh toán
+     */
+    public List<PatientRegistration> getRegistrationsByPaymentStatus(String paymentStatus) {
+        return repository.findByPaymentStatus(paymentStatus);
+    }
+    
+    /**
+     * Lấy tổng doanh thu theo khoảng thời gian
+     */
+    public Map<String, Object> getRevenueStatistics(LocalDate startDate, LocalDate endDate) {
+        Map<String, Object> revenueStats = new HashMap<>();
+        
+        try {
+            List<PatientRegistration> registrations = repository.findAll();
+            
+            // Filter theo ngày
+            List<PatientRegistration> filteredRegistrations = new ArrayList<>();
+            for (PatientRegistration r : registrations) {
+                if (r.getAppointmentDate() != null) {
+                    // ĐÚNG: appointmentDate đã là LocalDate, không cần toLocalDate()
+                    LocalDate appointmentDate = r.getAppointmentDate();
+                    
+                    if (!appointmentDate.isBefore(startDate) && !appointmentDate.isAfter(endDate)) {
+                        filteredRegistrations.add(r);
+                    }
+                }
+            }
+            
+            BigDecimal totalRevenue = BigDecimal.ZERO;
+            BigDecimal paidRevenue = BigDecimal.ZERO;
+            BigDecimal expectedRevenue = BigDecimal.ZERO;
+            
+            int paidCount = 0;
+            int pendingCount = 0;
+            
+            for (PatientRegistration r : filteredRegistrations) {
+                if ("PAID".equals(r.getPaymentStatus()) && r.getPaidAmount() != null) {
+                    paidCount++;
+                    paidRevenue = paidRevenue.add(r.getPaidAmount());
+                    totalRevenue = totalRevenue.add(r.getPaidAmount());
+                } else if ("PENDING".equals(r.getPaymentStatus()) && r.getExaminationFee() != null) {
+                    pendingCount++;
+                    expectedRevenue = expectedRevenue.add(r.getExaminationFee());
+                }
+            }
+            
+            revenueStats.put("success", true);
+            revenueStats.put("startDate", startDate.toString());
+            revenueStats.put("endDate", endDate.toString());
+            revenueStats.put("totalRegistrations", filteredRegistrations.size());
+            revenueStats.put("paidCount", paidCount);
+            revenueStats.put("pendingCount", pendingCount);
+            revenueStats.put("totalRevenue", totalRevenue);
+            revenueStats.put("paidRevenue", paidRevenue);
+            revenueStats.put("expectedRevenue", expectedRevenue);
+            revenueStats.put("collectionRate", 
+                filteredRegistrations.size() > 0 ? 
+                (paidCount * 100.0 / filteredRegistrations.size()) : 0);
+            
+        } catch (Exception e) {
+            System.err.println("❌ Error calculating revenue statistics: " + e.getMessage());
+            revenueStats.put("success", false);
+            revenueStats.put("error", "Không thể tính thống kê doanh thu");
+        }
+        
+        return revenueStats;
     }
 }
