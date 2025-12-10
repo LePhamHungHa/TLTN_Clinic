@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from "react";
-import axios from "axios";
+import React, { useState, useEffect, useRef } from "react";
 import "../../css/AdminUsers.css";
+import "bootstrap/dist/css/bootstrap.min.css";
+import "bootstrap-icons/font/bootstrap-icons.css";
 
 const AdminUsers = () => {
   const [users, setUsers] = useState([]);
@@ -10,13 +11,16 @@ const AdminUsers = () => {
   const [loading, setLoading] = useState(true);
   const [departmentsLoading, setDepartmentsLoading] = useState(false);
   const [departmentsError, setDepartmentsError] = useState("");
-  const [error, setError] = useState("");
-  const [activeTab, setActiveTab] = useState("users");
-  const [showUserModal, setShowUserModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [filteredData, setFilteredData] = useState([]);
+  const [activeTab, setActiveTab] = useState("users");
+  const [showForm, setShowForm] = useState(false);
+  const [editingUser, setEditingUser] = useState(null);
+  const [formLoading, setFormLoading] = useState(false);
 
-  // Form states
-  const [userForm, setUserForm] = useState({
+  const formRef = useRef(null);
+
+  const [formData, setFormData] = useState({
     role: "PATIENT",
     username: "",
     password: "",
@@ -44,56 +48,51 @@ const AdminUsers = () => {
   const getToken = () => {
     try {
       const userData = localStorage.getItem("user");
-      if (!userData) {
-        console.error("❌ Không tìm thấy user data");
-        return null;
-      }
+      if (!userData) return null;
       const user = JSON.parse(userData);
       return user?.token;
-    } catch (error) {
-      console.error("❌ Lỗi khi lấy token:", error);
+    } catch {
       return null;
     }
   };
 
   useEffect(() => {
-    fetchUsers();
-    fetchPatients();
-    fetchDoctors();
+    fetchAllData();
   }, []);
+
+  useEffect(() => {
+    filterData();
+  }, [searchTerm, activeTab, users, patients, doctors]);
+
+  const fetchAllData = async () => {
+    setLoading(true);
+    try {
+      await Promise.all([fetchUsers(), fetchPatients(), fetchDoctors()]);
+    } catch (error) {
+      console.error("Error fetching data:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const fetchUsers = async () => {
     try {
       const token = getToken();
-      if (!token) {
-        alert("⚠️ Vui lòng đăng nhập lại");
-        setLoading(false);
-        return;
+      if (!token) return;
+
+      const response = await fetch("http://localhost:8080/api/admin/users", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setUsers(data);
       }
-
-      const response = await axios.get(
-        "http://localhost:8080/api/admin/users",
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
-
-      console.log("✅ Users data:", response.data);
-      setUsers(response.data);
     } catch (error) {
-      console.error("Lỗi tải danh sách người dùng:", error);
-      if (error.response?.status === 403) {
-        setError("Bạn không có quyền ADMIN để truy cập tính năng này");
-      } else if (error.response?.status === 401) {
-        alert("Phiên đăng nhập hết hạn, vui lòng đăng nhập lại");
-      } else {
-        setError("Không thể tải danh sách người dùng: " + error.message);
-      }
-    } finally {
-      setLoading(false);
+      console.error("Error fetching users:", error);
     }
   };
 
@@ -102,7 +101,7 @@ const AdminUsers = () => {
       const token = getToken();
       if (!token) return;
 
-      const response = await axios.get(
+      const response = await fetch(
         "http://localhost:8080/api/admin/users/patients",
         {
           headers: {
@@ -112,10 +111,12 @@ const AdminUsers = () => {
         }
       );
 
-      console.log("✅ Patients data:", response.data);
-      setPatients(response.data);
+      if (response.ok) {
+        const data = await response.json();
+        setPatients(data);
+      }
     } catch (error) {
-      console.error("❌ Lỗi tải danh sách bệnh nhân:", error);
+      console.error("Error fetching patients:", error);
     }
   };
 
@@ -124,7 +125,7 @@ const AdminUsers = () => {
       const token = getToken();
       if (!token) return;
 
-      const response = await axios.get(
+      const response = await fetch(
         "http://localhost:8080/api/admin/users/doctors",
         {
           headers: {
@@ -134,22 +135,12 @@ const AdminUsers = () => {
         }
       );
 
-      console.log("✅ Doctors data with departments:", response.data);
-
-      // Debug chi tiết từng doctor
-      response.data.forEach((doctor) => {
-        console.log(
-          `🔍 Doctor: ${doctor.fullName}, 
-          Dept ID: ${doctor.departmentId}, 
-          Dept Object:`,
-          doctor.department,
-          `Dept Name: ${doctor.departmentName}`
-        );
-      });
-
-      setDoctors(response.data);
+      if (response.ok) {
+        const data = await response.json();
+        setDoctors(data);
+      }
     } catch (error) {
-      console.error("❌ Lỗi tải danh sách bác sĩ:", error);
+      console.error("Error fetching doctors:", error);
     }
   };
 
@@ -158,14 +149,9 @@ const AdminUsers = () => {
       setDepartmentsLoading(true);
       setDepartmentsError("");
       const token = getToken();
-      if (!token) {
-        setDepartmentsError("Không có token, vui lòng đăng nhập lại");
-        return;
-      }
+      if (!token) return;
 
-      console.log("🔄 Đang tải danh sách khoa...");
-
-      const response = await axios.get(
+      const response = await fetch(
         "http://localhost:8080/api/admin/users/departments",
         {
           headers: {
@@ -175,242 +161,272 @@ const AdminUsers = () => {
         }
       );
 
-      console.log("✅ Danh sách khoa:", response.data);
-      setDepartments(response.data);
-
-      if (response.data.length === 0) {
-        console.warn("⚠️ Danh sách khoa trống");
-        setDepartmentsError("Không có khoa nào trong hệ thống");
+      if (response.ok) {
+        const data = await response.json();
+        setDepartments(data);
+      } else {
+        setDepartmentsError("Không thể tải danh sách khoa");
       }
-    } catch (error) {
-      console.error("❌ Lỗi tải danh sách khoa:", error);
-      setDepartmentsError(
-        "Không thể tải danh sách khoa: " +
-          (error.response?.data?.message || error.message)
-      );
+    } catch {
+      setDepartmentsError("Lỗi khi tải danh sách khoa");
     } finally {
       setDepartmentsLoading(false);
     }
   };
 
-  const refreshData = () => {
-    setLoading(true);
-    setError("");
-    fetchUsers();
-    fetchPatients();
-    fetchDoctors();
+  const filterData = () => {
+    if (!searchTerm.trim()) {
+      switch (activeTab) {
+        case "users":
+          setFilteredData(users);
+          break;
+        case "patients":
+          setFilteredData(patients);
+          break;
+        case "doctors":
+          setFilteredData(doctors);
+          break;
+        default:
+          setFilteredData(users);
+      }
+      return;
+    }
+
+    const normalizedSearch = searchTerm.toLowerCase().trim();
+    let dataToFilter = [];
+
+    switch (activeTab) {
+      case "users":
+        dataToFilter = users;
+        break;
+      case "patients":
+        dataToFilter = patients;
+        break;
+      case "doctors":
+        dataToFilter = doctors;
+        break;
+      default:
+        dataToFilter = users;
+    }
+
+    const filtered = dataToFilter.filter((item) => {
+      if (activeTab === "users") {
+        return (
+          item.username?.toLowerCase().includes(normalizedSearch) ||
+          item.fullName?.toLowerCase().includes(normalizedSearch) ||
+          item.email?.toLowerCase().includes(normalizedSearch) ||
+          item.phone?.toLowerCase().includes(normalizedSearch)
+        );
+      } else if (activeTab === "patients") {
+        return (
+          item.fullName?.toLowerCase().includes(normalizedSearch) ||
+          item.email?.toLowerCase().includes(normalizedSearch) ||
+          item.phone?.toLowerCase().includes(normalizedSearch) ||
+          item.bhyt?.toLowerCase().includes(normalizedSearch)
+        );
+      } else if (activeTab === "doctors") {
+        return (
+          item.fullName?.toLowerCase().includes(normalizedSearch) ||
+          item.email?.toLowerCase().includes(normalizedSearch) ||
+          item.phone?.toLowerCase().includes(normalizedSearch) ||
+          item.degree?.toLowerCase().includes(normalizedSearch) ||
+          item.position?.toLowerCase().includes(normalizedSearch) ||
+          item.departmentName?.toLowerCase().includes(normalizedSearch)
+        );
+      }
+      return false;
+    });
+
+    setFilteredData(filtered);
   };
 
-  // Filter data based on search term
-  const filteredUsers = users.filter(
-    (user) =>
-      user.username?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.role?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  const filteredPatients = patients.filter(
-    (patient) =>
-      patient.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      patient.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      patient.phone?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  const filteredDoctors = doctors.filter(
-    (doctor) =>
-      doctor.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (doctor.departmentName &&
-        doctor.departmentName
-          .toLowerCase()
-          .includes(searchTerm.toLowerCase())) ||
-      (doctor.department &&
-        doctor.department.departmentName &&
-        doctor.department.departmentName
-          .toLowerCase()
-          .includes(searchTerm.toLowerCase())) ||
-      doctor.degree?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      doctor.position?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      doctor.email?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  // Handle form changes
-  const handleUserFormChange = (e) => {
-    const { name, value } = e.target;
-    setUserForm((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+  const handleEditUser = (user) => {
+    setEditingUser(user);
+    // Map data based on role
+    if (activeTab === "users") {
+      setFormData({
+        role: user.role || "PATIENT",
+        username: user.username || "",
+        password: "",
+        fullName: user.fullName || "",
+        phone: user.phone || "",
+        email: user.email || "",
+      });
+    } else if (activeTab === "patients") {
+      setFormData({
+        role: "PATIENT",
+        username: user.user?.username || "",
+        password: "",
+        fullName: user.fullName || "",
+        phone: user.phone || "",
+        email: user.email || "",
+        dob: user.dob || "",
+        address: user.address || "",
+        symptoms: user.symptoms || "",
+        bhyt: user.bhyt || "",
+        relativeName: user.relativeName || "",
+        relativePhone: user.relativePhone || "",
+        relativeAddress: user.relativeAddress || "",
+        relativeRelationship: user.relativeRelationship || "",
+      });
+    } else if (activeTab === "doctors") {
+      setFormData({
+        role: "DOCTOR",
+        username: user.username || "",
+        password: "",
+        fullName: user.fullName || "",
+        phone: user.phone || "",
+        email: user.email || "",
+        dateOfBirth: user.dateOfBirth || "",
+        gender: user.gender || "MALE",
+        citizenId: user.citizenId || "",
+        address: user.address || "",
+        degree: user.degree || "",
+        position: user.position || "",
+        departmentId: user.departmentId || "",
+        roomNumber: user.roomNumber || "",
+        floor: user.floor || "",
+      });
+    }
+    setShowForm(true);
+    setTimeout(() => {
+      formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 100);
   };
 
-  // Get department name by ID
-  const getDepartmentName = (departmentId) => {
-    if (!departmentId) return "N/A";
-    const department = departments.find((dept) => dept.id === departmentId);
-    return department ? department.departmentName : "N/A";
-  };
+  const handleAddUser = async () => {
+    if (!formData.username || !formData.password || !formData.fullName) {
+      alert("Vui lòng điền đầy đủ thông tin bắt buộc (*)");
+      return;
+    }
 
-  // Create user
-  const handleCreateUser = async (e) => {
-    e.preventDefault();
+    if (formData.role === "DOCTOR" && !formData.departmentId) {
+      alert("Vui lòng chọn khoa cho bác sĩ");
+      return;
+    }
+
+    setFormLoading(true);
     try {
       const token = getToken();
-      if (!token) return;
-
-      // Kiểm tra các trường bắt buộc
-      if (!userForm.username || !userForm.password || !userForm.fullName) {
-        setError("Vui lòng điền đầy đủ thông tin bắt buộc (*)");
+      if (!token) {
+        alert("Vui lòng đăng nhập lại");
         return;
       }
 
-      if (userForm.role === "DOCTOR" && !userForm.departmentId) {
-        setError("Vui lòng chọn khoa cho bác sĩ");
-        return;
-      }
-
-      let requestData = {};
       let endpoint = "";
+      let requestData = {};
+      let method = editingUser ? "PUT" : "POST";
 
-      if (userForm.role === "PATIENT") {
+      if (formData.role === "PATIENT") {
+        endpoint = editingUser
+          ? `http://localhost:8080/api/admin/users/patients/${editingUser.id}`
+          : "http://localhost:8080/api/admin/users/patients";
+
         requestData = {
-          username: userForm.username,
-          password: userForm.password,
-          full_name: userForm.fullName,
-          dob: userForm.dob,
-          phone: userForm.phone,
-          address: userForm.address,
-          email: userForm.email,
-          symptoms: userForm.symptoms,
-          bhyt: userForm.bhyt,
-          relative_name: userForm.relativeName,
-          relative_phone: userForm.relativePhone,
-          relative_address: userForm.relativeAddress,
-          relative_relationship: userForm.relativeRelationship,
+          username: formData.username,
+          password: formData.password,
+          full_name: formData.fullName,
+          dob: formData.dob,
+          phone: formData.phone,
+          address: formData.address,
+          email: formData.email,
+          symptoms: formData.symptoms,
+          bhyt: formData.bhyt,
+          relative_name: formData.relativeName,
+          relative_phone: formData.relativePhone,
+          relative_address: formData.relativeAddress,
+          relative_relationship: formData.relativeRelationship,
         };
-        endpoint = "http://localhost:8080/api/admin/users/patients";
-      } else if (userForm.role === "DOCTOR") {
+      } else if (formData.role === "DOCTOR") {
+        endpoint = editingUser
+          ? `http://localhost:8080/api/admin/users/doctors/${editingUser.id}`
+          : "http://localhost:8080/api/admin/users/doctors";
+
         requestData = {
-          username: userForm.username,
-          password: userForm.password,
-          full_name: userForm.fullName,
-          date_of_birth: userForm.dateOfBirth,
-          gender: userForm.gender,
-          citizen_id: userForm.citizenId,
-          address: userForm.address,
-          phone: userForm.phone,
-          email: userForm.email,
-          department_id: parseInt(userForm.departmentId),
-          degree: userForm.degree,
-          position: userForm.position,
-          room_number: userForm.roomNumber,
-          floor: userForm.floor,
+          username: formData.username,
+          password: formData.password,
+          full_name: formData.fullName,
+          date_of_birth: formData.dateOfBirth,
+          gender: formData.gender,
+          citizen_id: formData.citizenId,
+          address: formData.address,
+          phone: formData.phone,
+          email: formData.email,
+          department_id: parseInt(formData.departmentId),
+          degree: formData.degree,
+          position: formData.position,
+          room_number: formData.roomNumber,
+          floor: formData.floor,
         };
-        endpoint = "http://localhost:8080/api/admin/users/doctors";
-      } else if (userForm.role === "ADMIN") {
+      } else if (formData.role === "ADMIN") {
+        endpoint = editingUser
+          ? `http://localhost:8080/api/admin/users/${editingUser.id}`
+          : "http://localhost:8080/api/admin/users";
+
         requestData = {
-          username: userForm.username,
-          password: userForm.password,
+          username: formData.username,
+          password: formData.password,
           role: "ADMIN",
-          phone: userForm.phone,
-          email: userForm.email,
-          full_name: userForm.fullName,
+          phone: formData.phone,
+          email: formData.email,
+          full_name: formData.fullName,
         };
-        endpoint = "http://localhost:8080/api/admin/users";
       }
 
-      console.log("📤 Gửi data tạo user:", requestData);
-      console.log("🎯 Endpoint:", endpoint);
-
-      const response = await axios.post(endpoint, requestData, {
+      const response = await fetch(endpoint, {
+        method,
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
+        body: JSON.stringify(requestData),
       });
 
-      console.log("✅ Tạo user thành công:", response.data);
-
-      setShowUserModal(false);
-      // Reset form
-      setUserForm({
-        role: "PATIENT",
-        username: "",
-        password: "",
-        fullName: "",
-        phone: "",
-        email: "",
-        dob: "",
-        address: "",
-        symptoms: "",
-        bhyt: "",
-        relativeName: "",
-        relativePhone: "",
-        relativeAddress: "",
-        relativeRelationship: "",
-        dateOfBirth: "",
-        gender: "MALE",
-        citizenId: "",
-        degree: "",
-        position: "",
-        departmentId: "",
-        roomNumber: "",
-        floor: "",
-      });
-
-      refreshData();
-      setError("");
-
-      const roleName =
-        userForm.role === "ADMIN"
-          ? "admin"
-          : userForm.role === "DOCTOR"
-          ? "bác sĩ"
-          : "bệnh nhân";
-      alert(`✅ Tạo ${roleName} thành công!`);
-    } catch (error) {
-      console.error("❌ Lỗi tạo người dùng:", error);
-      console.log("📝 Chi tiết lỗi:", {
-        status: error.response?.status,
-        data: error.response?.data,
-        message: error.message,
-      });
-
-      // Hiển thị lỗi chi tiết từ backend
-      const errorMessage = error.response?.data || error.message;
-      setError(`Lỗi khi tạo người dùng: ${JSON.stringify(errorMessage)}`);
-      alert(`❌ Lỗi: ${JSON.stringify(errorMessage)}`);
-    }
-  };
-
-  // Delete user
-  const handleDeleteUser = async (userId) => {
-    if (window.confirm("Bạn có chắc chắn muốn xóa người dùng này?")) {
-      try {
-        const token = getToken();
-        if (!token) return;
-
-        await axios.delete(`http://localhost:8080/api/admin/users/${userId}`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
-        refreshData();
-        setError("");
-        alert("✅ Xóa người dùng thành công!");
-      } catch (error) {
-        console.error("❌ Lỗi xóa người dùng:", error);
-        setError("Lỗi khi xóa người dùng: " + error.message);
+      if (response.ok) {
+        fetchAllData();
+        setShowForm(false);
+        resetForm();
+        alert(`✅ ${editingUser ? "Cập nhật" : "Thêm"} người dùng thành công!`);
+      } else {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Có lỗi xảy ra");
       }
+    } catch (err) {
+      alert(`❌ Lỗi: ${err.message}`);
+    } finally {
+      setFormLoading(false);
     }
   };
 
-  // Open user modal and fetch departments nếu cần
-  const handleOpenUserModal = async () => {
-    setShowUserModal(true);
-    setError("");
+  const deleteUser = async (userId) => {
+    if (!window.confirm("Bạn có chắc chắn muốn xóa người dùng này?")) return;
 
-    setUserForm({
+    try {
+      const token = getToken();
+      if (!token) return;
+
+      const response = await fetch(
+        `http://localhost:8080/api/admin/users/${userId}`,
+        {
+          method: "DELETE",
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      if (response.ok) {
+        fetchAllData();
+        alert("✅ Xóa người dùng thành công!");
+      } else {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Lỗi khi xóa người dùng");
+      }
+    } catch (err) {
+      alert(`❌ Lỗi: ${err.message}`);
+    }
+  };
+
+  const resetForm = () => {
+    setFormData({
       role: "PATIENT",
       username: "",
       password: "",
@@ -434,127 +450,145 @@ const AdminUsers = () => {
       roomNumber: "",
       floor: "",
     });
-
-    // Load departments nếu là doctor
-    await fetchDepartments();
+    setEditingUser(null);
   };
 
-  // Render form theo role
+  const handleShowAddForm = () => {
+    setEditingUser(null);
+    resetForm();
+    if (formData.role === "DOCTOR") {
+      fetchDepartments();
+    }
+    setShowForm(true);
+    setTimeout(() => {
+      formRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    }, 100);
+  };
+
+  const handleCloseForm = () => {
+    setShowForm(false);
+    resetForm();
+  };
+
   const renderFormByRole = () => {
-    switch (userForm.role) {
+    switch (formData.role) {
       case "PATIENT":
         return (
           <>
-            <div className="admin-users-form-section">
-              <h3 className="admin-users-form-section-title">
-                Thông tin cá nhân
-              </h3>
-              <div className="admin-users-form-row">
-                <div className="admin-users-form-group">
-                  <label className="admin-users-form-label">Ngày sinh</label>
-                  <input
-                    type="date"
-                    name="dob"
-                    value={userForm.dob}
-                    onChange={handleUserFormChange}
-                    className="admin-users-form-input"
-                  />
-                </div>
-                <div className="admin-users-form-group">
-                  <label className="admin-users-form-label">Địa chỉ</label>
-                  <input
-                    type="text"
-                    name="address"
-                    value={userForm.address}
-                    onChange={handleUserFormChange}
-                    placeholder="Địa chỉ hiện tại"
-                    className="admin-users-form-input"
-                  />
-                </div>
+            <div className="row">
+              <div className="col-md-6 mb-3">
+                <label className="form-label fw-medium">Ngày sinh</label>
+                <input
+                  type="date"
+                  className="form-control form-control-lg"
+                  value={formData.dob}
+                  onChange={(e) =>
+                    setFormData({ ...formData, dob: e.target.value })
+                  }
+                />
               </div>
-              <div className="admin-users-form-row">
-                <div className="admin-users-form-group">
-                  <label className="admin-users-form-label">Triệu chứng</label>
-                  <input
-                    type="text"
-                    name="symptoms"
-                    value={userForm.symptoms}
-                    onChange={handleUserFormChange}
-                    placeholder="Mô tả triệu chứng (nếu có)"
-                    className="admin-users-form-input"
-                  />
-                </div>
-                <div className="admin-users-form-group">
-                  <label className="admin-users-form-label">BHYT</label>
-                  <input
-                    type="text"
-                    name="bhyt"
-                    value={userForm.bhyt}
-                    onChange={handleUserFormChange}
-                    placeholder="Số thẻ BHYT"
-                    className="admin-users-form-input"
-                  />
-                </div>
+              <div className="col-md-6 mb-3">
+                <label className="form-label fw-medium">Địa chỉ</label>
+                <input
+                  type="text"
+                  className="form-control form-control-lg"
+                  value={formData.address}
+                  onChange={(e) =>
+                    setFormData({ ...formData, address: e.target.value })
+                  }
+                  placeholder="Địa chỉ hiện tại"
+                />
               </div>
             </div>
-
-            <div className="admin-users-form-section">
-              <h3 className="admin-users-form-section-title">
-                Thông tin người thân
-              </h3>
-              <div className="admin-users-form-row">
-                <div className="admin-users-form-group">
-                  <label className="admin-users-form-label">
-                    Họ tên người thân
-                  </label>
-                  <input
-                    type="text"
-                    name="relativeName"
-                    value={userForm.relativeName}
-                    onChange={handleUserFormChange}
-                    placeholder="Họ tên người thân"
-                    className="admin-users-form-input"
-                  />
-                </div>
-                <div className="admin-users-form-group">
-                  <label className="admin-users-form-label">
-                    SĐT người thân
-                  </label>
-                  <input
-                    type="tel"
-                    name="relativePhone"
-                    value={userForm.relativePhone}
-                    onChange={handleUserFormChange}
-                    placeholder="Số điện thoại người thân"
-                    className="admin-users-form-input"
-                  />
-                </div>
+            <div className="row">
+              <div className="col-md-6 mb-3">
+                <label className="form-label fw-medium">Triệu chứng</label>
+                <input
+                  type="text"
+                  className="form-control form-control-lg"
+                  value={formData.symptoms}
+                  onChange={(e) =>
+                    setFormData({ ...formData, symptoms: e.target.value })
+                  }
+                  placeholder="Mô tả triệu chứng (nếu có)"
+                />
               </div>
-              <div className="admin-users-form-row">
-                <div className="admin-users-form-group">
-                  <label className="admin-users-form-label">
-                    Địa chỉ người thân
-                  </label>
-                  <input
-                    type="text"
-                    name="relativeAddress"
-                    value={userForm.relativeAddress}
-                    onChange={handleUserFormChange}
-                    placeholder="Địa chỉ người thân"
-                    className="admin-users-form-input"
-                  />
-                </div>
-                <div className="admin-users-form-group">
-                  <label className="admin-users-form-label">Quan hệ</label>
-                  <input
-                    type="text"
-                    name="relativeRelationship"
-                    value={userForm.relativeRelationship}
-                    onChange={handleUserFormChange}
-                    placeholder="VD: Vợ, chồng, con, cha, mẹ..."
-                    className="admin-users-form-input"
-                  />
-                </div>
+              <div className="col-md-6 mb-3">
+                <label className="form-label fw-medium">BHYT</label>
+                <input
+                  type="text"
+                  className="form-control form-control-lg"
+                  value={formData.bhyt}
+                  onChange={(e) =>
+                    setFormData({ ...formData, bhyt: e.target.value })
+                  }
+                  placeholder="Số thẻ BHYT"
+                />
+              </div>
+            </div>
+            <div className="row">
+              <div className="col-md-6 mb-3">
+                <label className="form-label fw-medium">
+                  Họ tên người thân
+                </label>
+                <input
+                  type="text"
+                  className="form-control form-control-lg"
+                  value={formData.relativeName}
+                  onChange={(e) =>
+                    setFormData({ ...formData, relativeName: e.target.value })
+                  }
+                  placeholder="Họ tên người thân"
+                />
+              </div>
+              <div className="col-md-6 mb-3">
+                <label className="form-label fw-medium">SĐT người thân</label>
+                <input
+                  type="tel"
+                  className="form-control form-control-lg"
+                  value={formData.relativePhone}
+                  onChange={(e) =>
+                    setFormData({ ...formData, relativePhone: e.target.value })
+                  }
+                  placeholder="Số điện thoại người thân"
+                />
+              </div>
+            </div>
+            <div className="row">
+              <div className="col-md-6 mb-3">
+                <label className="form-label fw-medium">
+                  Địa chỉ người thân
+                </label>
+                <input
+                  type="text"
+                  className="form-control form-control-lg"
+                  value={formData.relativeAddress}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      relativeAddress: e.target.value,
+                    })
+                  }
+                  placeholder="Địa chỉ người thân"
+                />
+              </div>
+              <div className="col-md-6 mb-3">
+                <label className="form-label fw-medium">Quan hệ</label>
+                <input
+                  type="text"
+                  className="form-control form-control-lg"
+                  value={formData.relativeRelationship}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      relativeRelationship: e.target.value,
+                    })
+                  }
+                  placeholder="VD: Vợ, chồng, con, cha, mẹ..."
+                />
               </div>
             </div>
           </>
@@ -563,149 +597,145 @@ const AdminUsers = () => {
       case "DOCTOR":
         return (
           <>
-            <div className="admin-users-form-section">
-              <h3 className="admin-users-form-section-title">
-                Thông tin cá nhân
-              </h3>
-              <div className="admin-users-form-row">
-                <div className="admin-users-form-group">
-                  <label className="admin-users-form-label">Ngày sinh</label>
-                  <input
-                    type="date"
-                    name="dateOfBirth"
-                    value={userForm.dateOfBirth}
-                    onChange={handleUserFormChange}
-                    className="admin-users-form-input"
-                  />
-                </div>
-                <div className="admin-users-form-group">
-                  <label className="admin-users-form-label">Giới tính</label>
+            <div className="row">
+              <div className="col-md-6 mb-3">
+                <label className="form-label fw-medium">Ngày sinh</label>
+                <input
+                  type="date"
+                  className="form-control form-control-lg"
+                  value={formData.dateOfBirth}
+                  onChange={(e) =>
+                    setFormData({ ...formData, dateOfBirth: e.target.value })
+                  }
+                />
+              </div>
+              <div className="col-md-6 mb-3">
+                <label className="form-label fw-medium">Giới tính</label>
+                <select
+                  className="form-select form-select-lg"
+                  value={formData.gender}
+                  onChange={(e) =>
+                    setFormData({ ...formData, gender: e.target.value })
+                  }
+                >
+                  <option value="MALE">Nam</option>
+                  <option value="FEMALE">Nữ</option>
+                  <option value="OTHER">Khác</option>
+                </select>
+              </div>
+            </div>
+            <div className="row">
+              <div className="col-md-6 mb-3">
+                <label className="form-label fw-medium">CCCD/CMND</label>
+                <input
+                  type="text"
+                  className="form-control form-control-lg"
+                  value={formData.citizenId}
+                  onChange={(e) =>
+                    setFormData({ ...formData, citizenId: e.target.value })
+                  }
+                  placeholder="Số CCCD/CMND"
+                />
+              </div>
+              <div className="col-md-6 mb-3">
+                <label className="form-label fw-medium">Địa chỉ</label>
+                <input
+                  type="text"
+                  className="form-control form-control-lg"
+                  value={formData.address}
+                  onChange={(e) =>
+                    setFormData({ ...formData, address: e.target.value })
+                  }
+                  placeholder="Địa chỉ liên hệ"
+                />
+              </div>
+            </div>
+            <div className="row">
+              <div className="col-md-6 mb-3">
+                <label className="form-label fw-medium">
+                  Học vị <span className="text-danger">*</span>
+                </label>
+                <input
+                  type="text"
+                  className="form-control form-control-lg"
+                  value={formData.degree}
+                  onChange={(e) =>
+                    setFormData({ ...formData, degree: e.target.value })
+                  }
+                  placeholder="VD: Thạc sĩ, Tiến sĩ, Bác sĩ CKII..."
+                  required
+                />
+              </div>
+              <div className="col-md-6 mb-3">
+                <label className="form-label fw-medium">
+                  Chức vụ <span className="text-danger">*</span>
+                </label>
+                <input
+                  type="text"
+                  className="form-control form-control-lg"
+                  value={formData.position}
+                  onChange={(e) =>
+                    setFormData({ ...formData, position: e.target.value })
+                  }
+                  placeholder="VD: Trưởng khoa, Phó khoa, Bác sĩ trưởng..."
+                  required
+                />
+              </div>
+            </div>
+            <div className="row">
+              <div className="col-md-6 mb-3">
+                <label className="form-label fw-medium">
+                  Khoa <span className="text-danger">*</span>
+                </label>
+                {departmentsLoading ? (
+                  <div className="alert alert-info">
+                    Đang tải danh sách khoa...
+                  </div>
+                ) : departmentsError ? (
+                  <div className="alert alert-danger">{departmentsError}</div>
+                ) : (
                   <select
-                    name="gender"
-                    value={userForm.gender}
-                    onChange={handleUserFormChange}
-                    className="admin-users-form-input"
+                    className="form-select form-select-lg"
+                    value={formData.departmentId}
+                    onChange={(e) =>
+                      setFormData({ ...formData, departmentId: e.target.value })
+                    }
+                    required
                   >
-                    <option value="MALE">Nam</option>
-                    <option value="FEMALE">Nữ</option>
-                    <option value="OTHER">Khác</option>
+                    <option value="">Chọn khoa</option>
+                    {departments.map((dept) => (
+                      <option key={dept.id} value={dept.id}>
+                        {dept.departmentName}
+                      </option>
+                    ))}
                   </select>
-                </div>
+                )}
               </div>
-              <div className="admin-users-form-row">
-                <div className="admin-users-form-group">
-                  <label className="admin-users-form-label">CCCD/CMND</label>
-                  <input
-                    type="text"
-                    name="citizenId"
-                    value={userForm.citizenId}
-                    onChange={handleUserFormChange}
-                    placeholder="Số CCCD/CMND"
-                    className="admin-users-form-input"
-                  />
-                </div>
-                <div className="admin-users-form-group">
-                  <label className="admin-users-form-label">Địa chỉ</label>
-                  <input
-                    type="text"
-                    name="address"
-                    value={userForm.address}
-                    onChange={handleUserFormChange}
-                    placeholder="Địa chỉ liên hệ"
-                    className="admin-users-form-input"
-                  />
-                </div>
+              <div className="col-md-6 mb-3">
+                <label className="form-label fw-medium">Số phòng</label>
+                <input
+                  type="text"
+                  className="form-control form-control-lg"
+                  value={formData.roomNumber}
+                  onChange={(e) =>
+                    setFormData({ ...formData, roomNumber: e.target.value })
+                  }
+                  placeholder="VD: 101, 201..."
+                />
               </div>
             </div>
-
-            <div className="admin-users-form-section">
-              <h3 className="admin-users-form-section-title">
-                Thông tin chuyên môn
-              </h3>
-              <div className="admin-users-form-row">
-                <div className="admin-users-form-group">
-                  <label className="admin-users-form-label">Học vị *</label>
-                  <input
-                    type="text"
-                    name="degree"
-                    value={userForm.degree}
-                    onChange={handleUserFormChange}
-                    placeholder="VD: Thạc sĩ, Tiến sĩ, Bác sĩ CKII..."
-                    required
-                    className="admin-users-form-input"
-                  />
-                </div>
-                <div className="admin-users-form-group">
-                  <label className="admin-users-form-label">Chức vụ *</label>
-                  <input
-                    type="text"
-                    name="position"
-                    value={userForm.position}
-                    onChange={handleUserFormChange}
-                    placeholder="VD: Trưởng khoa, Phó khoa, Bác sĩ trưởng..."
-                    required
-                    className="admin-users-form-input"
-                  />
-                </div>
-              </div>
-              <div className="admin-users-form-row">
-                <div className="admin-users-form-group admin-users-form-group-fullwidth">
-                  <label className="admin-users-form-label">Khoa *</label>
-                  {departmentsLoading ? (
-                    <div className="admin-users-departments-loading">
-                      Đang tải danh sách khoa...
-                    </div>
-                  ) : departmentsError ? (
-                    <div className="admin-users-departments-error">
-                      {departmentsError}
-                    </div>
-                  ) : (
-                    <select
-                      name="departmentId"
-                      value={userForm.departmentId}
-                      onChange={handleUserFormChange}
-                      required
-                      className="admin-users-form-input"
-                    >
-                      <option value="">Chọn khoa</option>
-                      {departments.map((dept) => (
-                        <option key={dept.id} value={dept.id}>
-                          {dept.departmentName}
-                        </option>
-                      ))}
-                    </select>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            <div className="admin-users-form-section">
-              <h3 className="admin-users-form-section-title">
-                Thông tin làm việc
-              </h3>
-              <div className="admin-users-form-row">
-                <div className="admin-users-form-group">
-                  <label className="admin-users-form-label">Số phòng</label>
-                  <input
-                    type="text"
-                    name="roomNumber"
-                    value={userForm.roomNumber}
-                    onChange={handleUserFormChange}
-                    placeholder="VD: 101, 201..."
-                    className="admin-users-form-input"
-                  />
-                </div>
-                <div className="admin-users-form-group">
-                  <label className="admin-users-form-label">Tầng</label>
-                  <input
-                    type="number"
-                    name="floor"
-                    value={userForm.floor}
-                    onChange={handleUserFormChange}
-                    placeholder="VD: 1, 2, 3..."
-                    className="admin-users-form-input"
-                  />
-                </div>
+            <div className="row">
+              <div className="col-md-6 mb-3">
+                <label className="form-label fw-medium">Tầng</label>
+                <input
+                  type="number"
+                  className="form-control form-control-lg"
+                  value={formData.floor}
+                  onChange={(e) =>
+                    setFormData({ ...formData, floor: e.target.value })
+                  }
+                  placeholder="VD: 1, 2, 3..."
+                />
               </div>
             </div>
           </>
@@ -713,17 +743,12 @@ const AdminUsers = () => {
 
       case "ADMIN":
         return (
-          <div className="admin-users-form-section">
-            <div className="admin-users-admin-warning">
-              <i className="fas fa-shield-alt admin-users-warning-icon"></i>
-              <strong className="admin-users-warning-text">
-                Quyền Quản trị viên:
-              </strong>
-              <span className="admin-users-warning-description">
-                {" "}
-                Tài khoản này sẽ có toàn quyền quản lý hệ thống
-              </span>
-            </div>
+          <div className="alert alert-warning">
+            <i className="bi bi-shield-check me-2"></i>
+            <strong>Quyền Quản trị viên:</strong>
+            <span className="ms-2">
+              Tài khoản này sẽ có toàn quyền quản lý hệ thống
+            </span>
           </div>
         );
 
@@ -732,412 +757,535 @@ const AdminUsers = () => {
     }
   };
 
-  if (loading) return <div className="admin-users-loading">Đang tải...</div>;
+  const getRoleLabel = (role) => {
+    switch (role) {
+      case "PATIENT":
+        return "Bệnh nhân";
+      case "DOCTOR":
+        return "Bác sĩ";
+      case "ADMIN":
+        return "Quản trị viên";
+      default:
+        return role;
+    }
+  };
+
+  const getRoleBadgeClass = (role) => {
+    switch (role) {
+      case "PATIENT":
+        return "badge bg-success";
+      case "DOCTOR":
+        return "badge bg-primary";
+      case "ADMIN":
+        return "badge bg-danger";
+      default:
+        return "badge bg-secondary";
+    }
+  };
 
   return (
-    <div className="admin-users-wrapper">
-      <div className="admin-users-header">
-        <h1 className="admin-users-title">Quản lý Người dùng</h1>
-        <div className="admin-users-header-actions">
-          <div className="admin-users-search-box">
-            <input
-              type="text"
-              placeholder="Tìm kiếm người dùng..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="admin-users-search-input"
-            />
-            <i className="fas fa-search admin-users-search-icon"></i>
+    <div className="admin-users">
+      {/* Modern Search and Action Bar */}
+      <div className="modern-search-bar mb-4">
+        <div className="card border-0 shadow-sm">
+          <div className="card-body p-4">
+            <div className="row g-3 align-items-center">
+              {/* Search Box */}
+              <div className="col-12 col-lg-6">
+                <div className="position-relative">
+                  <span className="position-absolute top-50 start-0 translate-middle-y text-primary ms-3">
+                    <i className="bi bi-search fs-5"></i>
+                  </span>
+                  <input
+                    type="text"
+                    className="form-control form-control-lg ps-5"
+                    placeholder="Tìm kiếm người dùng..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
+                  {searchTerm && (
+                    <button
+                      className="btn btn-link position-absolute top-50 end-0 translate-middle-y me-3 text-muted p-0"
+                      onClick={() => setSearchTerm("")}
+                      style={{ zIndex: 10 }}
+                      title="Xóa tìm kiếm"
+                    >
+                      <i className="bi bi-x-circle fs-5"></i>
+                    </button>
+                  )}
+                </div>
+                {searchTerm && (
+                  <div className="mt-2 small text-muted">
+                    Tìm thấy <strong>{filteredData.length}</strong>{" "}
+                    {activeTab === "users"
+                      ? "người dùng"
+                      : activeTab === "patients"
+                      ? "bệnh nhân"
+                      : "bác sĩ"}
+                  </div>
+                )}
+              </div>
+
+              {/* Action Buttons */}
+              <div className="col-12 col-lg-6 text-lg-end">
+                <div className="d-flex gap-3 justify-content-lg-end justify-content-start flex-wrap">
+                  <button
+                    className="btn btn-success btn-lg px-5 d-flex align-items-center gap-2 shadow-sm"
+                    onClick={handleShowAddForm}
+                    disabled={loading}
+                  >
+                    <i className="bi bi-plus-circle"></i>
+                    Thêm Người dùng
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
-          <button className="admin-users-btn-refresh" onClick={refreshData}>
-            <i className="fas fa-sync-alt admin-users-btn-icon"></i>
-            Refresh
-          </button>
-          <button
-            className="admin-users-btn-primary"
-            onClick={handleOpenUserModal}
-          >
-            <i className="fas fa-plus admin-users-btn-icon"></i>
-            Thêm Người dùng
-          </button>
         </div>
       </div>
 
-      {error && <div className="admin-users-error-message">{error}</div>}
-
-      <div className="admin-users-tabs">
-        <button
-          className={`admin-users-tab ${
-            activeTab === "users" ? "admin-users-tab-active" : ""
-          }`}
-          onClick={() => setActiveTab("users")}
-        >
-          Tất cả Người dùng ({users.length})
-        </button>
-        <button
-          className={`admin-users-tab ${
-            activeTab === "patients" ? "admin-users-tab-active" : ""
-          }`}
-          onClick={() => setActiveTab("patients")}
-        >
-          Bệnh nhân ({patients.length})
-        </button>
-        <button
-          className={`admin-users-tab ${
-            activeTab === "doctors" ? "admin-users-tab-active" : ""
-          }`}
-          onClick={() => setActiveTab("doctors")}
-        >
-          Bác sĩ ({doctors.length})
-        </button>
+      {/* Tabs */}
+      <div className="card mb-4">
+        <div className="card-body">
+          <div className="d-flex gap-2">
+            <button
+              className={`btn ${
+                activeTab === "users" ? "btn-primary" : "btn-outline-primary"
+              } btn-lg px-4`}
+              onClick={() => setActiveTab("users")}
+            >
+              <i className="bi bi-people me-2"></i>
+              Tất cả ({users.length})
+            </button>
+            <button
+              className={`btn ${
+                activeTab === "patients" ? "btn-primary" : "btn-outline-primary"
+              } btn-lg px-4`}
+              onClick={() => setActiveTab("patients")}
+            >
+              <i className="bi bi-person-vcard me-2"></i>
+              Bệnh nhân ({patients.length})
+            </button>
+            <button
+              className={`btn ${
+                activeTab === "doctors" ? "btn-primary" : "btn-outline-primary"
+              } btn-lg px-4`}
+              onClick={() => setActiveTab("doctors")}
+            >
+              <i className="bi bi-person-heart me-2"></i>
+              Bác sĩ ({doctors.length})
+            </button>
+          </div>
+        </div>
       </div>
 
-      <div className="admin-users-table-container">
-        {activeTab === "users" && (
-          <table className="admin-users-table">
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Tên đăng nhập</th>
-                <th>Họ tên</th>
-                <th>Email</th>
-                <th>Số điện thoại</th>
-                <th>Vai trò</th>
-                <th>Hành động</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredUsers.map((user) => (
-                <tr key={user.id} className="admin-users-table-row">
-                  <td className="admin-users-table-cell">{user.id}</td>
-                  <td className="admin-users-table-cell">{user.username}</td>
-                  <td className="admin-users-table-cell">
-                    {user.fullName || "N/A"}
-                  </td>
-                  <td className="admin-users-table-cell">{user.email}</td>
-                  <td className="admin-users-table-cell">
-                    {user.phone || "N/A"}
-                  </td>
-                  <td className="admin-users-table-cell">
-                    <span
-                      className={`admin-users-role-badge admin-users-role-${user.role?.toLowerCase()}`}
-                    >
-                      {user.role === "PATIENT" && "Bệnh nhân"}
-                      {user.role === "DOCTOR" && "Bác sĩ"}
-                      {user.role === "ADMIN" && "Quản trị viên"}
-                    </span>
-                  </td>
-                  <td className="admin-users-table-cell">
-                    <div className="admin-users-action-buttons">
-                      <button
-                        className="admin-users-btn-delete"
-                        onClick={() => handleDeleteUser(user.id)}
-                      >
-                        <i className="fas fa-trash admin-users-action-icon"></i>
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
+      {/* Add/Edit Form */}
+      {showForm && (
+        <div className="add-form card mb-4" ref={formRef}>
+          <div className="card-header bg-primary text-white d-flex align-items-center">
+            <i
+              className={`bi ${
+                editingUser ? "bi-pencil-square" : "bi-plus-circle"
+              } me-2 fs-4`}
+            ></i>
+            <h5 className="mb-0">
+              {editingUser ? "Sửa thông tin" : "Thêm"}{" "}
+              {getRoleLabel(formData.role)}
+            </h5>
+          </div>
+          <div className="card-body">
+            <div className="row mb-4">
+              <div className="col-12">
+                <label className="form-label fw-medium">Loại người dùng</label>
+                <div className="d-flex gap-3">
+                  <button
+                    type="button"
+                    className={`btn ${
+                      formData.role === "PATIENT"
+                        ? "btn-success"
+                        : "btn-outline-success"
+                    } btn-lg flex-grow-1`}
+                    onClick={() => {
+                      setFormData({ ...formData, role: "PATIENT" });
+                      if (formData.role === "DOCTOR") {
+                        fetchDepartments();
+                      }
+                    }}
+                  >
+                    <i className="bi bi-person-vcard me-2"></i>
+                    Bệnh nhân
+                  </button>
+                  <button
+                    type="button"
+                    className={`btn ${
+                      formData.role === "DOCTOR"
+                        ? "btn-primary"
+                        : "btn-outline-primary"
+                    } btn-lg flex-grow-1`}
+                    onClick={() => {
+                      setFormData({ ...formData, role: "DOCTOR" });
+                      fetchDepartments();
+                    }}
+                  >
+                    <i className="bi bi-person-heart me-2"></i>
+                    Bác sĩ
+                  </button>
+                  <button
+                    type="button"
+                    className={`btn ${
+                      formData.role === "ADMIN"
+                        ? "btn-danger"
+                        : "btn-outline-danger"
+                    } btn-lg flex-grow-1`}
+                    onClick={() => setFormData({ ...formData, role: "ADMIN" })}
+                  >
+                    <i className="bi bi-shield-check me-2"></i>
+                    Quản trị viên
+                  </button>
+                </div>
+              </div>
+            </div>
 
-        {activeTab === "patients" && (
-          <table className="admin-users-table">
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Họ tên</th>
-                <th>Ngày sinh</th>
-                <th>Email</th>
-                <th>Số điện thoại</th>
-                <th>Địa chỉ</th>
-                <th>BHYT</th>
-                <th>Triệu chứng</th>
-                <th>Người thân</th>
-                <th>Hành động</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredPatients.map((patient) => (
-                <tr key={patient.id} className="admin-users-table-row">
-                  <td className="admin-users-table-cell">{patient.id}</td>
-                  <td className="admin-users-table-cell">
-                    {patient.fullName || "N/A"}
-                  </td>
-                  <td className="admin-users-table-cell">
-                    {patient.dob
-                      ? new Date(patient.dob).toLocaleDateString("vi-VN")
-                      : "N/A"}
-                  </td>
-                  <td className="admin-users-table-cell">{patient.email}</td>
-                  <td className="admin-users-table-cell">{patient.phone}</td>
-                  <td className="admin-users-table-cell">
-                    {patient.address || "N/A"}
-                  </td>
-                  <td className="admin-users-table-cell">
-                    {patient.bhyt || "N/A"}
-                  </td>
-                  <td className="admin-users-table-cell">
-                    {patient.symptoms || "N/A"}
-                  </td>
-                  <td className="admin-users-table-cell">
-                    {patient.relativeName
-                      ? `${patient.relativeName} (${patient.relativeRelationship})`
-                      : "N/A"}
-                  </td>
-                  <td className="admin-users-table-cell">
-                    <div className="admin-users-action-buttons">
-                      <button
-                        className="admin-users-btn-delete"
-                        onClick={() =>
-                          handleDeleteUser(patient.user?.id || patient.userId)
-                        }
-                      >
-                        <i className="fas fa-trash admin-users-action-icon"></i>
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
+            <div className="row">
+              <div className="col-md-6 mb-3">
+                <label className="form-label fw-medium">
+                  Tên đăng nhập <span className="text-danger">*</span>
+                </label>
+                <input
+                  type="text"
+                  className="form-control form-control-lg"
+                  value={formData.username}
+                  onChange={(e) =>
+                    setFormData({ ...formData, username: e.target.value })
+                  }
+                  placeholder="Nhập tên đăng nhập"
+                  required
+                />
+              </div>
 
-        {activeTab === "doctors" && (
-          <table className="admin-users-table">
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Họ tên</th>
-                <th>Khoa</th>
-                <th>Học vị</th>
-                <th>Chức vụ</th>
-                <th>Email</th>
-                <th>Số điện thoại</th>
-                <th>Phòng</th>
-                <th>Hành động</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredDoctors.map((doctor) => (
-                <tr key={doctor.id} className="admin-users-table-row">
-                  <td className="admin-users-table-cell">{doctor.id}</td>
-                  <td className="admin-users-table-cell">
-                    {doctor.fullName || "N/A"}
-                  </td>
-                  <td className="admin-users-table-cell">
-                    {doctor.departmentName ||
-                      (doctor.department && doctor.department.departmentName) ||
-                      getDepartmentName(doctor.departmentId) ||
-                      "Đang cập nhật"}
-                  </td>
-                  <td className="admin-users-table-cell">
-                    {doctor.degree || "N/A"}
-                  </td>
-                  <td className="admin-users-table-cell">
-                    {doctor.position || "N/A"}
-                  </td>
-                  <td className="admin-users-table-cell">{doctor.email}</td>
-                  <td className="admin-users-table-cell">{doctor.phone}</td>
-                  <td className="admin-users-table-cell">
-                    {doctor.roomNumber ? `P.${doctor.roomNumber}` : "N/A"}
-                    {doctor.floor ? ` - Tầng ${doctor.floor}` : ""}
-                  </td>
-                  <td className="admin-users-table-cell">
-                    <div className="admin-users-action-buttons">
-                      <button
-                        className="admin-users-btn-delete"
-                        onClick={() => handleDeleteUser(doctor.userId)}
-                      >
-                        <i className="fas fa-trash admin-users-action-icon"></i>
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
+              <div className="col-md-6 mb-3">
+                <label className="form-label fw-medium">
+                  {editingUser ? "Mật khẩu mới" : "Mật khẩu"}{" "}
+                  {!editingUser && <span className="text-danger">*</span>}
+                </label>
+                <input
+                  type="password"
+                  className="form-control form-control-lg"
+                  value={formData.password}
+                  onChange={(e) =>
+                    setFormData({ ...formData, password: e.target.value })
+                  }
+                  placeholder={
+                    editingUser ? "Để trống nếu không đổi" : "Nhập mật khẩu"
+                  }
+                  required={!editingUser}
+                />
+              </div>
 
-      {/* Modal thêm người dùng */}
-      {showUserModal && (
-        <div className="admin-users-modal-overlay">
-          <div className="admin-users-modal">
-            <div className="admin-users-modal-header">
-              <h2 className="admin-users-modal-title">
-                Thêm{" "}
-                {userForm.role === "ADMIN"
-                  ? "Admin"
-                  : userForm.role === "DOCTOR"
-                  ? "Bác sĩ"
-                  : "Bệnh nhân"}{" "}
-                Mới
-              </h2>
+              <div className="col-md-6 mb-3">
+                <label className="form-label fw-medium">
+                  Họ tên <span className="text-danger">*</span>
+                </label>
+                <input
+                  type="text"
+                  className="form-control form-control-lg"
+                  value={formData.fullName}
+                  onChange={(e) =>
+                    setFormData({ ...formData, fullName: e.target.value })
+                  }
+                  placeholder="Nhập họ và tên"
+                  required
+                />
+              </div>
+
+              <div className="col-md-6 mb-3">
+                <label className="form-label fw-medium">Email</label>
+                <input
+                  type="email"
+                  className="form-control form-control-lg"
+                  value={formData.email}
+                  onChange={(e) =>
+                    setFormData({ ...formData, email: e.target.value })
+                  }
+                  placeholder="Nhập email"
+                />
+              </div>
+
+              <div className="col-md-6 mb-3">
+                <label className="form-label fw-medium">Số điện thoại</label>
+                <input
+                  type="tel"
+                  className="form-control form-control-lg"
+                  value={formData.phone}
+                  onChange={(e) =>
+                    setFormData({ ...formData, phone: e.target.value })
+                  }
+                  placeholder="Nhập số điện thoại"
+                />
+              </div>
+            </div>
+
+            {/* Role-specific fields */}
+            {renderFormByRole()}
+
+            <div className="d-flex gap-2 mt-4">
               <button
-                className="admin-users-modal-close-btn"
-                onClick={() => setShowUserModal(false)}
+                className="btn btn-primary btn-lg d-flex align-items-center px-4"
+                onClick={handleAddUser}
+                disabled={formLoading}
               >
-                <i className="fas fa-times admin-users-close-icon"></i>
+                {formLoading ? (
+                  <>
+                    <span className="spinner-border spinner-border-sm me-2"></span>
+                    Đang xử lý...
+                  </>
+                ) : (
+                  <>
+                    <i className="bi bi-check-circle me-2"></i>
+                    {editingUser ? "Cập nhật" : "Lưu"} Người dùng
+                  </>
+                )}
+              </button>
+              <button
+                className="btn btn-outline-secondary btn-lg d-flex align-items-center px-4"
+                onClick={handleCloseForm}
+                disabled={formLoading}
+              >
+                <i className="bi bi-x-circle me-2"></i>
+                Hủy
               </button>
             </div>
-            <form
-              className="admin-users-modal-form"
-              onSubmit={handleCreateUser}
-            >
-              {/* Role selector ở đầu */}
-              <div className="admin-users-form-section">
-                <div className="admin-users-role-selector">
-                  <label className="admin-users-role-label">Vai trò *</label>
-                  <div className="admin-users-role-options">
-                    <button
-                      type="button"
-                      className={`admin-users-role-option ${
-                        userForm.role === "PATIENT"
-                          ? "admin-users-role-option-active"
-                          : ""
-                      }`}
-                      onClick={() =>
-                        setUserForm((prev) => ({ ...prev, role: "PATIENT" }))
-                      }
-                    >
-                      <i className="fas fa-user-injured admin-users-role-icon"></i>
-                      Bệnh nhân
-                    </button>
-                    <button
-                      type="button"
-                      className={`admin-users-role-option ${
-                        userForm.role === "DOCTOR"
-                          ? "admin-users-role-option-active"
-                          : ""
-                      }`}
-                      onClick={() =>
-                        setUserForm((prev) => ({ ...prev, role: "DOCTOR" }))
-                      }
-                    >
-                      <i className="fas fa-user-md admin-users-role-icon"></i>
-                      Bác sĩ
-                    </button>
-                    <button
-                      type="button"
-                      className={`admin-users-role-option ${
-                        userForm.role === "ADMIN"
-                          ? "admin-users-role-option-active"
-                          : ""
-                      }`}
-                      onClick={() =>
-                        setUserForm((prev) => ({ ...prev, role: "ADMIN" }))
-                      }
-                    >
-                      <i className="fas fa-user-shield admin-users-role-icon"></i>
-                      Quản trị viên
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              {/* Thông tin đăng nhập chung */}
-              <div className="admin-users-form-section">
-                <h3 className="admin-users-form-section-title">
-                  Thông tin đăng nhập
-                </h3>
-                <div className="admin-users-form-row">
-                  <div className="admin-users-form-group">
-                    <label className="admin-users-form-label">
-                      Tên đăng nhập *
-                    </label>
-                    <input
-                      type="text"
-                      name="username"
-                      value={userForm.username}
-                      onChange={handleUserFormChange}
-                      required
-                      className="admin-users-form-input"
-                    />
-                  </div>
-                  <div className="admin-users-form-group">
-                    <label className="admin-users-form-label">Mật khẩu *</label>
-                    <input
-                      type="password"
-                      name="password"
-                      value={userForm.password}
-                      onChange={handleUserFormChange}
-                      required
-                      className="admin-users-form-input"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Thông tin cá nhân chung */}
-              <div className="admin-users-form-section">
-                <h3 className="admin-users-form-section-title">
-                  Thông tin cá nhân
-                </h3>
-                <div className="admin-users-form-row">
-                  <div className="admin-users-form-group">
-                    <label className="admin-users-form-label">Họ tên *</label>
-                    <input
-                      type="text"
-                      name="fullName"
-                      value={userForm.fullName}
-                      onChange={handleUserFormChange}
-                      required
-                      className="admin-users-form-input"
-                    />
-                  </div>
-                  <div className="admin-users-form-group">
-                    <label className="admin-users-form-label">Email</label>
-                    <input
-                      type="email"
-                      name="email"
-                      value={userForm.email}
-                      onChange={handleUserFormChange}
-                      className="admin-users-form-input"
-                    />
-                  </div>
-                </div>
-                <div className="admin-users-form-row">
-                  <div className="admin-users-form-group">
-                    <label className="admin-users-form-label">
-                      Số điện thoại
-                    </label>
-                    <input
-                      type="tel"
-                      name="phone"
-                      value={userForm.phone}
-                      onChange={handleUserFormChange}
-                      className="admin-users-form-input"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Form theo role */}
-              {renderFormByRole()}
-
-              <div className="admin-users-form-actions">
-                <button
-                  type="button"
-                  onClick={() => setShowUserModal(false)}
-                  className="admin-users-btn-cancel"
-                >
-                  Hủy
-                </button>
-                <button type="submit" className="admin-users-btn-submit">
-                  {userForm.role === "ADMIN"
-                    ? "Tạo Admin"
-                    : userForm.role === "DOCTOR"
-                    ? "Tạo Bác sĩ"
-                    : "Tạo Bệnh nhân"}
-                </button>
-              </div>
-            </form>
           </div>
         </div>
       )}
+
+      {/* Table */}
+      <div className="table-responsive admin-users-table">
+        <table className="table table-hover align-middle">
+          <thead className="table-primary">
+            <tr>
+              <th width="60" className="text-center">
+                STT
+              </th>
+              {activeTab === "users" ? (
+                <>
+                  <th>Tên đăng nhập</th>
+                  <th>Họ tên</th>
+                  <th>Email</th>
+                  <th>Số điện thoại</th>
+                  <th>Vai trò</th>
+                </>
+              ) : activeTab === "patients" ? (
+                <>
+                  <th>Họ tên</th>
+                  <th>Ngày sinh</th>
+                  <th>Email</th>
+                  <th>Số điện thoại</th>
+                  <th>Địa chỉ</th>
+                  <th>BHYT</th>
+                  <th>Triệu chứng</th>
+                </>
+              ) : (
+                <>
+                  <th>Họ tên</th>
+                  <th>Khoa</th>
+                  <th>Học vị</th>
+                  <th>Chức vụ</th>
+                  <th>Email</th>
+                  <th>Số điện thoại</th>
+                  <th>Phòng</th>
+                </>
+              )}
+              <th width="150" className="text-center">
+                Thao tác
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {loading ? (
+              <tr>
+                <td
+                  colSpan={
+                    activeTab === "users" ? 7 : activeTab === "patients" ? 8 : 8
+                  }
+                  className="text-center py-5"
+                >
+                  <div className="spinner-border text-primary" role="status">
+                    <span className="visually-hidden">Đang tải...</span>
+                  </div>
+                </td>
+              </tr>
+            ) : filteredData.length === 0 ? (
+              <tr>
+                <td
+                  colSpan={
+                    activeTab === "users" ? 7 : activeTab === "patients" ? 8 : 8
+                  }
+                  className="text-center py-5"
+                >
+                  <div className="empty-state">
+                    <i className="bi bi-person-x display-4 text-muted mb-3"></i>
+                    <p className="text-muted mb-0 fs-5">
+                      {searchTerm
+                        ? `Không tìm thấy ${
+                            activeTab === "users"
+                              ? "người dùng"
+                              : activeTab === "patients"
+                              ? "bệnh nhân"
+                              : "bác sĩ"
+                          } nào với từ khóa: "${searchTerm}"`
+                        : `Không có ${
+                            activeTab === "users"
+                              ? "người dùng"
+                              : activeTab === "patients"
+                              ? "bệnh nhân"
+                              : "bác sĩ"
+                          } nào`}
+                    </p>
+                    {searchTerm && (
+                      <button
+                        className="btn btn-link mt-2"
+                        onClick={() => setSearchTerm("")}
+                      >
+                        Xóa tìm kiếm
+                      </button>
+                    )}
+                  </div>
+                </td>
+              </tr>
+            ) : (
+              filteredData.map((item, index) => (
+                <tr key={item.id}>
+                  <td className="text-center fw-bold text-primary">
+                    {index + 1}
+                  </td>
+
+                  {activeTab === "users" ? (
+                    <>
+                      <td>
+                        <strong className="fs-6 text-dark">
+                          {item.username}
+                        </strong>
+                      </td>
+                      <td>
+                        <span className="text-dark">
+                          {item.fullName || "N/A"}
+                        </span>
+                      </td>
+                      <td>
+                        <span className="text-muted">{item.email}</span>
+                      </td>
+                      <td>
+                        <span className="text-dark">{item.phone || "N/A"}</span>
+                      </td>
+                      <td>
+                        <span className={getRoleBadgeClass(item.role)}>
+                          {getRoleLabel(item.role)}
+                        </span>
+                      </td>
+                    </>
+                  ) : activeTab === "patients" ? (
+                    <>
+                      <td>
+                        <strong className="fs-6 text-dark">
+                          {item.fullName}
+                        </strong>
+                      </td>
+                      <td>
+                        <span className="text-dark">
+                          {item.dob
+                            ? new Date(item.dob).toLocaleDateString("vi-VN")
+                            : "N/A"}
+                        </span>
+                      </td>
+                      <td>
+                        <span className="text-muted">{item.email}</span>
+                      </td>
+                      <td>
+                        <span className="text-dark">{item.phone}</span>
+                      </td>
+                      <td>
+                        <span className="text-muted small">
+                          {item.address || "N/A"}
+                        </span>
+                      </td>
+                      <td>
+                        <span className="text-dark">{item.bhyt || "N/A"}</span>
+                      </td>
+                      <td>
+                        <span className="text-muted small">
+                          {item.symptoms || "N/A"}
+                        </span>
+                      </td>
+                    </>
+                  ) : (
+                    <>
+                      <td>
+                        <strong className="fs-6 text-dark">
+                          {item.fullName}
+                        </strong>
+                      </td>
+                      <td>
+                        <span className="text-muted">
+                          {item.departmentName ||
+                            (item.department &&
+                              item.department.departmentName) ||
+                            "N/A"}
+                        </span>
+                      </td>
+                      <td>
+                        <span className="text-dark">
+                          {item.degree || "N/A"}
+                        </span>
+                      </td>
+                      <td>
+                        <span className="text-dark">
+                          {item.position || "N/A"}
+                        </span>
+                      </td>
+                      <td>
+                        <span className="text-muted small">{item.email}</span>
+                      </td>
+                      <td>
+                        <span className="text-dark">{item.phone}</span>
+                      </td>
+                      <td>
+                        <span className="text-dark">
+                          {item.roomNumber ? `P.${item.roomNumber}` : "N/A"}
+                          {item.floor && ` (Tầng ${item.floor})`}
+                        </span>
+                      </td>
+                    </>
+                  )}
+
+                  <td className="text-center">
+                    <div className="d-flex justify-content-center gap-2">
+                      <button
+                        className="btn btn-sm btn-primary d-flex align-items-center px-3"
+                        onClick={() => handleEditUser(item)}
+                        disabled={formLoading}
+                        title="Sửa thông tin"
+                      >
+                        <i className="bi bi-pencil me-1"></i>
+                      </button>
+                      <button
+                        className="btn btn-sm btn-danger d-flex align-items-center px-3"
+                        onClick={() =>
+                          deleteUser(item.user?.id || item.id || item.userId)
+                        }
+                        disabled={formLoading}
+                        title="Xóa người dùng"
+                      >
+                        <i className="bi bi-trash me-1"></i>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 };

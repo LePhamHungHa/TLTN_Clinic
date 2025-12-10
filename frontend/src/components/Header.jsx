@@ -248,7 +248,7 @@ const Header = () => {
           className={linkClass}
           onClick={isMobile ? toggleMobileMenu : undefined}
         >
-          Quản lý người dùng
+          Quản lý tài khoản
         </Link>,
         <Link
           key="a-appointments"

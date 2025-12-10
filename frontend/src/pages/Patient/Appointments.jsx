@@ -135,49 +135,6 @@ const AppointmentsPage = () => {
     }
   };
 
-  // Hàm kiểm tra lại trạng thái thanh toán cho 1 appointment cụ thể
-  // const refreshPaymentStatus = async (appointmentId) => {
-  //   try {
-  //     const token = localStorage.getItem("token");
-  //     const paymentResponse = await axios.get(
-  //       `http://localhost:8080/api/payments/status/${appointmentId}`,
-  //       {
-  //         headers: {
-  //           Authorization: `Bearer ${token}`,
-  //         },
-  //         timeout: 5000,
-  //       }
-  //     );
-
-  //     if (paymentResponse.data.success) {
-  //       const paymentData = paymentResponse.data;
-
-  //       // Cập nhật state
-  //       setAppointments((prevAppointments) =>
-  //         prevAppointments.map((app) =>
-  //           app.id === appointmentId
-  //             ? {
-  //                 ...app,
-  //                 paymentStatus:
-  //                   paymentData.paymentStatus === "PAID"
-  //                     ? "Đã thanh toán"
-  //                     : "Chưa thanh toán",
-  //                 paymentMethod: paymentData.paymentMethod,
-  //                 paymentDate: paymentData.paymentDate,
-  //               }
-  //             : app
-  //         )
-  //       );
-
-  //       return paymentData.paymentStatus === "PAID";
-  //     }
-  //     return false;
-  //   } catch (error) {
-  //     console.error("Lỗi kiểm tra thanh toán:", error);
-  //     return false;
-  //   }
-  // };
-
   const filterAppointments = () => {
     let filtered = appointments;
 
@@ -226,7 +183,6 @@ const AppointmentsPage = () => {
   };
 
   const generateQRData = (appointment) => {
-    // Format đơn giản, chỉ dùng chữ không dấu và số để tránh lỗi font
     const qrText = `MEDICAL_CHECKIN
 ID:${appointment.registrationNumber || appointment.id}
 NAME:${removeAccents(appointment.fullName)}
@@ -237,14 +193,12 @@ STATUS:${getStatusForQR(appointment.status)}`;
     return qrText;
   };
 
-  // Hàm format date cho QR (dùng format số đơn giản)
   const formatDateForQR = (dateString) => {
     if (!dateString) return "NULL";
     const date = new Date(dateString);
-    return date.toISOString().split("T")[0]; // YYYY-MM-DD
+    return date.toISOString().split("T")[0];
   };
 
-  // Hàm chuyển status sang format cho QR (không dấu)
   const getStatusForQR = (status) => {
     const statusMap = {
       APPROVED: "DA_DUYET",
@@ -271,16 +225,13 @@ STATUS:${getStatusForQR(appointment.status)}`;
 
     setTimeout(() => {
       try {
-        // Tạo canvas với thiết kế đẹp
         const canvas = document.createElement("canvas");
         const ctx = canvas.getContext("2d");
 
-        // Kích thước ảnh (tỷ lệ 3:4)
         canvas.width = 600;
         canvas.height = 800;
 
-        // ===== VẼ NỀN =====
-        // Nền chính
+        // Vẽ nền
         ctx.fillStyle = "#ffffff";
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -291,7 +242,7 @@ STATUS:${getStatusForQR(appointment.status)}`;
         ctx.fillStyle = gradient;
         ctx.fillRect(0, 0, canvas.width, 120);
 
-        // ===== TIÊU ĐỀ =====
+        // Tiêu đề
         ctx.fillStyle = "#ffffff";
         ctx.font = "bold 28px Arial, sans-serif";
         ctx.textAlign = "center";
@@ -300,7 +251,7 @@ STATUS:${getStatusForQR(appointment.status)}`;
         ctx.font = "16px Arial, sans-serif";
         ctx.fillText("Bệnh viện Đa khoa Quốc tế", canvas.width / 2, 80);
 
-        // ===== THÔNG TIN ĐƠN =====
+        // Thông tin đơn
         ctx.fillStyle = "#2c3e50";
         ctx.font = "bold 20px Arial, sans-serif";
         ctx.textAlign = "left";
@@ -337,14 +288,13 @@ STATUS:${getStatusForQR(appointment.status)}`;
           ctx.fillText(detail, 40, 210 + index * 35);
         });
 
-        // ===== VẼ QR CODE =====
+        // Vẽ QR Code
         const svg = document.getElementById("qrcode-svg");
         if (svg) {
           const svgData = new XMLSerializer().serializeToString(svg);
           const img = new Image();
 
           img.onload = () => {
-            // Khung QR code
             const qrSize = 280;
             const qrX = (canvas.width - qrSize) / 2;
             const qrY = 400;
@@ -361,7 +311,7 @@ STATUS:${getStatusForQR(appointment.status)}`;
             // Vẽ QR code
             ctx.drawImage(img, qrX, qrY, qrSize, qrSize);
 
-            // ===== HƯỚNG DẪN =====
+            // Hướng dẫn
             ctx.fillStyle = "#d35400";
             ctx.font = "bold 18px Arial, sans-serif";
             ctx.textAlign = "center";
@@ -380,7 +330,7 @@ STATUS:${getStatusForQR(appointment.status)}`;
               775
             );
 
-            // ===== TẢI VỀ =====
+            // Tải về
             const pngUrl = canvas.toDataURL("image/png");
             const downloadLink = document.createElement("a");
             downloadLink.href = pngUrl;
@@ -445,7 +395,6 @@ STATUS:${getStatusForQR(appointment.status)}`;
     return "Chưa chỉ định bác sĩ";
   };
 
-  // Hàm chuyển status sang tiếng Việt để hiển thị
   const getStatusDisplay = (status) => {
     const statusMap = {
       APPROVED: "ĐÃ DUYỆT",
@@ -563,17 +512,6 @@ STATUS:${getStatusForQR(appointment.status)}`;
 
   const statsData = calculateStats();
 
-  // Hàm kiểm tra lại thanh toán cho 1 appointment
-  // const handleCheckPaymentStatus = async (appointmentId) => {
-  //   const isPaid = await refreshPaymentStatus(appointmentId);
-  //   if (isPaid) {
-  //     alert("✅ Lịch hẹn đã được thanh toán!");
-  //   } else {
-  //     alert("❌ Lịch hẹn chưa được thanh toán.");
-  //   }
-  // };
-
-  // Hàm kiểm tra xem có hiển thị nút thanh toán không
   const shouldShowPaymentButton = (appointment) => {
     const allowedStatuses = ["APPROVED", "COMPLETED", "IN_PROGRESS", "WAITING"];
     return (
@@ -582,7 +520,6 @@ STATUS:${getStatusForQR(appointment.status)}`;
     );
   };
 
-  // Hàm kiểm tra xem có hiển thị thông báo chờ duyệt không
   const shouldShowPendingMessage = (appointment) => {
     const pendingStatuses = ["PENDING", "NEEDS_MANUAL_REVIEW", "REJECTED"];
     return pendingStatuses.includes(appointment.status);
@@ -743,7 +680,7 @@ STATUS:${getStatusForQR(appointment.status)}`;
                 }`}
                 id={`appointment-${appointment.id}`}
               >
-                {/* Card Header - Luôn hiển thị */}
+                {/* Card Header */}
                 <div className="card-header">
                   <div className="card-main-info">
                     <h3>
@@ -771,7 +708,7 @@ STATUS:${getStatusForQR(appointment.status)}`;
                   </div>
                 </div>
 
-                {/* Basic Info - Luôn hiển thị */}
+                {/* Basic Info */}
                 <div className="card-basic-info">
                   <div className="basic-info-grid">
                     <div className="info-item">
@@ -802,15 +739,241 @@ STATUS:${getStatusForQR(appointment.status)}`;
                   </div>
                 </div>
 
-                {/* Expanded Details - Chỉ hiển thị khi expanded */}
+                {/* Expanded Details - Theo form mới */}
                 {expandedCard === appointment.id && (
                   <div className="card-expanded-details">
-                    {/* QR Code Mini - Chỉ hiển thị với đơn đã duyệt */}
+                    {/* Patient Information */}
+                    <div className="detail-section patient-info-section">
+                      <div className="section-header">
+                        <h4 className="section-title">
+                          <i className="bi-person-circle"></i>
+                          THÔNG TIN BỆNH NHÂN
+                        </h4>
+                        <div className="section-divider"></div>
+                      </div>
+                      <div className="patient-details-grid">
+                        <div className="patient-detail">
+                          <span className="patient-label">Họ tên:</span>
+                          <span className="patient-value">
+                            {appointment.fullName || "Chưa có"}
+                          </span>
+                        </div>
+                        <div className="patient-detail">
+                          <span className="patient-label">Điện thoại:</span>
+                          <span className="patient-value">
+                            {appointment.phone || "Chưa có"}
+                          </span>
+                        </div>
+                        <div className="patient-detail">
+                          <span className="patient-label">Email:</span>
+                          <span className="patient-value">
+                            {appointment.email || "Chưa có"}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Symptoms */}
+                    {appointment.symptoms && (
+                      <div className="detail-section symptoms-section">
+                        <div className="section-header">
+                          <h4 className="section-title">
+                            <i className="bi-clipboard-pulse"></i>
+                            TRIỆU CHỨNG
+                          </h4>
+                          <div className="section-divider"></div>
+                        </div>
+                        <div className="symptoms-content">
+                          <p>{appointment.symptoms}</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Appointment Information */}
+                    <div className="detail-section appointment-section">
+                      <div className="section-header">
+                        <h4 className="section-title">
+                          <i className="bi-calendar-check"></i>
+                          THÔNG TIN BUỔI KHÁM
+                        </h4>
+                        <div className="section-divider"></div>
+                      </div>
+
+                      <div className="appointment-grid">
+                        {/* Department */}
+                        <div className="appointment-item">
+                          <span className="appointment-label">Khoa khám:</span>
+                          <span className="appointment-value">
+                            {appointment.department || "Chưa có"}
+                          </span>
+                        </div>
+
+                        {/* Doctor Information */}
+                        {appointment.doctorId && (
+                          <div className="doctor-subsection">
+                            <div className="subsection-header">
+                              <h5 className="subsection-title">
+                                <i className="bi-person-badge"></i>
+                                BÁC SĨ PHÂN CÔNG
+                              </h5>
+                              <div className="subsection-divider"></div>
+                            </div>
+                            <div className="doctor-details">
+                              <div className="doctor-detail">
+                                <span className="doctor-bullet">•</span>
+                                <span className="doctor-label">
+                                  Tên bác sĩ:
+                                </span>
+                                <span className="doctor-value doctor-name">
+                                  {getDoctorInfo(appointment)}
+                                </span>
+                              </div>
+                              {appointment.doctor?.degree && (
+                                <div className="doctor-detail">
+                                  <span className="doctor-bullet">•</span>
+                                  <span className="doctor-label">Học vị:</span>
+                                  <span className="doctor-value doctor-degree">
+                                    {appointment.doctor.degree}
+                                  </span>
+                                </div>
+                              )}
+                              {appointment.doctor?.position && (
+                                <div className="doctor-detail">
+                                  <span className="doctor-bullet">•</span>
+                                  <span className="doctor-label">Chức vụ:</span>
+                                  <span className="doctor-value doctor-position">
+                                    {appointment.doctor.position}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Appointment Details (chỉ hiển thị với đơn đã duyệt) */}
+                        {appointment.status === "APPROVED" && (
+                          <div className="appointment-details-subsection">
+                            <div className="subsection-header">
+                              <h5 className="subsection-title">
+                                <i className="bi-clock-history"></i>
+                                BUỔI KHÁM CHI TIẾT
+                              </h5>
+                              <div className="subsection-divider"></div>
+                            </div>
+
+                            <div className="appointment-details-grid">
+                              {appointment.assignedSession && (
+                                <div className="appointment-detail detail-buoi-kham">
+                                  <span className="detail-label">
+                                    <i className="bi-clock"></i>
+                                    Buổi khám
+                                  </span>
+                                  <span className="detail-value">
+                                    {appointment.assignedSession}
+                                  </span>
+                                </div>
+                              )}
+
+                              {appointment.expectedTimeSlot && (
+                                <div className="appointment-detail detail-khung-gio">
+                                  <span className="detail-label">
+                                    <i className="bi-alarm"></i>
+                                    Khung giờ
+                                  </span>
+                                  <span className="detail-value">
+                                    {appointment.expectedTimeSlot}
+                                  </span>
+                                </div>
+                              )}
+
+                              {appointment.queueNumber && (
+                                <div className="appointment-detail detail-so-thu-tu">
+                                  <span className="detail-label">
+                                    <i className="bi-123"></i>
+                                    Số thứ tự
+                                  </span>
+                                  <div className="queue-number-wrapper">
+                                    <span className="queue-number">
+                                      {appointment.queueNumber}
+                                    </span>
+                                  </div>
+                                </div>
+                              )}
+
+                              {appointment.roomNumber && (
+                                <div className="appointment-detail detail-phong-kham">
+                                  <span className="detail-label">
+                                    <i className="bi-door-closed"></i>
+                                    Phòng khám
+                                  </span>
+                                  <span className="detail-value">
+                                    {appointment.roomNumber}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Payment Information */}
+                    {appointment.paymentStatus === "Đã thanh toán" &&
+                      appointment.paymentDate && (
+                        <div className="detail-section payment-section">
+                          <div className="section-header">
+                            <h4 className="section-title">
+                              <i className="bi-credit-card"></i>
+                              THANH TOÁN
+                            </h4>
+                            <div className="section-divider"></div>
+                          </div>
+                          <div className="payment-details">
+                            <div className="payment-detail">
+                              <span className="payment-label">
+                                Ngày thanh toán:
+                              </span>
+                              <span className="payment-value">
+                                {formatDateTime(appointment.paymentDate)}
+                              </span>
+                            </div>
+                            {appointment.paymentAmount && (
+                              <div className="payment-detail">
+                                <span className="payment-label">Số tiền:</span>
+                                <span className="payment-value amount">
+                                  {appointment.paymentAmount.toLocaleString()}{" "}
+                                  VND
+                                </span>
+                              </div>
+                            )}
+                            {appointment.paymentMethod && (
+                              <div className="payment-detail">
+                                <span className="payment-label">
+                                  Phương thức:
+                                </span>
+                                <span className="payment-value">
+                                  {appointment.paymentMethod === "CASH"
+                                    ? "Tiền mặt"
+                                    : "VNPAY"}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                    {/* QR Code Section (đưa xuống cuối) */}
                     {appointment.status === "APPROVED" && (
-                      <div className="details-section qr-section">
-                        <h4>📱 Mã QR Check-in</h4>
-                        <div className="qr-mini-container">
-                          <div className="qr-code-mini">
+                      <div className="detail-section qr-section">
+                        <div className="section-header">
+                          <h4 className="section-title">
+                            <i className="bi-qr-code-scan"></i>
+                            MÃ QR CHECK-IN
+                          </h4>
+                          <div className="section-divider"></div>
+                        </div>
+                        <div className="qr-content">
+                          <div className="qr-code-container">
                             <QRCode
                               value={generateQRData(appointment)}
                               size={80}
@@ -820,162 +983,105 @@ STATUS:${getStatusForQR(appointment.status)}`;
                             />
                           </div>
                           <div className="qr-info">
-                            <p>Quét mã QR này khi đến phòng khám để check-in</p>
+                            <p className="qr-instruction">
+                              📍 Quét mã QR này tại quầy lễ tân để check-in
+                            </p>
                             <button
-                              className="btn-show-qr"
+                              className="qr-action-btn"
                               onClick={() => handleShowQR(appointment)}
                             >
-                              🔍 Xem mã QR lớn
+                              <i className="bi-arrows-fullscreen"></i>
+                              Xem mã QR lớn
                             </button>
                           </div>
                         </div>
                       </div>
                     )}
 
-                    <div className="details-section">
-                      <h4>Thông tin chi tiết</h4>
-                      <div className="details-grid">
-                        <div className="detail-item">
-                          <span className="label">📞 SĐT:</span>
-                          <span>{appointment.phone || "Chưa có"}</span>
-                        </div>
-                        <div className="detail-item">
-                          <span className="label">📧 Email:</span>
-                          <span>{appointment.email || "Chưa có"}</span>
-                        </div>
-                        <div className="detail-item">
-                          <span className="label">👨‍⚕️ Bác sĩ:</span>
-                          <span className="doctor-info">
-                            <strong>{getDoctorInfo(appointment)}</strong>
-                            {appointment.doctor?.specialty && (
-                              <div className="doctor-specialty">
-                                {appointment.doctor.specialty}
-                              </div>
-                            )}
-                          </span>
-                        </div>
+                    {/* Status and Actions Section */}
+                    <div className="detail-section status-section">
+                      <div className="section-header">
+                        <h4 className="section-title">
+                          <i className="bi-info-circle"></i>
+                          TRẠNG THÁI VÀ HÀNH ĐỘNG
+                        </h4>
+                        <div className="section-divider"></div>
                       </div>
-                    </div>
 
-                    {/* Thông tin buổi khám cho đơn đã duyệt */}
-                    {appointment.status === "APPROVED" && (
-                      <div className="details-section approved-section">
-                        <h4>Thông tin buổi khám</h4>
-                        <div className="appointment-details">
-                          <div className="detail-row">
-                            <span className="label">🕒 Buổi khám:</span>
-                            <span>
-                              {appointment.assignedSession || "Chưa có"}
-                            </span>
-                          </div>
-                          <div className="detail-row">
-                            <span className="label">🎯 Số thứ tự:</span>
-                            <span className="queue-number">
-                              {appointment.queueNumber || "Chưa có"}
-                            </span>
-                          </div>
-                          <div className="detail-row">
-                            <span className="label">⏰ Khung giờ dự kiến:</span>
-                            <span>
-                              {appointment.expectedTimeSlot || "Chưa có"}
-                            </span>
-                          </div>
-                          <div className="detail-row">
-                            <span className="label">🚪 Phòng khám:</span>
-                            <span>{appointment.roomNumber || "Chưa có"}</span>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Ngày thanh toán nếu đã thanh toán */}
-                    {appointment.paymentStatus === "Đã thanh toán" &&
-                      appointment.paymentDate && (
-                        <div className="details-section">
-                          <div className="detail-row">
-                            <span className="label">⏰ Ngày thanh toán:</span>
-                            <span>
-                              {formatDateTime(appointment.paymentDate)}
-                            </span>
-                          </div>
-                          {appointment.paymentMethod && (
-                            <div className="detail-row">
-                              <span className="label">💳 Phương thức:</span>
-                              <span>
-                                {appointment.paymentMethod === "CASH"
-                                  ? "Tiền mặt"
-                                  : "VNPAY"}
-                              </span>
+                      <div className="status-content">
+                        {appointment.status === "APPROVED" && (
+                          <div className="approved-status">
+                            <div className="status-main">
+                              <i className="bi-check-circle-fill"></i>
+                              <span className="status-text">ĐÃ DUYỆT</span>
                             </div>
-                          )}
-                        </div>
-                      )}
-
-                    {/* Triệu chứng */}
-                    {appointment.symptoms && (
-                      <div className="details-section">
-                        <h4>📝 Triệu chứng</h4>
-                        <div className="symptoms-content">
-                          <p>{appointment.symptoms}</p>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Nút thanh toán - CHỈ ẨN KHI ĐÃ THANH TOÁN */}
-                    {shouldShowPaymentButton(appointment) && (
-                      <div className="payment-action">
-                        {appointment.status === "COMPLETED" && (
-                          <div className="completed-warning">
-                            ⚠️ <strong>Lưu ý quan trọng:</strong> Đã khám xong
-                            nhưng chưa thanh toán!
+                            <div className="status-actions">
+                              {shouldShowPaymentButton(appointment) && (
+                                <button
+                                  className="action-btn pay-btn"
+                                  onClick={() => handlePayment(appointment)}
+                                >
+                                  <i className="bi-credit-card"></i>
+                                  Thanh toán
+                                </button>
+                              )}
+                              <button
+                                className="action-btn qr-btn"
+                                onClick={() => handleShowQR(appointment)}
+                              >
+                                <i className="bi-qr-code"></i>
+                                Mã QR
+                              </button>
+                            </div>
                           </div>
                         )}
-                        <button
-                          className={`btn-pay-now expanded ${
-                            appointment.status === "COMPLETED" ? "urgent" : ""
-                          }`}
-                          onClick={() => handlePayment(appointment)}
-                        >
-                          {appointment.status === "COMPLETED"
-                            ? "💳 THANH TOÁN NGAY"
-                            : "💳 Thanh toán online"}
-                        </button>
-                        {/* <button
-                          className="btn-check-payment-status"
-                          onClick={() =>
-                            handleCheckPaymentStatus(appointment.id)
-                          }
-                          title="Kiểm tra nếu đã thanh toán tiền mặt tại quầy"
-                        >
-                          🔄 Kiểm tra thanh toán
-                        </button>
-                        <p className="payment-note">
-                          {appointment.status === "COMPLETED"
-                            ? "⚠️ Vui lòng thanh toán phí khám để hoàn tất hồ sơ y tế"
-                            : "💡 Nếu bạn đã thanh toán tiền mặt tại quầy, vui lòng bấm 'Kiểm tra thanh toán' để cập nhật trạng thái"}
-                        </p> */}
-                      </div>
-                    )}
 
-                    {/* Thông báo đã thanh toán */}
-                    {appointment.paymentStatus === "Đã thanh toán" && (
-                      <div className="payment-info">
-                        <p className="payment-success-note">
-                          ✅ <strong>Đã thanh toán:</strong> Phí khám đã được
-                          thanh toán đầy đủ
-                        </p>
-                      </div>
-                    )}
+                        {appointment.status === "COMPLETED" && (
+                          <div className="completed-status">
+                            <div className="status-main">
+                              <i className="bi-check-circle-fill"></i>
+                              <span className="status-text">ĐÃ HOÀN THÀNH</span>
+                            </div>
+                            <div className="status-actions">
+                              {shouldShowPaymentButton(appointment) && (
+                                <button
+                                  className="action-btn urgent-pay-btn"
+                                  onClick={() => handlePayment(appointment)}
+                                >
+                                  <i className="bi-exclamation-triangle"></i>
+                                  THANH TOÁN NGAY
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        )}
 
-                    {/* Thông báo chờ duyệt */}
-                    {shouldShowPendingMessage(appointment) && (
-                      <div className="payment-info">
-                        <p className="payment-disabled-note">
-                          ⏳ <strong>Thông báo:</strong> Chỉ có thể thanh toán
-                          khi đơn đã được duyệt (APPROVED)
-                        </p>
+                        {shouldShowPendingMessage(appointment) && (
+                          <div className="pending-status">
+                            <div className="status-main">
+                              <i className="bi-clock-fill"></i>
+                              <span className="status-text">CHỜ DUYỆT</span>
+                            </div>
+                            <p className="pending-message">
+                              ⏳ Đơn đang chờ xử lý. Bạn có thể thanh toán sau
+                              khi đơn được duyệt.
+                            </p>
+                          </div>
+                        )}
+
+                        {appointment.paymentStatus === "Đã thanh toán" && (
+                          <div className="payment-status-info">
+                            <div className="status-main">
+                              <i className="bi-check-circle-fill"></i>
+                              <span className="status-text">ĐÃ THANH TOÁN</span>
+                            </div>
+                            <p className="payment-message">
+                              ✅ Phí khám đã được thanh toán đầy đủ
+                            </p>
+                          </div>
+                        )}
                       </div>
-                    )}
+                    </div>
 
                     {/* Notes */}
                     <div className="appointment-notes">
