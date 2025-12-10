@@ -1,9 +1,9 @@
 package com.example.clinic_backend.config;
 
-import java.util.Arrays;
-
+import java.util.List;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -13,7 +13,6 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-
 import com.example.clinic_backend.security.JwtAuthenticationFilter;
 
 @Configuration
@@ -41,27 +40,37 @@ public class SecurityConfig {
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .csrf(csrf -> csrf.disable())
             .authorizeHttpRequests(authz -> authz
+                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+
+                // Public endpoints
                 .requestMatchers(
                     "/api/auth/**",
                     "/api/patient-registrations/**",
                     "/api/vnpay/**",
                     "/api/wallet/**",
                     "/api/departments/**",
-                    "/api/doctors/**",           
+                    "/api/doctors/**",
                     "/api/doctor/appointments/**"
                 ).permitAll()
-                .requestMatchers("/api/admin/**").hasAuthority("ROLE_ADMIN")       
-                .requestMatchers("/api/admin/structure/**").hasAuthority("ROLE_ADMIN")  
-                .requestMatchers(
-                    "/api/doctor/**",
+
+                // endpoints của admin
+                .requestMatchers("/api/admin/**").hasAuthority("ROLE_ADMIN")
+                .requestMatchers("/api/slots/**").hasAuthority("ROLE_ADMIN")   // QUAN TRỌNG
+                .requestMatchers("/api/admin/structure/**").hasAuthority("ROLE_ADMIN")
+
+                // endpoints của bác sĩ
+                .requestMatchers("/api/doctor/**",
                     "/api/doctor/appointments/**",
                     "/api/doctor/medical-records/**",
-                    "/api/doctor/statistics/**"
-                ).hasAuthority("ROLE_DOCTOR")
-                .requestMatchers("/api/patients/me").hasAuthority("ROLE_PATIENT")    
-                .requestMatchers("/api/wallets/**").hasAuthority("ROLE_PATIENT")    
+                    "/api/doctor/statistics/**").hasAuthority("ROLE_DOCTOR")
+
+                // endpoints của bệnh nhân
+                .requestMatchers("/api/patients/me",
+                    "/api/wallets/**",
+                    "/api/bmi/**").hasAuthority("ROLE_PATIENT")
+
                 .requestMatchers("/api/users/change-password").authenticated()
-                .requestMatchers("/api/bmi/**").hasAuthority("ROLE_PATIENT") 
+
                 .anyRequest().authenticated()
             )
             .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
@@ -71,13 +80,15 @@ public class SecurityConfig {
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
-        CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(Arrays.asList("http://localhost:5173"));
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(Arrays.asList("*"));
-        configuration.setAllowCredentials(true);
+        CorsConfiguration config = new CorsConfiguration();
+        config.setAllowedOrigins(List.of("http://localhost:5173"));
+        config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+        config.setAllowedHeaders(List.of("*"));
+        config.setExposedHeaders(List.of("Authorization"));
+        config.setAllowCredentials(true);
+
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", configuration);
+        source.registerCorsConfiguration("/**", config);
         return source;
     }
 }

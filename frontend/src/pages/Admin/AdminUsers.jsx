@@ -289,18 +289,17 @@ const AdminUsers = () => {
         };
         endpoint = "http://localhost:8080/api/admin/users/patients";
       } else if (userForm.role === "DOCTOR") {
-        // 🚨 SỬA LẠI PHẦN NÀY - ĐÚNG VỚI BACKEND
         requestData = {
           username: userForm.username,
           password: userForm.password,
           full_name: userForm.fullName,
-          date_of_birth: userForm.dateOfBirth, // Đúng với backend
+          date_of_birth: userForm.dateOfBirth,
           gender: userForm.gender,
           citizen_id: userForm.citizenId,
           address: userForm.address,
           phone: userForm.phone,
           email: userForm.email,
-          department_id: parseInt(userForm.departmentId), // Đúng với backend
+          department_id: parseInt(userForm.departmentId),
           degree: userForm.degree,
           position: userForm.position,
           room_number: userForm.roomNumber,
@@ -446,96 +445,114 @@ const AdminUsers = () => {
       case "PATIENT":
         return (
           <>
-            <div className="form-section">
-              <h3>Thông tin cá nhân</h3>
-              <div className="form-row">
-                <div className="form-group">
-                  <label>Ngày sinh</label>
+            <div className="admin-users-form-section">
+              <h3 className="admin-users-form-section-title">
+                Thông tin cá nhân
+              </h3>
+              <div className="admin-users-form-row">
+                <div className="admin-users-form-group">
+                  <label className="admin-users-form-label">Ngày sinh</label>
                   <input
                     type="date"
                     name="dob"
                     value={userForm.dob}
                     onChange={handleUserFormChange}
+                    className="admin-users-form-input"
                   />
                 </div>
-                <div className="form-group">
-                  <label>Địa chỉ</label>
+                <div className="admin-users-form-group">
+                  <label className="admin-users-form-label">Địa chỉ</label>
                   <input
                     type="text"
                     name="address"
                     value={userForm.address}
                     onChange={handleUserFormChange}
                     placeholder="Địa chỉ hiện tại"
+                    className="admin-users-form-input"
                   />
                 </div>
               </div>
-              <div className="form-row">
-                <div className="form-group">
-                  <label>Triệu chứng</label>
+              <div className="admin-users-form-row">
+                <div className="admin-users-form-group">
+                  <label className="admin-users-form-label">Triệu chứng</label>
                   <input
                     type="text"
                     name="symptoms"
                     value={userForm.symptoms}
                     onChange={handleUserFormChange}
                     placeholder="Mô tả triệu chứng (nếu có)"
+                    className="admin-users-form-input"
                   />
                 </div>
-                <div className="form-group">
-                  <label>BHYT</label>
+                <div className="admin-users-form-group">
+                  <label className="admin-users-form-label">BHYT</label>
                   <input
                     type="text"
                     name="bhyt"
                     value={userForm.bhyt}
                     onChange={handleUserFormChange}
                     placeholder="Số thẻ BHYT"
+                    className="admin-users-form-input"
                   />
                 </div>
               </div>
             </div>
 
-            <div className="form-section">
-              <h3>Thông tin người thân</h3>
-              <div className="form-row">
-                <div className="form-group">
-                  <label>Họ tên người thân</label>
+            <div className="admin-users-form-section">
+              <h3 className="admin-users-form-section-title">
+                Thông tin người thân
+              </h3>
+              <div className="admin-users-form-row">
+                <div className="admin-users-form-group">
+                  <label className="admin-users-form-label">
+                    Họ tên người thân
+                  </label>
                   <input
                     type="text"
                     name="relativeName"
                     value={userForm.relativeName}
                     onChange={handleUserFormChange}
                     placeholder="Họ tên người thân"
+                    className="admin-users-form-input"
                   />
                 </div>
-                <div className="form-group">
-                  <label>SĐT người thân</label>
+                <div className="admin-users-form-group">
+                  <label className="admin-users-form-label">
+                    SĐT người thân
+                  </label>
                   <input
                     type="tel"
                     name="relativePhone"
                     value={userForm.relativePhone}
                     onChange={handleUserFormChange}
                     placeholder="Số điện thoại người thân"
+                    className="admin-users-form-input"
                   />
                 </div>
               </div>
-              <div className="form-row">
-                <div className="form-group">
-                  <label>Địa chỉ người thân</label>
+              <div className="admin-users-form-row">
+                <div className="admin-users-form-group">
+                  <label className="admin-users-form-label">
+                    Địa chỉ người thân
+                  </label>
                   <input
                     type="text"
                     name="relativeAddress"
                     value={userForm.relativeAddress}
                     onChange={handleUserFormChange}
                     placeholder="Địa chỉ người thân"
+                    className="admin-users-form-input"
                   />
                 </div>
-                <div className="form-group">
-                  <label>Quan hệ</label>
+                <div className="admin-users-form-group">
+                  <label className="admin-users-form-label">Quan hệ</label>
                   <input
                     type="text"
                     name="relativeRelationship"
                     value={userForm.relativeRelationship}
                     onChange={handleUserFormChange}
                     placeholder="VD: Vợ, chồng, con, cha, mẹ..."
+                    className="admin-users-form-input"
                   />
                 </div>
               </div>
@@ -546,24 +563,28 @@ const AdminUsers = () => {
       case "DOCTOR":
         return (
           <>
-            <div className="form-section">
-              <h3>Thông tin cá nhân</h3>
-              <div className="form-row">
-                <div className="form-group">
-                  <label>Ngày sinh</label>
+            <div className="admin-users-form-section">
+              <h3 className="admin-users-form-section-title">
+                Thông tin cá nhân
+              </h3>
+              <div className="admin-users-form-row">
+                <div className="admin-users-form-group">
+                  <label className="admin-users-form-label">Ngày sinh</label>
                   <input
                     type="date"
                     name="dateOfBirth"
                     value={userForm.dateOfBirth}
                     onChange={handleUserFormChange}
+                    className="admin-users-form-input"
                   />
                 </div>
-                <div className="form-group">
-                  <label>Giới tính</label>
+                <div className="admin-users-form-group">
+                  <label className="admin-users-form-label">Giới tính</label>
                   <select
                     name="gender"
                     value={userForm.gender}
                     onChange={handleUserFormChange}
+                    className="admin-users-form-input"
                   >
                     <option value="MALE">Nam</option>
                     <option value="FEMALE">Nữ</option>
@@ -571,35 +592,39 @@ const AdminUsers = () => {
                   </select>
                 </div>
               </div>
-              <div className="form-row">
-                <div className="form-group">
-                  <label>CCCD/CMND</label>
+              <div className="admin-users-form-row">
+                <div className="admin-users-form-group">
+                  <label className="admin-users-form-label">CCCD/CMND</label>
                   <input
                     type="text"
                     name="citizenId"
                     value={userForm.citizenId}
                     onChange={handleUserFormChange}
                     placeholder="Số CCCD/CMND"
+                    className="admin-users-form-input"
                   />
                 </div>
-                <div className="form-group">
-                  <label>Địa chỉ</label>
+                <div className="admin-users-form-group">
+                  <label className="admin-users-form-label">Địa chỉ</label>
                   <input
                     type="text"
                     name="address"
                     value={userForm.address}
                     onChange={handleUserFormChange}
                     placeholder="Địa chỉ liên hệ"
+                    className="admin-users-form-input"
                   />
                 </div>
               </div>
             </div>
 
-            <div className="form-section">
-              <h3>Thông tin chuyên môn</h3>
-              <div className="form-row">
-                <div className="form-group">
-                  <label>Học vị *</label>
+            <div className="admin-users-form-section">
+              <h3 className="admin-users-form-section-title">
+                Thông tin chuyên môn
+              </h3>
+              <div className="admin-users-form-row">
+                <div className="admin-users-form-group">
+                  <label className="admin-users-form-label">Học vị *</label>
                   <input
                     type="text"
                     name="degree"
@@ -607,10 +632,11 @@ const AdminUsers = () => {
                     onChange={handleUserFormChange}
                     placeholder="VD: Thạc sĩ, Tiến sĩ, Bác sĩ CKII..."
                     required
+                    className="admin-users-form-input"
                   />
                 </div>
-                <div className="form-group">
-                  <label>Chức vụ *</label>
+                <div className="admin-users-form-group">
+                  <label className="admin-users-form-label">Chức vụ *</label>
                   <input
                     type="text"
                     name="position"
@@ -618,24 +644,28 @@ const AdminUsers = () => {
                     onChange={handleUserFormChange}
                     placeholder="VD: Trưởng khoa, Phó khoa, Bác sĩ trưởng..."
                     required
+                    className="admin-users-form-input"
                   />
                 </div>
               </div>
-              <div className="form-row">
-                <div className="form-group full-width">
-                  <label>Khoa *</label>
+              <div className="admin-users-form-row">
+                <div className="admin-users-form-group admin-users-form-group-fullwidth">
+                  <label className="admin-users-form-label">Khoa *</label>
                   {departmentsLoading ? (
-                    <div className="departments-loading">
+                    <div className="admin-users-departments-loading">
                       Đang tải danh sách khoa...
                     </div>
                   ) : departmentsError ? (
-                    <div className="departments-error">{departmentsError}</div>
+                    <div className="admin-users-departments-error">
+                      {departmentsError}
+                    </div>
                   ) : (
                     <select
                       name="departmentId"
                       value={userForm.departmentId}
                       onChange={handleUserFormChange}
                       required
+                      className="admin-users-form-input"
                     >
                       <option value="">Chọn khoa</option>
                       {departments.map((dept) => (
@@ -649,27 +679,31 @@ const AdminUsers = () => {
               </div>
             </div>
 
-            <div className="form-section">
-              <h3>Thông tin làm việc</h3>
-              <div className="form-row">
-                <div className="form-group">
-                  <label>Số phòng</label>
+            <div className="admin-users-form-section">
+              <h3 className="admin-users-form-section-title">
+                Thông tin làm việc
+              </h3>
+              <div className="admin-users-form-row">
+                <div className="admin-users-form-group">
+                  <label className="admin-users-form-label">Số phòng</label>
                   <input
                     type="text"
                     name="roomNumber"
                     value={userForm.roomNumber}
                     onChange={handleUserFormChange}
                     placeholder="VD: 101, 201..."
+                    className="admin-users-form-input"
                   />
                 </div>
-                <div className="form-group">
-                  <label>Tầng</label>
+                <div className="admin-users-form-group">
+                  <label className="admin-users-form-label">Tầng</label>
                   <input
                     type="number"
                     name="floor"
                     value={userForm.floor}
                     onChange={handleUserFormChange}
                     placeholder="VD: 1, 2, 3..."
+                    className="admin-users-form-input"
                   />
                 </div>
               </div>
@@ -679,11 +713,16 @@ const AdminUsers = () => {
 
       case "ADMIN":
         return (
-          <div className="form-section">
-            <div className="admin-warning">
-              <i className="fas fa-shield-alt"></i>
-              <strong>Quyền Quản trị viên:</strong> Tài khoản này sẽ có toàn
-              quyền quản lý hệ thống
+          <div className="admin-users-form-section">
+            <div className="admin-users-admin-warning">
+              <i className="fas fa-shield-alt admin-users-warning-icon"></i>
+              <strong className="admin-users-warning-text">
+                Quyền Quản trị viên:
+              </strong>
+              <span className="admin-users-warning-description">
+                {" "}
+                Tài khoản này sẽ có toàn quyền quản lý hệ thống
+              </span>
             </div>
           </div>
         );
@@ -693,59 +732,69 @@ const AdminUsers = () => {
     }
   };
 
-  if (loading) return <div className="loading">Đang tải...</div>;
+  if (loading) return <div className="admin-users-loading">Đang tải...</div>;
 
   return (
-    <div className="admin-users">
-      <div className="admin-header">
-        <h1>Quản lý Người dùng</h1>
-        <div className="header-actions">
-          <div className="search-box">
+    <div className="admin-users-wrapper">
+      <div className="admin-users-header">
+        <h1 className="admin-users-title">Quản lý Người dùng</h1>
+        <div className="admin-users-header-actions">
+          <div className="admin-users-search-box">
             <input
               type="text"
               placeholder="Tìm kiếm người dùng..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
+              className="admin-users-search-input"
             />
-            <i className="fas fa-search"></i>
+            <i className="fas fa-search admin-users-search-icon"></i>
           </div>
-          <button className="btn-refresh" onClick={refreshData}>
-            <i className="fas fa-sync-alt"></i>
+          <button className="admin-users-btn-refresh" onClick={refreshData}>
+            <i className="fas fa-sync-alt admin-users-btn-icon"></i>
             Refresh
           </button>
-          <button className="btn-primary" onClick={handleOpenUserModal}>
-            <i className="fas fa-plus"></i>
+          <button
+            className="admin-users-btn-primary"
+            onClick={handleOpenUserModal}
+          >
+            <i className="fas fa-plus admin-users-btn-icon"></i>
             Thêm Người dùng
           </button>
         </div>
       </div>
 
-      {error && <div className="error-message">{error}</div>}
+      {error && <div className="admin-users-error-message">{error}</div>}
 
-      <div className="tabs">
+      <div className="admin-users-tabs">
         <button
-          className={`tab ${activeTab === "users" ? "active" : ""}`}
+          className={`admin-users-tab ${
+            activeTab === "users" ? "admin-users-tab-active" : ""
+          }`}
           onClick={() => setActiveTab("users")}
         >
           Tất cả Người dùng ({users.length})
         </button>
         <button
-          className={`tab ${activeTab === "patients" ? "active" : ""}`}
+          className={`admin-users-tab ${
+            activeTab === "patients" ? "admin-users-tab-active" : ""
+          }`}
           onClick={() => setActiveTab("patients")}
         >
           Bệnh nhân ({patients.length})
         </button>
         <button
-          className={`tab ${activeTab === "doctors" ? "active" : ""}`}
+          className={`admin-users-tab ${
+            activeTab === "doctors" ? "admin-users-tab-active" : ""
+          }`}
           onClick={() => setActiveTab("doctors")}
         >
           Bác sĩ ({doctors.length})
         </button>
       </div>
 
-      <div className="table-container">
+      <div className="admin-users-table-container">
         {activeTab === "users" && (
-          <table className="users-table">
+          <table className="admin-users-table">
             <thead>
               <tr>
                 <th>ID</th>
@@ -759,28 +808,32 @@ const AdminUsers = () => {
             </thead>
             <tbody>
               {filteredUsers.map((user) => (
-                <tr key={user.id}>
-                  <td>{user.id}</td>
-                  <td>{user.username}</td>
-                  <td>{user.fullName || "N/A"}</td>
-                  <td>{user.email}</td>
-                  <td>{user.phone || "N/A"}</td>
-                  <td>
+                <tr key={user.id} className="admin-users-table-row">
+                  <td className="admin-users-table-cell">{user.id}</td>
+                  <td className="admin-users-table-cell">{user.username}</td>
+                  <td className="admin-users-table-cell">
+                    {user.fullName || "N/A"}
+                  </td>
+                  <td className="admin-users-table-cell">{user.email}</td>
+                  <td className="admin-users-table-cell">
+                    {user.phone || "N/A"}
+                  </td>
+                  <td className="admin-users-table-cell">
                     <span
-                      className={`role-badge role-${user.role?.toLowerCase()}`}
+                      className={`admin-users-role-badge admin-users-role-${user.role?.toLowerCase()}`}
                     >
                       {user.role === "PATIENT" && "Bệnh nhân"}
                       {user.role === "DOCTOR" && "Bác sĩ"}
                       {user.role === "ADMIN" && "Quản trị viên"}
                     </span>
                   </td>
-                  <td>
-                    <div className="action-buttons">
+                  <td className="admin-users-table-cell">
+                    <div className="admin-users-action-buttons">
                       <button
-                        className="btn-delete"
+                        className="admin-users-btn-delete"
                         onClick={() => handleDeleteUser(user.id)}
                       >
-                        <i className="fas fa-trash"></i>
+                        <i className="fas fa-trash admin-users-action-icon"></i>
                       </button>
                     </div>
                   </td>
@@ -791,7 +844,7 @@ const AdminUsers = () => {
         )}
 
         {activeTab === "patients" && (
-          <table className="users-table">
+          <table className="admin-users-table">
             <thead>
               <tr>
                 <th>ID</th>
@@ -808,33 +861,41 @@ const AdminUsers = () => {
             </thead>
             <tbody>
               {filteredPatients.map((patient) => (
-                <tr key={patient.id}>
-                  <td>{patient.id}</td>
-                  <td>{patient.fullName || "N/A"}</td>
-                  <td>
+                <tr key={patient.id} className="admin-users-table-row">
+                  <td className="admin-users-table-cell">{patient.id}</td>
+                  <td className="admin-users-table-cell">
+                    {patient.fullName || "N/A"}
+                  </td>
+                  <td className="admin-users-table-cell">
                     {patient.dob
                       ? new Date(patient.dob).toLocaleDateString("vi-VN")
                       : "N/A"}
                   </td>
-                  <td>{patient.email}</td>
-                  <td>{patient.phone}</td>
-                  <td>{patient.address || "N/A"}</td>
-                  <td>{patient.bhyt || "N/A"}</td>
-                  <td>{patient.symptoms || "N/A"}</td>
-                  <td>
+                  <td className="admin-users-table-cell">{patient.email}</td>
+                  <td className="admin-users-table-cell">{patient.phone}</td>
+                  <td className="admin-users-table-cell">
+                    {patient.address || "N/A"}
+                  </td>
+                  <td className="admin-users-table-cell">
+                    {patient.bhyt || "N/A"}
+                  </td>
+                  <td className="admin-users-table-cell">
+                    {patient.symptoms || "N/A"}
+                  </td>
+                  <td className="admin-users-table-cell">
                     {patient.relativeName
                       ? `${patient.relativeName} (${patient.relativeRelationship})`
                       : "N/A"}
                   </td>
-                  <td>
-                    <div className="action-buttons">
+                  <td className="admin-users-table-cell">
+                    <div className="admin-users-action-buttons">
                       <button
-                        className="btn-delete"
+                        className="admin-users-btn-delete"
                         onClick={() =>
                           handleDeleteUser(patient.user?.id || patient.userId)
                         }
                       >
-                        <i className="fas fa-trash"></i>
+                        <i className="fas fa-trash admin-users-action-icon"></i>
                       </button>
                     </div>
                   </td>
@@ -845,7 +906,7 @@ const AdminUsers = () => {
         )}
 
         {activeTab === "doctors" && (
-          <table className="users-table">
+          <table className="admin-users-table">
             <thead>
               <tr>
                 <th>ID</th>
@@ -861,31 +922,36 @@ const AdminUsers = () => {
             </thead>
             <tbody>
               {filteredDoctors.map((doctor) => (
-                <tr key={doctor.id}>
-                  <td>{doctor.id}</td>
-                  <td>{doctor.fullName || "N/A"}</td>
-                  <td>
-                    {/* Ưu tiên hiển thị departmentName từ getter, fallback các phương án khác */}
+                <tr key={doctor.id} className="admin-users-table-row">
+                  <td className="admin-users-table-cell">{doctor.id}</td>
+                  <td className="admin-users-table-cell">
+                    {doctor.fullName || "N/A"}
+                  </td>
+                  <td className="admin-users-table-cell">
                     {doctor.departmentName ||
                       (doctor.department && doctor.department.departmentName) ||
                       getDepartmentName(doctor.departmentId) ||
                       "Đang cập nhật"}
                   </td>
-                  <td>{doctor.degree || "N/A"}</td>
-                  <td>{doctor.position || "N/A"}</td>
-                  <td>{doctor.email}</td>
-                  <td>{doctor.phone}</td>
-                  <td>
+                  <td className="admin-users-table-cell">
+                    {doctor.degree || "N/A"}
+                  </td>
+                  <td className="admin-users-table-cell">
+                    {doctor.position || "N/A"}
+                  </td>
+                  <td className="admin-users-table-cell">{doctor.email}</td>
+                  <td className="admin-users-table-cell">{doctor.phone}</td>
+                  <td className="admin-users-table-cell">
                     {doctor.roomNumber ? `P.${doctor.roomNumber}` : "N/A"}
                     {doctor.floor ? ` - Tầng ${doctor.floor}` : ""}
                   </td>
-                  <td>
-                    <div className="action-buttons">
+                  <td className="admin-users-table-cell">
+                    <div className="admin-users-action-buttons">
                       <button
-                        className="btn-delete"
+                        className="admin-users-btn-delete"
                         onClick={() => handleDeleteUser(doctor.userId)}
                       >
-                        <i className="fas fa-trash"></i>
+                        <i className="fas fa-trash admin-users-action-icon"></i>
                       </button>
                     </div>
                   </td>
@@ -898,10 +964,10 @@ const AdminUsers = () => {
 
       {/* Modal thêm người dùng */}
       {showUserModal && (
-        <div className="modal-overlay">
-          <div className="modal user-modal">
-            <div className="modal-header">
-              <h2>
+        <div className="admin-users-modal-overlay">
+          <div className="admin-users-modal">
+            <div className="admin-users-modal-header">
+              <h2 className="admin-users-modal-title">
                 Thêm{" "}
                 {userForm.role === "ADMIN"
                   ? "Admin"
@@ -911,52 +977,61 @@ const AdminUsers = () => {
                 Mới
               </h2>
               <button
-                className="close-btn"
+                className="admin-users-modal-close-btn"
                 onClick={() => setShowUserModal(false)}
               >
-                <i className="fas fa-times"></i>
+                <i className="fas fa-times admin-users-close-icon"></i>
               </button>
             </div>
-            <form onSubmit={handleCreateUser}>
+            <form
+              className="admin-users-modal-form"
+              onSubmit={handleCreateUser}
+            >
               {/* Role selector ở đầu */}
-              <div className="form-section">
-                <div className="role-selector">
-                  <label>Vai trò *</label>
-                  <div className="role-options">
+              <div className="admin-users-form-section">
+                <div className="admin-users-role-selector">
+                  <label className="admin-users-role-label">Vai trò *</label>
+                  <div className="admin-users-role-options">
                     <button
                       type="button"
-                      className={`role-option ${
-                        userForm.role === "PATIENT" ? "active" : ""
+                      className={`admin-users-role-option ${
+                        userForm.role === "PATIENT"
+                          ? "admin-users-role-option-active"
+                          : ""
                       }`}
                       onClick={() =>
                         setUserForm((prev) => ({ ...prev, role: "PATIENT" }))
                       }
                     >
-                      <i className="fas fa-user-injured"></i>
+                      <i className="fas fa-user-injured admin-users-role-icon"></i>
                       Bệnh nhân
                     </button>
                     <button
                       type="button"
-                      className={`role-option ${
-                        userForm.role === "DOCTOR" ? "active" : ""
+                      className={`admin-users-role-option ${
+                        userForm.role === "DOCTOR"
+                          ? "admin-users-role-option-active"
+                          : ""
                       }`}
                       onClick={() =>
                         setUserForm((prev) => ({ ...prev, role: "DOCTOR" }))
                       }
                     >
-                      <i className="fas fa-user-md"></i>
+                      <i className="fas fa-user-md admin-users-role-icon"></i>
                       Bác sĩ
                     </button>
                     <button
                       type="button"
-                      className={`role-option ${
-                        userForm.role === "ADMIN" ? "active" : ""
+                      className={`admin-users-role-option ${
+                        userForm.role === "ADMIN"
+                          ? "admin-users-role-option-active"
+                          : ""
                       }`}
                       onClick={() =>
                         setUserForm((prev) => ({ ...prev, role: "ADMIN" }))
                       }
                     >
-                      <i className="fas fa-user-shield"></i>
+                      <i className="fas fa-user-shield admin-users-role-icon"></i>
                       Quản trị viên
                     </button>
                   </div>
@@ -964,64 +1039,77 @@ const AdminUsers = () => {
               </div>
 
               {/* Thông tin đăng nhập chung */}
-              <div className="form-section">
-                <h3>Thông tin đăng nhập</h3>
-                <div className="form-row">
-                  <div className="form-group">
-                    <label>Tên đăng nhập *</label>
+              <div className="admin-users-form-section">
+                <h3 className="admin-users-form-section-title">
+                  Thông tin đăng nhập
+                </h3>
+                <div className="admin-users-form-row">
+                  <div className="admin-users-form-group">
+                    <label className="admin-users-form-label">
+                      Tên đăng nhập *
+                    </label>
                     <input
                       type="text"
                       name="username"
                       value={userForm.username}
                       onChange={handleUserFormChange}
                       required
+                      className="admin-users-form-input"
                     />
                   </div>
-                  <div className="form-group">
-                    <label>Mật khẩu *</label>
+                  <div className="admin-users-form-group">
+                    <label className="admin-users-form-label">Mật khẩu *</label>
                     <input
                       type="password"
                       name="password"
                       value={userForm.password}
                       onChange={handleUserFormChange}
                       required
+                      className="admin-users-form-input"
                     />
                   </div>
                 </div>
               </div>
 
               {/* Thông tin cá nhân chung */}
-              <div className="form-section">
-                <h3>Thông tin cá nhân</h3>
-                <div className="form-row">
-                  <div className="form-group">
-                    <label>Họ tên *</label>
+              <div className="admin-users-form-section">
+                <h3 className="admin-users-form-section-title">
+                  Thông tin cá nhân
+                </h3>
+                <div className="admin-users-form-row">
+                  <div className="admin-users-form-group">
+                    <label className="admin-users-form-label">Họ tên *</label>
                     <input
                       type="text"
                       name="fullName"
                       value={userForm.fullName}
                       onChange={handleUserFormChange}
                       required
+                      className="admin-users-form-input"
                     />
                   </div>
-                  <div className="form-group">
-                    <label>Email</label>
+                  <div className="admin-users-form-group">
+                    <label className="admin-users-form-label">Email</label>
                     <input
                       type="email"
                       name="email"
                       value={userForm.email}
                       onChange={handleUserFormChange}
+                      className="admin-users-form-input"
                     />
                   </div>
                 </div>
-                <div className="form-row">
-                  <div className="form-group">
-                    <label>Số điện thoại</label>
+                <div className="admin-users-form-row">
+                  <div className="admin-users-form-group">
+                    <label className="admin-users-form-label">
+                      Số điện thoại
+                    </label>
                     <input
                       type="tel"
                       name="phone"
                       value={userForm.phone}
                       onChange={handleUserFormChange}
+                      className="admin-users-form-input"
                     />
                   </div>
                 </div>
@@ -1030,11 +1118,15 @@ const AdminUsers = () => {
               {/* Form theo role */}
               {renderFormByRole()}
 
-              <div className="form-actions">
-                <button type="button" onClick={() => setShowUserModal(false)}>
+              <div className="admin-users-form-actions">
+                <button
+                  type="button"
+                  onClick={() => setShowUserModal(false)}
+                  className="admin-users-btn-cancel"
+                >
                   Hủy
                 </button>
-                <button type="submit" className="btn-primary">
+                <button type="submit" className="admin-users-btn-submit">
                   {userForm.role === "ADMIN"
                     ? "Tạo Admin"
                     : userForm.role === "DOCTOR"

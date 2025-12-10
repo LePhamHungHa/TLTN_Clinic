@@ -5,98 +5,110 @@ import MedicineManagement from "./MedicineManagement";
 import DoctorManagement from "./DoctorManagement";
 import DepartmentManagement from "./DepartmentManagement";
 import InvoiceManagement from "./InvoiceManagement";
+import "bootstrap/dist/css/bootstrap.min.css";
 
 const AdminStructure = () => {
   const [activeTab, setActiveTab] = useState(0);
+  const [loading, setLoading] = useState(false);
   const [slots, setSlots] = useState([]);
   const [medicines, setMedicines] = useState([]);
   const [doctors, setDoctors] = useState([]);
   const [departments, setDepartments] = useState([]);
   const [invoices, setInvoices] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
-  // ========== FETCH DATA ==========
+  const menuItems = [
+    {
+      id: 0,
+      icon: "calendar_month",
+      label: "Slot Bác sĩ",
+      count: slots.length,
+    },
+    {
+      id: 1,
+      icon: "medication",
+      label: "Quản lý Thuốc",
+      count: medicines.length,
+    },
+    {
+      id: 2,
+      icon: "person_search",
+      label: "Quản lý Bác sĩ",
+      count: doctors.length,
+    },
+    {
+      id: 3,
+      icon: "local_hospital",
+      label: "Quản lý Khoa",
+      count: departments.length,
+    },
+    {
+      id: 4,
+      icon: "receipt_long",
+      label: "Quản lý Hóa đơn",
+      count: invoices.length,
+    },
+  ];
+
   useEffect(() => {
     fetchData();
   }, []);
 
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeTab]);
+
   const fetchData = async () => {
     setLoading(true);
-    setError("");
-
     try {
       const user = JSON.parse(localStorage.getItem("user"));
       const token = user?.token;
+      if (!token) throw new Error("Không tìm thấy token đăng nhập");
 
-      if (!token) {
-        setError("Không tìm thấy token đăng nhập");
-        return;
-      }
+      const [deptRes, slotRes, medRes, docRes, invRes] = await Promise.all([
+        fetch("http://localhost:8080/api/departments", {
+          headers: { Authorization: `Bearer ${token}` },
+        }).then((r) => (r.ok ? r.json() : [])),
+        fetch("http://localhost:8080/api/admin/structure/slots", {
+          headers: { Authorization: `Bearer ${token}` },
+        }).then((r) => (r.ok ? r.json() : [])),
+        fetch("http://localhost:8080/api/admin/structure/medicines", {
+          headers: { Authorization: `Bearer ${token}` },
+        }).then((r) => (r.ok ? r.json() : [])),
+        fetch("http://localhost:8080/api/doctors", {
+          headers: { Authorization: `Bearer ${token}` },
+        }).then((r) => (r.ok ? r.json() : [])),
+        fetch("http://localhost:8080/api/invoices/all", {
+          headers: { Authorization: `Bearer ${token}` },
+        }).then((r) => (r.ok ? r.json() : [])),
+      ]);
 
-      // Fetch all data in parallel
-      const [departmentsRes, slotsRes, medicinesRes, doctorsRes, invoicesRes] =
-        await Promise.all([
-          fetch("http://localhost:8080/api/departments", {
-            headers: { Authorization: `Bearer ${token}` },
-          }).then((res) => (res.ok ? res.json() : [])),
-
-          fetch("http://localhost:8080/api/admin/structure/slots", {
-            headers: { Authorization: `Bearer ${token}` },
-          }).then((res) => (res.ok ? res.json() : [])),
-
-          fetch("http://localhost:8080/api/admin/structure/medicines", {
-            headers: { Authorization: `Bearer ${token}` },
-          }).then((res) => (res.ok ? res.json() : [])),
-
-          fetch("http://localhost:8080/api/doctors", {
-            headers: { Authorization: `Bearer ${token}` },
-          }).then((res) => (res.ok ? res.json() : [])),
-
-          // Fetch invoices
-          fetch("http://localhost:8080/api/invoices/all", {
-            headers: { Authorization: `Bearer ${token}` },
-          }).then((res) => (res.ok ? res.json() : [])),
-        ]);
-
-      setDepartments(Array.isArray(departmentsRes) ? departmentsRes : []);
-      setSlots(Array.isArray(slotsRes) ? slotsRes : []);
-      setMedicines(Array.isArray(medicinesRes) ? medicinesRes : []);
-      setDoctors(Array.isArray(doctorsRes) ? doctorsRes : []);
-      setInvoices(Array.isArray(invoicesRes) ? invoicesRes : []);
-    } catch (err) {
-      setError(`Lỗi: ${err.message}`);
-      setDepartments([]);
-      setSlots([]);
-      setMedicines([]);
-      setDoctors([]);
-      setInvoices([]);
+      setDepartments(Array.isArray(deptRes) ? deptRes : []);
+      setSlots(Array.isArray(slotRes) ? slotRes : []);
+      setMedicines(Array.isArray(medRes) ? medRes : []);
+      setDoctors(Array.isArray(docRes) ? docRes : []);
+      setInvoices(Array.isArray(invRes) ? invRes : []);
+    } catch (error) {
+      console.error("Lỗi khi tải dữ liệu:", error);
     } finally {
       setLoading(false);
     }
   };
 
-  // ========== HELPER FUNCTIONS ==========
-  const getDepartmentName = (departmentId) => {
-    if (!departmentId) return "Chưa phân khoa";
-    const dept = departments.find((d) => d.id === departmentId);
-    return dept ? dept.departmentName : `Khoa ID: ${departmentId}`;
-  };
-
-  const getDoctorName = (doctorId) => {
-    const doctor = doctors.find((d) => d.id === doctorId);
-    return doctor ? doctor.fullName || "Không xác định" : "Không xác định";
-  };
-
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat("vi-VN", {
+  // Helper functions
+  const getDepartmentName = (id) =>
+    departments.find((d) => d.id === id)?.departmentName || "Chưa phân khoa";
+  const getDoctorName = (id) =>
+    doctors.find((d) => d.id === id)?.fullName || "Không xác định";
+  const formatCurrency = (amount) =>
+    new Intl.NumberFormat("vi-VN", {
       style: "currency",
       currency: "VND",
     }).format(amount || 0);
-  };
-
-  const getStatusLabel = (status) => {
-    const statusMap = {
+  const getStatusLabel = (status) =>
+    ({
       ACTIVE: "Hoạt động",
       INACTIVE: "Ngừng hoạt động",
       OUT_OF_STOCK: "Hết hàng",
@@ -105,128 +117,326 @@ const AdminStructure = () => {
       PENDING: "Chờ thanh toán",
       CANCELLED: "Đã hủy",
       REFUNDED: "Đã hoàn tiền",
-    };
-    return statusMap[status] || status;
+    }[status] || status);
+  const getGenderLabel = (g) =>
+    ({ MALE: "Nam", FEMALE: "Nữ", OTHER: "Khác" }[g] || g);
+
+  // Pagination logic
+  const getPaginationData = (data) => {
+    const totalItems = data.length;
+    const totalPages = Math.ceil(totalItems / itemsPerPage);
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = Math.min(startIndex + itemsPerPage, totalItems);
+    const currentData = data.slice(startIndex, endIndex);
+
+    return { totalItems, totalPages, currentData, startIndex, endIndex };
   };
 
-  const getGenderLabel = (gender) => {
-    const genderMap = {
-      MALE: "Nam",
-      FEMALE: "Nữ",
-      OTHER: "Khác",
-    };
-    return genderMap[gender] || gender;
+  const handlePageChange = (pageNumber) => {
+    setCurrentPage(pageNumber);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  // ========== RENDER ==========
+  const renderPagination = (totalPages) => {
+    if (totalPages <= 1) return null;
+
+    const pageNumbers = [];
+    const maxVisiblePages = 5;
+
+    let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+    let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+
+    if (endPage - startPage + 1 < maxVisiblePages) {
+      startPage = Math.max(1, endPage - maxVisiblePages + 1);
+    }
+
+    for (let i = startPage; i <= endPage; i++) {
+      pageNumbers.push(i);
+    }
+
+    return (
+      <nav aria-label="Page navigation">
+        <ul className="pagination pagination-sm justify-content-center mb-0">
+          <li className={`page-item ${currentPage === 1 ? "disabled" : ""}`}>
+            <button
+              className="page-link"
+              onClick={() => handlePageChange(currentPage - 1)}
+              disabled={currentPage === 1}
+            >
+              &laquo; Trước
+            </button>
+          </li>
+
+          {startPage > 1 && (
+            <>
+              <li className="page-item">
+                <button
+                  className="page-link"
+                  onClick={() => handlePageChange(1)}
+                >
+                  1
+                </button>
+              </li>
+              {startPage > 2 && (
+                <li className="page-item disabled">
+                  <span className="page-link">...</span>
+                </li>
+              )}
+            </>
+          )}
+
+          {pageNumbers.map((number) => (
+            <li
+              key={number}
+              className={`page-item ${currentPage === number ? "active" : ""}`}
+            >
+              <button
+                className="page-link"
+                onClick={() => handlePageChange(number)}
+              >
+                {number}
+              </button>
+            </li>
+          ))}
+
+          {endPage < totalPages && (
+            <>
+              {endPage < totalPages - 1 && (
+                <li className="page-item disabled">
+                  <span className="page-link">...</span>
+                </li>
+              )}
+              <li className="page-item">
+                <button
+                  className="page-link"
+                  onClick={() => handlePageChange(totalPages)}
+                >
+                  {totalPages}
+                </button>
+              </li>
+            </>
+          )}
+
+          <li
+            className={`page-item ${
+              currentPage === totalPages ? "disabled" : ""
+            }`}
+          >
+            <button
+              className="page-link"
+              onClick={() => handlePageChange(currentPage + 1)}
+              disabled={currentPage === totalPages}
+            >
+              Tiếp &raquo;
+            </button>
+          </li>
+        </ul>
+      </nav>
+    );
+  };
+
+  // Loading state
   if (loading) {
     return (
-      <div className="admin-structure">
-        <div className="loading-state">
-          <div className="spinner"></div>
-          <p>Đang tải dữ liệu...</p>
+      <div className="d-flex flex-column align-items-center justify-content-center vh-100 bg-light">
+        <div
+          className="spinner-border text-primary mb-3"
+          style={{ width: "3rem", height: "3rem" }}
+          role="status"
+        >
+          <span className="visually-hidden">Loading...</span>
         </div>
+        <p className="fs-5 text-muted">Đang tải dữ liệu quản trị...</p>
       </div>
     );
   }
 
+  // const activeMenuItem = menuItems[activeTab];
+  const { totalItems, totalPages, currentData, startIndex, endIndex } =
+    getPaginationData(
+      activeTab === 0
+        ? slots
+        : activeTab === 1
+        ? medicines
+        : activeTab === 2
+        ? doctors
+        : activeTab === 3
+        ? departments
+        : invoices
+    );
+
   return (
-    <div className="admin-structure">
-      <div className="admin-container">
-        <h1 className="admin-header">📋 Quản lý cơ cấu hệ thống</h1>
-
-        {error && (
-          <div className="error-message">
-            <p>❌ {error}</p>
-            <button className="retry-button" onClick={fetchData}>
-              Thử lại
-            </button>
+    <div className="admin-layout">
+      <div className="d-flex">
+        {/* Sidebar Menu */}
+        <div className={`admin-sidebar ${sidebarOpen ? "open" : ""}`}>
+          <div className="sidebar-header">
+            <h2>Quản trị hệ thống</h2>
+            <p>Chào mừng trở lại!</p>
           </div>
-        )}
 
-        {/* Tabs */}
-        <div className="tabs-container">
-          <button
-            className={`tab-button ${activeTab === 0 ? "active" : ""}`}
-            onClick={() => setActiveTab(0)}
-          >
-            📅 Quản lý Slot Bác sĩ ({slots.length})
-          </button>
-          <button
-            className={`tab-button ${activeTab === 1 ? "active" : ""}`}
-            onClick={() => setActiveTab(1)}
-          >
-            💊 Quản lý Thuốc ({medicines.length})
-          </button>
-          <button
-            className={`tab-button ${activeTab === 2 ? "active" : ""}`}
-            onClick={() => setActiveTab(2)}
-          >
-            👨‍⚕️ Quản lý Bác sĩ ({doctors.length})
-          </button>
-          <button
-            className={`tab-button ${activeTab === 3 ? "active" : ""}`}
-            onClick={() => setActiveTab(3)}
-          >
-            🏥 Quản lý Khoa ({departments.length})
-          </button>
-          <button
-            className={`tab-button ${activeTab === 4 ? "active" : ""}`}
-            onClick={() => setActiveTab(4)}
-          >
-            🧾 Quản lý Hóa đơn ({invoices.length})
-          </button>
+          <nav className="sidebar-menu">
+            {menuItems.map((item) => (
+              <button
+                key={item.id}
+                className={`menu-item ${activeTab === item.id ? "active" : ""}`}
+                onClick={() => {
+                  setActiveTab(item.id);
+                  setSidebarOpen(false);
+                }}
+              >
+                <span className="material-symbols-outlined">{item.icon}</span>
+                <span className="menu-label">{item.label}</span>
+              </button>
+            ))}
+          </nav>
         </div>
 
-        {/* Slot Management Tab */}
-        {activeTab === 0 && (
-          <SlotManagement
-            slots={slots}
-            doctors={doctors}
-            getDoctorName={getDoctorName}
-            onRefresh={fetchData}
-          />
-        )}
+        {/* Main Content */}
+        <div className="admin-main">
+          <div className="main-content">
+            <div className="tab-panel">
+              {/* Tab Content */}
+              {activeTab === 0 && (
+                <SlotManagement
+                  slots={currentData}
+                  doctors={doctors}
+                  getDoctorName={getDoctorName}
+                  onRefresh={fetchData}
+                />
+              )}
+              {activeTab === 1 && (
+                <MedicineManagement
+                  medicines={currentData}
+                  formatCurrency={formatCurrency}
+                  getStatusLabel={getStatusLabel}
+                  onRefresh={fetchData}
+                />
+              )}
+              {activeTab === 2 && (
+                <DoctorManagement
+                  doctors={currentData}
+                  departments={departments}
+                  getDepartmentName={getDepartmentName}
+                  getGenderLabel={getGenderLabel}
+                  onRefresh={fetchData}
+                />
+              )}
+              {activeTab === 3 && (
+                <DepartmentManagement
+                  departments={currentData}
+                  doctors={doctors}
+                  onRefresh={fetchData}
+                />
+              )}
+              {activeTab === 4 && (
+                <InvoiceManagement
+                  invoices={currentData}
+                  formatCurrency={formatCurrency}
+                  getStatusLabel={getStatusLabel}
+                  onRefresh={fetchData}
+                />
+              )}
 
-        {/* Medicine Management Tab */}
-        {activeTab === 1 && (
-          <MedicineManagement
-            medicines={medicines}
-            formatCurrency={formatCurrency}
-            getStatusLabel={getStatusLabel}
-            onRefresh={fetchData}
-          />
-        )}
+              {/* Pagination Footer */}
+              {totalItems > 0 && (
+                <div className="pagination-footer mt-4 pt-3 border-top">
+                  <div className="d-flex flex-column flex-md-row justify-content-between align-items-center gap-3">
+                    <div className="text-muted small">
+                      Hiển thị{" "}
+                      <strong>
+                        {startIndex + 1}-{endIndex}
+                      </strong>{" "}
+                      trong tổng số <strong>{totalItems}</strong> bản ghi
+                      {totalPages > 1 &&
+                        ` (Trang ${currentPage}/${totalPages})`}
+                    </div>
 
-        {/* Doctor Management Tab */}
-        {activeTab === 2 && (
-          <DoctorManagement
-            doctors={doctors}
-            departments={departments}
-            getDepartmentName={getDepartmentName}
-            getGenderLabel={getGenderLabel}
-            onRefresh={fetchData}
-          />
-        )}
+                    {totalPages > 1 && renderPagination(totalPages)}
+                  </div>
+                </div>
+              )}
 
-        {/* Department Management Tab */}
-        {activeTab === 3 && (
-          <DepartmentManagement
-            departments={departments}
-            doctors={doctors}
-            onRefresh={fetchData}
-          />
-        )}
-
-        {/* Invoice Management Tab */}
-        {activeTab === 4 && (
-          <InvoiceManagement
-            invoices={invoices}
-            formatCurrency={formatCurrency}
-            getStatusLabel={getStatusLabel}
-            onRefresh={fetchData}
-          />
-        )}
+              {/* Summary Cards */}
+              <div className="summary-cards mt-4">
+                <div className="row g-3">
+                  <div className="col-lg-3 col-md-6">
+                    <div className="admin-card bg-primary text-white h-100">
+                      <div className="card-body">
+                        <div className="d-flex justify-content-between align-items-center">
+                          <div>
+                            <h6 className="card-title mb-0">Tổng slot</h6>
+                            <h3 className="mb-0 fw-bold">{slots.length}</h3>
+                          </div>
+                          <span
+                            className="material-symbols-outlined"
+                            style={{ fontSize: "2rem" }}
+                          >
+                            calendar_month
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="col-lg-3 col-md-6">
+                    <div className="admin-card bg-success text-white h-100">
+                      <div className="card-body">
+                        <div className="d-flex justify-content-between align-items-center">
+                          <div>
+                            <h6 className="card-title mb-0">Tổng thuốc</h6>
+                            <h3 className="mb-0 fw-bold">{medicines.length}</h3>
+                          </div>
+                          <span
+                            className="material-symbols-outlined"
+                            style={{ fontSize: "2rem" }}
+                          >
+                            medication
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="col-lg-3 col-md-6">
+                    <div className="admin-card bg-warning text-white h-100">
+                      <div className="card-body">
+                        <div className="d-flex justify-content-between align-items-center">
+                          <div>
+                            <h6 className="card-title mb-0">Tổng bác sĩ</h6>
+                            <h3 className="mb-0 fw-bold">{doctors.length}</h3>
+                          </div>
+                          <span
+                            className="material-symbols-outlined"
+                            style={{ fontSize: "2rem" }}
+                          >
+                            person_search
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="col-lg-3 col-md-6">
+                    <div className="admin-card bg-info text-white h-100">
+                      <div className="card-body">
+                        <div className="d-flex justify-content-between align-items-center">
+                          <div>
+                            <h6 className="card-title mb-0">Tổng hóa đơn</h6>
+                            <h3 className="mb-0 fw-bold">{invoices.length}</h3>
+                          </div>
+                          <span
+                            className="material-symbols-outlined"
+                            style={{ fontSize: "2rem" }}
+                          >
+                            receipt_long
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
