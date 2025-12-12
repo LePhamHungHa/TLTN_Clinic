@@ -1,5 +1,5 @@
 import React from "react";
-// import '../css/Footer.css';
+import "../css/Footer.css";
 
 const Footer = () => {
   return (
@@ -12,7 +12,9 @@ const Footer = () => {
         </div>
         <div className="flex flex-col md:flex-row justify-center gap-8">
           <div className="text-center md:text-left">
-            <h3 className="text-lg font-semibold mb-3">PHÒNG KHÁM BỆNH VIỆN ĐẠI HỌC Y DƯỢC 1</h3>
+            <h3 className="text-lg font-semibold mb-3">
+              PHÒNG KHÁM BỆNH VIỆN ĐẠI HỌC Y DƯỢC 1
+            </h3>
             <p>Điều trị chuyên nghiệp - Nâng tầm Y Việt</p>
           </div>
           <div className="text-center md:text-left">

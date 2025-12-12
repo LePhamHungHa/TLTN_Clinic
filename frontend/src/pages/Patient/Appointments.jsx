@@ -42,6 +42,11 @@ import {
   FaExternalLinkAlt,
   FaArrowRight,
   FaSpinner,
+  FaAngleLeft,
+  FaAngleRight,
+  FaAngleDoubleLeft,
+  FaAngleDoubleRight,
+  FaListUl,
 } from "react-icons/fa";
 import "../../css/AppointmentsPage.css";
 
@@ -60,6 +65,12 @@ const Appointments = () => {
   const [selectedQRData, setSelectedQRData] = useState(null);
   const [downloading, setDownloading] = useState(false);
   const [showInstructions, setShowInstructions] = useState(true);
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(5);
+  const [totalPages, setTotalPages] = useState(1);
+
   const navigate = useNavigate();
 
   const getToken = useCallback(() => {
@@ -140,7 +151,15 @@ const Appointments = () => {
         })
       );
 
-      setAppointments(appointmentsWithPayment);
+      // Sort appointments by date (newest first)
+      const sortedAppointments = appointmentsWithPayment.sort((a, b) => {
+        return (
+          new Date(b.appointmentDate || b.createdAt) -
+          new Date(a.appointmentDate || a.createdAt)
+        );
+      });
+
+      setAppointments(sortedAppointments);
       setErrorMessage(null);
     } catch (error) {
       console.error("Lỗi tải lịch hẹn:", error);
@@ -193,6 +212,24 @@ const Appointments = () => {
 
     return filtered;
   }, [appointments, filters]);
+
+  // Calculate pagination data
+  const paginatedAppointments = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return filteredAppointments.slice(startIndex, endIndex);
+  }, [filteredAppointments, currentPage, itemsPerPage]);
+
+  // Calculate total pages
+  useEffect(() => {
+    const total = Math.ceil(filteredAppointments.length / itemsPerPage);
+    setTotalPages(total || 1);
+
+    // Reset to first page if current page is out of bounds
+    if (currentPage > total && total > 0) {
+      setCurrentPage(1);
+    }
+  }, [filteredAppointments, itemsPerPage, currentPage]);
 
   const statsData = useMemo(() => {
     const total = appointments.length;
@@ -460,7 +497,7 @@ STATUS:${getStatusForQR(appointment.status)}`;
       COMPLETED: {
         label: "ĐÃ HOÀN THÀNH",
         class: "status-completed",
-        icon: <FaCheckCircle size={14} />, // Thay FaFileCheck bằng FaCheckCircle
+        icon: <FaCheckCircle size={14} />,
       },
       CANCELLED: {
         label: "ĐÃ HỦY",
@@ -548,13 +585,11 @@ STATUS:${getStatusForQR(appointment.status)}`;
     });
   };
 
-  // Determine session (buổi khám) from time string or assignedSession
   const getSessionLabelFromAppointment = (appointment) => {
     const timeString =
       appointment.expectedTimeSlot || appointment.assignedSession;
     if (!timeString) return "Chưa có";
 
-    // Try to extract the first hour number from the time string
     const hourMatch = timeString.match(/(\d{1,2})(?::\d{2})?/);
     let hour = null;
     if (hourMatch) {
@@ -562,7 +597,6 @@ STATUS:${getStatusForQR(appointment.status)}`;
     }
 
     if (hour !== null && !isNaN(hour)) {
-      // Map hour to Vietnamese session labels
       if (hour >= 7 && hour < 12) return "Sáng";
       if (hour >= 12 && hour < 13) return "Trưa";
       if (hour >= 13 && hour < 17) return "Chiều";
@@ -570,7 +604,6 @@ STATUS:${getStatusForQR(appointment.status)}`;
       return "Ngoài giờ";
     }
 
-    // Fallback: normalize assignedSession text if present
     const s = (appointment.assignedSession || "").toLowerCase();
     if (s.includes("sáng")) return "Sáng";
     if (s.includes("trưa")) return "Trưa";
@@ -603,6 +636,52 @@ STATUS:${getStatusForQR(appointment.status)}`;
       return info;
     }
     return "Chưa chỉ định bác sĩ";
+  };
+
+  // Pagination handlers
+  const handlePageChange = (page) => {
+    if (page >= 1 && page <= totalPages) {
+      setCurrentPage(page);
+      // Scroll to top of appointments section
+      const appointmentsSection = document.querySelector(
+        ".appointments-section"
+      );
+      if (appointmentsSection) {
+        appointmentsSection.scrollIntoView({ behavior: "smooth" });
+      }
+    }
+  };
+
+  const handleItemsPerPageChange = (e) => {
+    const value = parseInt(e.target.value);
+    setItemsPerPage(value);
+    setCurrentPage(1); // Reset to first page when changing items per page
+  };
+
+  // Generate page numbers for pagination
+  const getPageNumbers = () => {
+    const pageNumbers = [];
+    const maxPagesToShow = 5;
+
+    if (totalPages <= maxPagesToShow) {
+      for (let i = 1; i <= totalPages; i++) {
+        pageNumbers.push(i);
+      }
+    } else {
+      const halfMaxPages = Math.floor(maxPagesToShow / 2);
+      let startPage = Math.max(currentPage - halfMaxPages, 1);
+      let endPage = Math.min(startPage + maxPagesToShow - 1, totalPages);
+
+      if (endPage - startPage + 1 < maxPagesToShow) {
+        startPage = Math.max(endPage - maxPagesToShow + 1, 1);
+      }
+
+      for (let i = startPage; i <= endPage; i++) {
+        pageNumbers.push(i);
+      }
+    }
+
+    return pageNumbers;
   };
 
   if (loading) {
@@ -675,8 +754,8 @@ STATUS:${getStatusForQR(appointment.status)}`;
               <div className="instruction-item">
                 <div className="instruction-number">4</div>
                 <div className="instruction-text">
-                  <strong>Lọc lịch hẹn:</strong> Sử dụng các bộ lọc để tìm lịch
-                  hẹn nhanh chóng
+                  <strong>Lọc & Phân trang:</strong> Sử dụng bộ lọc và phân
+                  trang để tìm lịch hẹn nhanh chóng
                 </div>
               </div>
             </div>
@@ -851,7 +930,7 @@ STATUS:${getStatusForQR(appointment.status)}`;
         )}
       </div>
 
-      {/* Danh sách lịch hẹn */}
+      {/* Danh sách lịch hẹn với phân trang */}
       <div className="appointments-section">
         <div className="section-header">
           <div className="section-title">
@@ -860,17 +939,66 @@ STATUS:${getStatusForQR(appointment.status)}`;
               DANH SÁCH LỊCH HẸN
               <span className="appointment-count">
                 {" "}
-                ({filteredAppointments.length})
+                ({filteredAppointments.length} lịch hẹn)
               </span>
             </h2>
           </div>
-          <button className="refresh-button" onClick={fetchAppointments}>
-            <FaRedo size={18} />
-            <span>LÀM MỚI</span>
-          </button>
+
+          <div className="section-controls">
+            {/* Items per page selector */}
+            <div className="items-per-page-selector">
+              <label htmlFor="items-per-page">
+                <FaListUl size={16} />
+                <span>Hiển thị:</span>
+              </label>
+              <select
+                id="items-per-page"
+                value={itemsPerPage}
+                onChange={handleItemsPerPageChange}
+                className="items-per-page-select"
+              >
+                <option value={5}>5 lịch hẹn</option>
+                <option value={10}>10 lịch hẹn</option>
+                <option value={20}>20 lịch hẹn</option>
+                <option value={50}>50 lịch hẹn</option>
+              </select>
+            </div>
+
+            <button className="refresh-button" onClick={fetchAppointments}>
+              <FaRedo size={18} />
+              <span>LÀM MỚI</span>
+            </button>
+          </div>
         </div>
 
-        {filteredAppointments.length === 0 ? (
+        {/* Pagination info */}
+        <div className="pagination-info">
+          <div className="pagination-stats">
+            <span className="current-range">
+              Hiển thị <strong>{(currentPage - 1) * itemsPerPage + 1}</strong> -{" "}
+              <strong>
+                {Math.min(
+                  currentPage * itemsPerPage,
+                  filteredAppointments.length
+                )}
+              </strong>{" "}
+              của <strong>{filteredAppointments.length}</strong> lịch hẹn
+            </span>
+          </div>
+
+          {/* Pagination controls - top */}
+          {filteredAppointments.length > itemsPerPage && (
+            <PaginationControls
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={handlePageChange}
+              getPageNumbers={getPageNumbers}
+              position="top"
+            />
+          )}
+        </div>
+
+        {paginatedAppointments.length === 0 ? (
           <div className="empty-state">
             <div className="empty-icon">
               <FaFileAlt size={80} />
@@ -893,7 +1021,7 @@ STATUS:${getStatusForQR(appointment.status)}`;
           </div>
         ) : (
           <div className="appointments-list">
-            {filteredAppointments.map((appointment) => (
+            {paginatedAppointments.map((appointment) => (
               <AppointmentCard
                 key={appointment.id}
                 appointment={appointment}
@@ -911,6 +1039,39 @@ STATUS:${getStatusForQR(appointment.status)}`;
                 getStatusDisplay={getStatusDisplay}
               />
             ))}
+          </div>
+        )}
+
+        {/* Pagination controls - bottom */}
+        {filteredAppointments.length > itemsPerPage && (
+          <div className="pagination-bottom">
+            <PaginationControls
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={handlePageChange}
+              getPageNumbers={getPageNumbers}
+              position="bottom"
+            />
+
+            {/* Quick page jump */}
+            <div className="page-jump">
+              <label htmlFor="page-jump-input">Đến trang:</label>
+              <input
+                id="page-jump-input"
+                type="number"
+                min="1"
+                max={totalPages}
+                value={currentPage}
+                onChange={(e) => {
+                  const page = parseInt(e.target.value);
+                  if (page >= 1 && page <= totalPages) {
+                    handlePageChange(page);
+                  }
+                }}
+                className="page-jump-input"
+              />
+              <span className="total-pages">/ {totalPages}</span>
+            </div>
           </div>
         )}
       </div>
@@ -946,6 +1107,98 @@ STATUS:${getStatusForQR(appointment.status)}`;
     </div>
   );
 };
+
+// Pagination Controls Component
+const PaginationControls = React.memo(
+  ({
+    currentPage,
+    totalPages,
+    onPageChange,
+    // getPageNumbers,
+    position,
+  }) => {
+    const pageNumbers = useMemo(() => {
+      const numbers = [];
+      const maxPagesToShow = 5;
+
+      if (totalPages <= maxPagesToShow) {
+        for (let i = 1; i <= totalPages; i++) {
+          numbers.push(i);
+        }
+      } else {
+        const halfMaxPages = Math.floor(maxPagesToShow / 2);
+        let startPage = Math.max(currentPage - halfMaxPages, 1);
+        let endPage = Math.min(startPage + maxPagesToShow - 1, totalPages);
+
+        if (endPage - startPage + 1 < maxPagesToShow) {
+          startPage = Math.max(endPage - maxPagesToShow + 1, 1);
+        }
+
+        for (let i = startPage; i <= endPage; i++) {
+          numbers.push(i);
+        }
+      }
+
+      return numbers;
+    }, [currentPage, totalPages]);
+
+    return (
+      <div className={`pagination-controls ${position}`}>
+        <button
+          className="pagination-button first"
+          onClick={() => onPageChange(1)}
+          disabled={currentPage === 1}
+          aria-label="Đến trang đầu"
+        >
+          <FaAngleDoubleLeft size={16} />
+        </button>
+
+        <button
+          className="pagination-button prev"
+          onClick={() => onPageChange(currentPage - 1)}
+          disabled={currentPage === 1}
+          aria-label="Trang trước"
+        >
+          <FaAngleLeft size={16} />
+          <span>Trước</span>
+        </button>
+
+        <div className="page-numbers">
+          {pageNumbers.map((page) => (
+            <button
+              key={page}
+              className={`page-number ${currentPage === page ? "active" : ""}`}
+              onClick={() => onPageChange(page)}
+              aria-label={`Trang ${page}`}
+              aria-current={currentPage === page ? "page" : undefined}
+            >
+              {page}
+            </button>
+          ))}
+        </div>
+
+        <button
+          className="pagination-button next"
+          onClick={() => onPageChange(currentPage + 1)}
+          disabled={currentPage === totalPages}
+          aria-label="Trang sau"
+        >
+          <span>Sau</span>
+          <FaAngleRight size={16} />
+        </button>
+
+        <button
+          className="pagination-button last"
+          onClick={() => onPageChange(totalPages)}
+          disabled={currentPage === totalPages}
+          aria-label="Đến trang cuối"
+        >
+          <FaAngleDoubleRight size={16} />
+        </button>
+      </div>
+    );
+  }
+);
 
 // Sub Components
 const AppointmentCard = React.memo(
@@ -1064,8 +1317,7 @@ const AppointmentCard = React.memo(
             {appointment.symptoms && (
               <div className="detail-section symptoms">
                 <h4 className="section-title">
-                  <FaClipboardList size={18} />{" "}
-                  {/* Đã sửa từ FaClipboardCheck */}
+                  <FaClipboardList size={18} />
                   <span>TRIỆU CHỨNG</span>
                 </h4>
                 <div className="section-content">
@@ -1120,8 +1372,7 @@ const AppointmentCard = React.memo(
                     <div className="appointment-details-card">
                       <div className="details-header">
                         <div className="details-icon">
-                          <FaCheckCircle size={20} />{" "}
-                          {/* Đã sửa từ FaFileCheck */}
+                          <FaCheckCircle size={20} />
                         </div>
                         <h5>CHI TIẾT BUỔI KHÁM</h5>
                       </div>
