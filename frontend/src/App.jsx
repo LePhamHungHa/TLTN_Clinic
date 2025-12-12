@@ -74,6 +74,7 @@ function App() {
             <>
               <Header />
               <RegisterPatient />
+              <Footer />
             </>
           }
         />
@@ -85,6 +86,7 @@ function App() {
               <>
                 <Header />
                 <Patients />
+                <Footer />
               </>
             </PrivateRoute>
           }
@@ -96,6 +98,7 @@ function App() {
               <>
                 <Header />
                 <Appointments />
+                <Footer />
               </>
             </PrivateRoute>
           }
@@ -109,6 +112,7 @@ function App() {
               <>
                 <Header />
                 <WalletPage />
+                <Footer />
               </>
             </PrivateRoute>
           }
@@ -134,6 +138,7 @@ function App() {
             <>
               <Header />
               <CreateCard />
+              <Footer />
             </>
           }
         />
@@ -157,6 +162,7 @@ function App() {
             <>
               <Header />
               <PatientInfo />
+              <Footer />
             </>
           }
         />
@@ -167,6 +173,7 @@ function App() {
             <>
               <Header />
               <AppointmentsPage />
+              <Footer />
             </>
           }
         />
@@ -177,6 +184,7 @@ function App() {
             <>
               <Header />
               <BMIPage />
+              <Footer />
             </>
           }
         />
@@ -189,6 +197,7 @@ function App() {
               <>
                 <Header />
                 <MedicalExaminationResults />
+                <Footer />
               </>
             </PrivateRoute>
           }
@@ -272,6 +281,7 @@ function App() {
               <>
                 <Header />
                 <DoctorAppointments />
+                <Footer />
               </>
             </PrivateRoute>
           }
@@ -285,6 +295,7 @@ function App() {
               <>
                 <Header />
                 <DoctorExamination />
+                <Footer />
               </>
             </PrivateRoute>
           }
@@ -297,6 +308,7 @@ function App() {
             <>
               <Header />
               <MedicalRecords />
+              <Footer />
             </>
           }
         />
@@ -309,6 +321,7 @@ function App() {
               <>
                 <Header />
                 <DoctorPrescription />
+                <Footer />
               </>
             </PrivateRoute>
           }
@@ -321,6 +334,7 @@ function App() {
             <>
               <Header />
               <DoctorPersonalStatistics />
+              <Footer />
             </>
           }
         />

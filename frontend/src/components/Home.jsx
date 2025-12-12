@@ -1,10 +1,30 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import Footer from "./Footer";
 import "../css/Home.css";
 import {
-  MdKeyboardDoubleArrowLeft,
-  MdKeyboardDoubleArrowRight,
+  FaStethoscope,
+  FaUserMd,
+  FaHeartbeat,
+  FaBrain,
+  FaBaby,
+  FaTooth,
+  FaCalendarCheck,
+  FaClock,
+  FaAmbulance,
+  FaShieldAlt,
+  FaArrowRight,
+  FaStar,
+  FaUsers,
+  FaAward,
+  FaHospital,
+  FaMobileAlt,
+  FaCheckCircle,
+} from "react-icons/fa";
+import {
+  MdHealthAndSafety,
+  MdLocalHospital,
+  MdVerified,
+  MdAccessTime,
 } from "react-icons/md";
 
 const Home = () => {
@@ -21,351 +41,368 @@ const Home = () => {
     }
   };
 
+  const specialties = [
+    {
+      icon: <FaHeartbeat />,
+      title: "TIM MẠCH",
+      desc: "Khám & điều trị bệnh tim",
+    },
+    { icon: <FaBrain />, title: "THẦN KINH", desc: "Chuyên khoa thần kinh" },
+    { icon: <FaBaby />, title: "NHI KHOA", desc: "Chăm sóc trẻ em" },
+    { icon: <FaTooth />, title: "RĂNG HÀM MẶT", desc: "Nha khoa thẩm mỹ" },
+    {
+      icon: <MdLocalHospital />,
+      title: "SẢN PHỤ KHOA",
+      desc: "Chăm sóc phụ nữ",
+    },
+    { icon: <FaStethoscope />, title: "NỘI TỔNG QUÁT", desc: "Khám tổng quát" },
+  ];
+
+  const services = [
+    {
+      icon: <FaCalendarCheck />,
+      title: "ĐẶT LỊCH ONLINE",
+      desc: "Đặt lịch khám 24/7, không cần chờ đợi",
+      color: "#3B82F6",
+    },
+    {
+      icon: <FaUserMd />,
+      title: "TƯ VẤN TỪ XA",
+      desc: "Bác sĩ tư vấn qua video call",
+      color: "#10B981",
+    },
+    {
+      icon: <FaAmbulance />,
+      title: "CẤP CỨU 24/7",
+      desc: "Hỗ trợ khẩn cấp mọi lúc",
+      color: "#EF4444",
+    },
+    {
+      icon: <MdHealthAndSafety />,
+      title: "KHÁM TỔNG QUÁT",
+      desc: "Gói khám sức khỏe toàn diện",
+      color: "#8B5CF6",
+    },
+  ];
+
+  const doctors = [
+    {
+      image:
+        "https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=400&h=400&fit=crop",
+      name: "BS. Nguyễn Văn Thái",
+      specialty: "Chuyên khoa Tim mạch",
+      experience: "15 năm",
+      rating: 4.9,
+    },
+    {
+      image:
+        "https://images.unsplash.com/photo-1594824434340-7e7dfc37cabb?w=400&h=400&fit=crop",
+      name: "BS. Hồ Thị Minh Tâm",
+      specialty: "Chuyên khoa Nhi",
+      experience: "12 năm",
+      rating: 4.8,
+    },
+    {
+      image:
+        "https://images.unsplash.com/photo-1537368910025-700350fe46c7?w-400&h=400&fit=crop",
+      name: "BS. Nguyễn Thành Long",
+      specialty: "Chuyên khoa Thần kinh",
+      experience: "10 năm",
+      rating: 4.9,
+    },
+    {
+      image:
+        "https://images.unsplash.com/photo-1551601651-2a8555f1a136?w-400&h=400&fit=crop",
+      name: "BS. Lê Trần Phương",
+      specialty: "Chuyên khoa Răng Hàm Mặt",
+      experience: "8 năm",
+      rating: 4.7,
+    },
+  ];
+
+  const features = [
+    {
+      icon: <FaShieldAlt />,
+      title: "AN TOÀN TUYỆT ĐỐI",
+      desc: "Tuân thủ nghiêm ngặt quy trình kiểm soát nhiễm khuẩn",
+    },
+    {
+      icon: <MdVerified />,
+      title: "CHẤT LƯỢNG QUỐC TẾ",
+      desc: "Trang thiết bị hiện đại, đạt chuẩn JCI",
+    },
+    {
+      icon: <FaUsers />,
+      title: "ĐỘI NGŨ CHUYÊN GIA",
+      desc: "Bác sĩ đầu ngành, nhiều năm kinh nghiệm",
+    },
+    {
+      icon: <FaClock />,
+      title: "TIẾT KIỆM THỜI GIAN",
+      desc: "Thủ tục đơn giản, ít phải chờ đợi",
+    },
+  ];
+
+  const steps = [
+    { number: "01", title: "ĐẶT LỊCH", desc: "Chọn dịch vụ & bác sĩ" },
+    { number: "02", title: "KHÁM BỆNH", desc: "Khám trực tiếp với bác sĩ" },
+    { number: "03", title: "CHẨN ĐOÁN", desc: "Nhận kết quả & tư vấn" },
+    { number: "04", title: "THEO DÕI", desc: "Hỗ trợ sau khám 24/7" },
+  ];
+
   return (
-    <div className="min-h-screen">
-      {/* Hero Section */}
-      <section className="hero">
-        <div className="hero-content">
-          <div className="hero-text">
-            <h1>Chăm sóc sức khỏe toàn diện</h1>
-            <p>
-              Đặt lịch khám nhanh chóng, quản lý hồ sơ bệnh án dễ dàng và kết
-              nối trực tiếp với bác sĩ của bạn.
-            </p>
-            <button className="btn-primary" onClick={handleRegisterClick}>
-              Đăng ký khám ngay
-            </button>
-          </div>
-          <div className="hero-image">
-            <img
-              src="https://umcclinic.com.vn/Data/Sites/1/Banner/tmh_pc.png"
-              alt="Doctor"
-            />
-          </div>
-        </div>
-      </section>
-
-      {/* Stats Section */}
-      <section className="stats">
-        <div className="stats-grid">
-          <div className="stat-item">
-            <span className="stat-number">5000+</span>
-            <span className="stat-label">Bệnh nhân hài lòng</span>
-          </div>
-          <div className="stat-item">
-            <span className="stat-number">50+</span>
-            <span className="stat-label">Bác sĩ chuyên môn</span>
-          </div>
-          <div className="stat-item">
-            <span className="stat-number">15+</span>
-            <span className="stat-label">Năm kinh nghiệm</span>
-          </div>
-          <div className="stat-item">
-            <span className="stat-number">24/7</span>
-            <span className="stat-label">Hỗ trợ khách hàng</span>
-          </div>
-        </div>
-      </section>
-
-      {/* Services & Specialties Section */}
-      <section className="services-specialties">
-        <div className="content-wrapper">
-          {/* Left: Services */}
-          <div className="services-left">
-            <h2 className="section-heading">DỊCH VỤ</h2>
-            <div className="services-grid">
-              <div className="service-item">
-                <img
-                  src="https://umcclinic.com.vn/Data/Sites/1/News/206/goi-kham-suc-khoe-tong-quat-va-tam-soat-ung-thu-1.jpg"
-                  alt="Tổng quát & Tầm soát ung thư"
-                />
-                <h3>KHÁM SỨC KHỎE TỔNG QUÁT VÀ TẦM SOÁT UNG THƯ</h3>
-              </div>
-              <div className="service-item">
-                <img
-                  src="https://umcclinic.com.vn/Data/Sites/1/News/209/g%C3%B3i-kh%C3%A1m-s%E1%BB%A9c-kh%E1%BB%8Fe-t%E1%BB%95ng-qu%C3%A1t-n%C3%A2ng-cao.jpg"
-                  alt="Gói khám nâng cao"
-                />
-                <h3>GÓI KHÁM SỨC KHỎE TỔNG QUÁT NÂNG CAO</h3>
-              </div>
-              <div className="service-item">
-                <img
-                  src="https://umcclinic.com.vn/Data/Sites/1/News/208/g%C3%B3i-kh%C3%A1m-s%E1%BB%A9c-kh%E1%BB%8Fe-t%E1%BB%95ng-qu%C3%A1t-c%C6%A1-b%E1%BA%A3n.jpg"
-                  alt="Gói khám cơ bản"
-                />
-                <h3>GÓI KHÁM SỨC KHỎE TỔNG QUÁT CƠ BẢN</h3>
-              </div>
-              <div className="service-item">
-                <img
-                  src="https://umcclinic.com.vn/Data/Sites/1/News/210/g%C3%B3i-kh%C3%A1m-s%E1%BB%A9c-kh%E1%BB%8Fe-t%E1%BB%95ng-qu%C3%A1t-chuy%C3%AAn-s%C3%A2u.jpg"
-                  alt="Gói khám chuyên sâu"
-                />
-                <h3>GÓI KHÁM SỨC KHỎE TỔNG QUÁT CHUYÊN SÂU</h3>
-              </div>
-
-              {/* nút diều hướng */}
-              <div className="specialty-arrows">
-                <button>
-                  <i className="arrow-left">
-                    <MdKeyboardDoubleArrowLeft />
-                  </i>
+    <div className="home-container">
+      {/* Hero Banner */}
+      <section className="hero-banner">
+        <div className="hero-overlay">
+          <div className="hero-content">
+            <div className="hero-text">
+              <h1 className="hero-title">
+                <span className="highlight">SỨC KHỎE</span> LÀ TÀI SẢN QUÝ GIÁ
+                NHẤT
+              </h1>
+              <p className="hero-subtitle">
+                Bệnh viện đa khoa quốc tế với đội ngũ chuyên gia hàng đầu, trang
+                thiết bị hiện đại và dịch vụ chăm sóc tận tâm
+              </p>
+              <div className="hero-actions">
+                <button
+                  className="btn-primary btn-hero"
+                  onClick={handleRegisterClick}
+                >
+                  <FaCalendarCheck className="btn-icon" />
+                  <span>ĐẶT LỊCH KHÁM NGAY</span>
                 </button>
-                <button>
-                  <i className="arrow-right">
-                    <MdKeyboardDoubleArrowRight />
-                  </i>
+                <button className="btn-secondary btn-hero">
+                  <FaMobileAlt className="btn-icon" />
+                  <span>TẢI ỨNG DỤNG</span>
                 </button>
               </div>
             </div>
-          </div>
-
-          {/* Right: Specialties */}
-          <div className="specialties-right">
-            <h2 className="section-heading">CHUYÊN KHOA</h2>
-            <div className="specialty-list">
-              <div className="specialty-item">
-                <div className="specialty-icon-wrapper">
-                  <i className="fas fa-x-ray"></i>
-                </div>
-                <div className="specialty-content">
-                  <h4>CHẨN ĐOÁN HÌNH ẢNH</h4>
-                  <span>Xem thêm</span>
-                </div>
+            <div className="hero-stats">
+              <div className="stat-item">
+                <div className="stat-number">5000+</div>
+                <div className="stat-label">Bệnh nhân hài lòng</div>
               </div>
-              <div className="specialty-item">
-                <div className="specialty-icon-wrapper">
-                  <i className="fas fa-bone"></i>
-                </div>
-                <div className="specialty-content">
-                  <h4>CƠ - XƯƠNG - KHỚP</h4>
-                  <span>Xem thêm</span>
-                </div>
+              <div className="stat-item">
+                <div className="stat-number">50+</div>
+                <div className="stat-label">Bác sĩ chuyên gia</div>
               </div>
-              <div className="specialty-item">
-                <div className="specialty-icon-wrapper">
-                  <i className="fas fa-child"></i>
-                </div>
-                <div className="specialty-content">
-                  <h4>NHI KHOA</h4>
-                  <span>Xem thêm</span>
-                </div>
+              <div className="stat-item">
+                <div className="stat-number">24/7</div>
+                <div className="stat-label">Hỗ trợ khách hàng</div>
               </div>
-              <div className="specialty-item">
-                <div className="specialty-icon-wrapper">
-                  <i className="fas fa-female"></i>
-                </div>
-                <div className="specialty-content">
-                  <h4>SẢN - PHỤ KHOA</h4>
-                  <span>Xem thêm</span>
-                </div>
-              </div>
-              <div className="specialty-item">
-                <div className="specialty-icon-wrapper">
-                  <i className="fas fa-ear-alt"></i>
-                </div>
-                <div className="specialty-content">
-                  <h4>TAI - MŨI - HỌNG</h4>
-                  <span>Xem thêm</span>
-                </div>
-              </div>
-            </div>
-
-            {/* nút diều hướng */}
-            <div className="specialty-arrows">
-              <button>
-                <i className="arrow-left">
-                  <MdKeyboardDoubleArrowLeft />
-                </i>
-              </button>
-              <button>
-                <i className="arrow-right">
-                  <MdKeyboardDoubleArrowRight />
-                </i>
-              </button>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Services Section */}
-      <section className="services">
-        <div className="section-title">
-          <h2>Dịch vụ nổi bật</h2>
-          <p>
-            Chúng tôi cung cấp các dịch vụ chăm sóc sức khỏe chất lượng cao với
-            đội ngũ bác sĩ chuyên môn giỏi
+      {/* Chuyên Khoa */}
+      <section className="specialties-section">
+        <div className="section-header">
+          <h2 className="section-title">CHUYÊN KHOA NỔI BẬT</h2>
+          <p className="section-subtitle">
+            Chăm sóc sức khỏe toàn diện với các chuyên khoa hàng đầu
+          </p>
+        </div>
+        <div className="specialties-grid">
+          {specialties.map((spec, index) => (
+            <div className="specialty-card" key={index}>
+              <div className="specialty-icon" style={{ color: spec.color }}>
+                {spec.icon}
+              </div>
+              <h3 className="specialty-title">{spec.title}</h3>
+              <p className="specialty-desc">{spec.desc}</p>
+              <button className="specialty-btn">
+                <span>XEM CHI TIẾT</span>
+                <FaArrowRight className="arrow-icon" />
+              </button>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Dịch Vụ Nổi Bật */}
+      <section className="services-section">
+        <div className="section-header">
+          <h2 className="section-title">DỊCH VỤ ƯU VIỆT</h2>
+          <p className="section-subtitle">
+            Trải nghiệm dịch vụ y tế chất lượng cao
           </p>
         </div>
         <div className="services-grid">
-          <div className="service-card">
-            <div className="service-icon">
-              <i className="fas fa-heartbeat"></i>
+          {services.map((service, index) => (
+            <div className="service-card" key={index}>
+              <div
+                className="service-icon-wrapper"
+                style={{ backgroundColor: `${service.color}15` }}
+              >
+                <div className="service-icon" style={{ color: service.color }}>
+                  {service.icon}
+                </div>
+              </div>
+              <h3 className="service-title">{service.title}</h3>
+              <p className="service-desc">{service.desc}</p>
+              <div
+                className="service-badge"
+                style={{ backgroundColor: service.color }}
+              >
+                <FaCheckCircle className="badge-icon" />
+                <span>CÓ SẴN</span>
+              </div>
             </div>
-            <h3>Khám tim mạch</h3>
-            <p>
-              Khám và điều trị các bệnh lý về tim mạch với trang thiết bị hiện
-              đại và bác sĩ chuyên khoa giàu kinh nghiệm.
-            </p>
-          </div>
-          <div className="service-card">
-            <div className="service-icon">
-              <i className="fas fa-brain"></i>
-            </div>
-            <h3>Thần kinh</h3>
-            <p>
-              Chẩn đoán và điều trị các bệnh lý về thần kinh với phác đồ điều
-              trị tiên tiến và hiệu quả.
-            </p>
-          </div>
-          <div className="service-card">
-            <div className="service-icon">
-              <i className="fas fa-baby"></i>
-            </div>
-            <h3>Nhi khoa</h3>
-            <p>
-              Chăm sóc sức khỏe toàn diện cho trẻ em với bác sĩ chuyên khoa và
-              môi trường thân thiện.
-            </p>
-          </div>
-          <div className="service-card">
-            <div className="service-icon">
-              <i className="fas fa-teeth"></i>
-            </div>
-            <h3>Nha khoa</h3>
-            <p>
-              Dịch vụ nha khoa chất lượng cao với công nghệ hiện đại, đem lại nụ
-              cười rạng rỡ cho bạn.
-            </p>
-          </div>
+          ))}
         </div>
       </section>
 
-      {/* Features Section */}
-      <section className="features">
-        <div className="section-title">
-          <h2>Tại sao chọn chúng tôi</h2>
-          <p>
-            UMC Clinic mang đến cho bạn trải nghiệm chăm sóc sức khỏe khác biệt
-            và hoàn hảo
+      {/* Quy Trình Khám Bệnh */}
+      <section className="process-section">
+        <div className="section-header">
+          <h2 className="section-title">QUY TRÌNH 4 BƯỚC ĐƠN GIẢN</h2>
+          <p className="section-subtitle">
+            Khám bệnh nhanh chóng và thuận tiện
           </p>
         </div>
-        <div className="features-grid">
-          <div className="feature-item">
-            <div className="feature-icon">
-              <i className="fas fa-user-md"></i>
+        <div className="process-steps">
+          {steps.map((step, index) => (
+            <div className="step-item" key={index}>
+              <div className="step-number">{step.number}</div>
+              <div className="step-content">
+                <h3 className="step-title">{step.title}</h3>
+                <p className="step-desc">{step.desc}</p>
+              </div>
+              {index < steps.length - 1 && (
+                <div className="step-connector">
+                  <div className="connector-line"></div>
+                  <FaArrowRight className="connector-arrow" />
+                </div>
+              )}
             </div>
-            <div className="feature-content">
-              <h3>Bác sĩ chuyên môn cao</h3>
-              <p>
-                Đội ngũ bác sĩ giàu kinh nghiệm, được đào tạo bài bản trong và
-                ngoài nước, tận tâm với nghề.
-              </p>
-            </div>
-          </div>
-          <div className="feature-item">
-            <div className="feature-icon">
-              <i className="fas fa-hospital"></i>
-            </div>
-            <div className="feature-content">
-              <h3>Cơ sở vật chất hiện đại</h3>
-              <p>
-                Trang thiết bị y tế tiên tiến, phòng khám tiện nghi và thoải
-                mái, đạt tiêu chuẩn quốc tế.
-              </p>
-            </div>
-          </div>
-          <div className="feature-item">
-            <div className="feature-icon">
-              <i className="fas fa-clock"></i>
-            </div>
-            <div className="feature-content">
-              <h3>Tiết kiệm thời gian</h3>
-              <p>
-                Đặt lịch hẹn trực tuyến, ít phải chờ đợi và thủ tục nhanh chóng,
-                tiện lợi mọi lúc mọi nơi.
-              </p>
-            </div>
-          </div>
+          ))}
         </div>
       </section>
 
-      {/* Doctors Section */}
-      <section className="doctors">
-        <div className="section-title">
-          <h2>Đội ngũ bác sĩ</h2>
-          <p>
-            Gặp gỡ đội ngũ y bác sĩ tận tâm và giàu kinh nghiệm của chúng tôi
+      {/* Đội Ngũ Bác Sĩ */}
+      <section className="doctors-section">
+        <div className="section-header">
+          <h2 className="section-title">ĐỘI NGŨ CHUYÊN GIA</h2>
+          <p className="section-subtitle">
+            Gặp gỡ đội ngũ y bác sĩ tận tâm và giàu kinh nghiệm
           </p>
         </div>
         <div className="doctors-grid">
-          <div className="doctor-card">
-            <div className="doctor-image">
-              <img
-                src="https://umcclinic.com.vn/Data/Sites/1/News/224/bsnguyenvanthai.jpg"
-                alt="Bác sĩ Nguyễn Văn Thái"
-              />
+          {doctors.map((doctor, index) => (
+            <div className="doctor-card" key={index}>
+              <div className="doctor-image">
+                <img src={doctor.image} alt={doctor.name} />
+                <div className="doctor-rating">
+                  <FaStar className="star-icon" />
+                  <span>{doctor.rating}</span>
+                </div>
+              </div>
+              <div className="doctor-info">
+                <h3 className="doctor-name">{doctor.name}</h3>
+                <div className="doctor-specialty">{doctor.specialty}</div>
+                <div className="doctor-experience">
+                  <MdAccessTime className="exp-icon" />
+                  <span>Kinh nghiệm: {doctor.experience}</span>
+                </div>
+                <button className="doctor-btn">
+                  <span>ĐẶT LỊCH KHÁM</span>
+                  <FaArrowRight className="arrow-icon" />
+                </button>
+              </div>
             </div>
-            <div className="doctor-info">
-              <h3>BS. Nguyễn Văn Thái</h3>
-              <div className="doctor-specialty">Chuyên khoa Tim mạch</div>
-              <p>
-                Với hơn 15 năm kinh nghiệm trong lĩnh vực tim mạch, từng công
-                tác tại nhiều bệnh viện lớn.
-              </p>
+          ))}
+        </div>
+      </section>
+
+      {/* Lý Do Chọn Chúng Tôi */}
+      <section className="features-section">
+        <div className="section-header">
+          <h2 className="section-title">TẠI SAO CHỌN CHÚNG TÔI</h2>
+          <p className="section-subtitle">
+            Cam kết mang đến trải nghiệm chăm sóc sức khỏe tốt nhất
+          </p>
+        </div>
+        <div className="features-grid">
+          {features.map((feature, index) => (
+            <div className="feature-card" key={index}>
+              <div className="feature-icon-wrapper">{feature.icon}</div>
+              <h3 className="feature-title">{feature.title}</h3>
+              <p className="feature-desc">{feature.desc}</p>
             </div>
+          ))}
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="cta-section">
+        <div className="cta-content">
+          <div className="cta-text">
+            <h2 className="cta-title">SẴN SÀNG CHĂM SÓC SỨC KHỎE CỦA BẠN?</h2>
+            <p className="cta-subtitle">
+              Đặt lịch khám ngay hôm nay để nhận tư vấn từ đội ngũ chuyên gia
+              hàng đầu
+            </p>
           </div>
-          <div className="doctor-card">
-            <div className="doctor-image">
-              <img
-                src="https://umcclinic.com.vn/Data/Sites/1/News/221/bshothiminhtam.jpg"
-                alt="Bác sĩ Hồ Thị Minh Tâm"
-              />
-            </div>
-            <div className="doctor-info">
-              <h3>BS. Hồ Thị Minh Tâm</h3>
-              <div className="doctor-specialty">Chuyên khoa Nhi</div>
-              <p>
-                Chuyên gia với hơn 12 năm kinh nghiệm trong nhi khoa, được đào
-                tạo chuyên sâu tại nước ngoài.
-              </p>
-            </div>
-          </div>
-          <div className="doctor-card">
-            <div className="doctor-image">
-              <img
-                src="https://umcclinic.com.vn/Data/Sites/1/News/223/bsnguyenthanhlong.jpg"
-                alt="Bác sĩ Nguyễn Thành Long"
-              />
-            </div>
-            <div className="doctor-info">
-              <h3>BS. Nguyễn Thành Long</h3>
-              <div className="doctor-specialty">Chuyên khoa Thần kinh</div>
-              <p>
-                Chuyên gia đầu ngành trong lĩnh vực thần kinh học, có nhiều
-                nghiên cứu được công bố quốc tế.
-              </p>
-            </div>
-          </div>
-          <div className="doctor-card">
-            <div className="doctor-image">
-              <img
-                src="https://umcclinic.com.vn/Data/Sites/1/News/222/bsletranphuong.jpg"
-                alt="Bác sĩ Lê Trần Phương"
-              />
-            </div>
-            <div className="doctor-info">
-              <h3>BS. Lê Trần Phương</h3>
-              <div className="doctor-specialty">Chuyên khoa Răng Hàm Mặt</div>
-              <p>
-                Chuyên gia với nhiều năm kinh nghiệm trong nha khoa thẩm mỹ,
-                được nhiều khách hàng tin tưởng.
-              </p>
-            </div>
+          <div className="cta-actions">
+            <button
+              className="btn-primary btn-cta"
+              onClick={handleRegisterClick}
+            >
+              <FaCalendarCheck className="btn-icon" />
+              <span>ĐẶT LỊCH KHÁM</span>
+            </button>
+            <button className="btn-secondary btn-cta">
+              <FaAmbulance className="btn-icon" />
+              <span>CẦN CẤP CỨU? GỌI 1900 6923</span>
+            </button>
           </div>
         </div>
       </section>
 
-      <Footer />
+      {/* Testimonials */}
+      <section className="testimonials-section">
+        <div className="section-header">
+          <h2 className="section-title">KHÁCH HÀNG NÓI GÌ</h2>
+          <p className="section-subtitle">
+            Hàng nghìn bệnh nhân đã tin tưởng lựa chọn chúng tôi
+          </p>
+        </div>
+        <div className="testimonials-grid">
+          <div className="testimonial-card">
+            <div className="testimonial-content">
+              <FaAward className="award-icon" />
+              <p className="testimonial-text">
+                "Dịch vụ tuyệt vời, bác sĩ tận tâm. Tôi đã khám ở nhiều nơi
+                nhưng đây là nơi tôi cảm thấy hài lòng nhất."
+              </p>
+            </div>
+            <div className="testimonial-author">
+              <div className="author-info">
+                <h4>Anh Nguyễn Văn A</h4>
+                <p>Khách hàng thường xuyên</p>
+              </div>
+            </div>
+          </div>
+          <div className="testimonial-card">
+            <div className="testimonial-content">
+              <FaHospital className="hospital-icon" />
+              <p className="testimonial-text">
+                "Trang thiết bị hiện đại, nhân viên chuyên nghiệp. Quy trình
+                khám bệnh nhanh chóng, tiết kiệm thời gian."
+              </p>
+            </div>
+            <div className="testimonial-author">
+              <div className="author-info">
+                <h4>Chị Trần Thị B</h4>
+                <p>Khám tổng quát định kỳ</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
     </div>
   );
 };
