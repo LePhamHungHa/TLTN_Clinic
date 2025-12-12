@@ -14,6 +14,10 @@ const DoctorAppointments = () => {
   });
   const [currentDoctor, setCurrentDoctor] = useState(null);
   const [actionLoading, setActionLoading] = useState(null);
+  const [expandedCard, setExpandedCard] = useState(null);
+  const [showNotification, setShowNotification] = useState(false);
+  const [newAppointment] = useState(null);
+  const [activeTab, setActiveTab] = useState("today");
   const navigate = useNavigate();
 
   // Fetch interceptor để xử lý lỗi authentication
@@ -270,6 +274,7 @@ const DoctorAppointments = () => {
     return statusMap[status] || status;
   };
 
+  // Thêm các hàm trở lại và sử dụng chúng
   const getStatusBadge = (status) => {
     return (
       <span className={`status-badge ${getStatusClass(status)}`}>
@@ -329,6 +334,11 @@ const DoctorAppointments = () => {
   };
 
   const statsData = calculateStats();
+
+  // Toggle card expand
+  const toggleCardExpand = (appointmentId) => {
+    setExpandedCard((prev) => (prev === appointmentId ? null : appointmentId));
+  };
 
   // Xử lý bắt đầu khám - ĐÃ SỬA LỖI FOREIGN KEY
   const handleStartExamination = async (appointmentId) => {
@@ -521,9 +531,11 @@ const DoctorAppointments = () => {
 
   if (loading) {
     return (
-      <div className="doctor-appointments-loading">
-        <div className="loading-spinner"></div>
-        <p>Đang tải dữ liệu lịch hẹn...</p>
+      <div className="loading-overlay">
+        <div className="loading-content">
+          <div className="spinner"></div>
+          <p>Đang tải dữ liệu lịch hẹn...</p>
+        </div>
       </div>
     );
   }
@@ -531,77 +543,122 @@ const DoctorAppointments = () => {
   return (
     <div className="doctor-appointments-container">
       {/* Header */}
-      <div className="appointments-header">
-        <div className="header-main">
-          <h1>🩺 Quản Lý Lịch Hẹn Khám Bệnh</h1>
-          {currentDoctor && (
-            <div className="doctor-info">
-              <span className="doctor-name">
-                Bác sĩ: <strong>{currentDoctor.name}</strong>
-              </span>
-              <span className="doctor-id">Mã BS: {currentDoctor.id}</span>
+      <div className="admin-header">
+        <div className="header-title">
+          <i className="bi-heart-pulse"></i>
+          <div>
+            <h1>Quản Lý Lịch Hẹn Khám Bệnh</h1>
+            <p>Quản lý và khám bệnh cho bệnh nhân</p>
+          </div>
+        </div>
+        <div className="header-actions">
+          <button onClick={() => window.location.reload()} title="Làm mới">
+            <i className="bi-arrow-clockwise"></i>
+            <span>Làm mới</span>
+          </button>
+          {statsData.waiting > 0 && (
+            <div className="pending-badge">
+              <span>{statsData.waiting}</span>
+              <span>Bệnh nhân chờ khám</span>
             </div>
           )}
-        </div>
-        <div className="current-time">
-          {new Date().toLocaleDateString("vi-VN", {
-            weekday: "long",
-            year: "numeric",
-            month: "long",
-            day: "numeric",
-          })}
         </div>
       </div>
 
       {error && (
-        <div className="error-message">
-          <p>❌ {error}</p>
-          <button
-            onClick={() => window.location.reload()}
-            className="retry-button"
-          >
-            Thử lại
-          </button>
+        <div className="error-alert">
+          <i className="bi-exclamation-triangle"></i>
+          <div>
+            <h4>Đã xảy ra lỗi!</h4>
+            <p>{error}</p>
+          </div>
+          <button onClick={() => window.location.reload()}>Thử lại</button>
         </div>
       )}
 
-      {/* Thống kê nhanh */}
-      <div className="quick-stats">
-        <div className="stat-item total">
-          <div className="stat-icon">📋</div>
-          <div className="stat-info">
-            <div className="stat-number">{statsData.total}</div>
-            <div className="stat-label">Tổng lịch hẹn</div>
+      {/* Statistics */}
+      <div className="stats-grid">
+        <div className="stat-card">
+          <i className="bi-people"></i>
+          <div>
+            <h3>Tổng lịch hẹn</h3>
+            <p>{statsData.total}</p>
           </div>
         </div>
-        <div className="stat-item today">
-          <div className="stat-icon">📅</div>
-          <div className="stat-info">
-            <div className="stat-number">{statsData.today}</div>
-            <div className="stat-label">Hôm nay</div>
+        <div className="stat-card">
+          <i className="bi-calendar-check"></i>
+          <div>
+            <h3>Hôm nay</h3>
+            <p>{statsData.today}</p>
           </div>
         </div>
-        <div className="stat-item waiting">
-          <div className="stat-icon">⏳</div>
-          <div className="stat-info">
-            <div className="stat-number">{statsData.waiting}</div>
-            <div className="stat-label">Chờ khám</div>
+        <div className="stat-card">
+          <i className="bi-clock"></i>
+          <div>
+            <h3>Chờ khám</h3>
+            <p>{statsData.waiting}</p>
+            {statsData.waiting > 0 && (
+              <div className="stat-badge">Cần khám ngay</div>
+            )}
           </div>
         </div>
-        <div className="stat-item completed">
-          <div className="stat-icon">✅</div>
-          <div className="stat-info">
-            <div className="stat-number">{statsData.completed}</div>
-            <div className="stat-label">Đã khám</div>
+        <div className="stat-card">
+          <i className="bi-check-circle"></i>
+          <div>
+            <h3>Đã khám</h3>
+            <p>{statsData.completed}</p>
           </div>
         </div>
       </div>
 
-      {/* Bộ lọc */}
-      <div className="filters-section">
+      {/* Tabs */}
+      <div className="tabs">
+        <button
+          className={`tab-btn ${activeTab === "today" ? "active" : ""} ${
+            statsData.today > 0 ? "has-pending" : ""
+          }`}
+          onClick={() => setActiveTab("today")}
+        >
+          <i className="bi-calendar-day"></i>
+          <span>Hôm nay</span>
+          <span className="tab-count">{statsData.today}</span>
+        </button>
+        <button
+          className={`tab-btn ${activeTab === "waiting" ? "active" : ""} ${
+            statsData.waiting > 0 ? "has-pending" : ""
+          }`}
+          onClick={() => setActiveTab("waiting")}
+        >
+          <i className="bi-clock"></i>
+          <span>Chờ khám</span>
+          <span className="tab-count badge">{statsData.waiting}</span>
+        </button>
+        <button
+          className={`tab-btn ${activeTab === "completed" ? "active" : ""}`}
+          onClick={() => setActiveTab("completed")}
+        >
+          <i className="bi-check-circle"></i>
+          <span>Đã khám</span>
+          <span className="tab-count">{statsData.completed}</span>
+        </button>
+        <button
+          className={`tab-btn ${activeTab === "all" ? "active" : ""}`}
+          onClick={() => setActiveTab("all")}
+        >
+          <i className="bi-list"></i>
+          <span>Tất cả</span>
+          <span className="tab-count">{statsData.total}</span>
+        </button>
+      </div>
+
+      {/* Filters */}
+      <div className="filters">
         <div className="filter-group">
-          <label>Trạng thái:</label>
+          <label htmlFor="status-filter">
+            <i className="bi-funnel"></i> Trạng thái
+          </label>
           <select
+            id="status-filter"
             value={filters.status}
             onChange={(e) => setFilters({ ...filters, status: e.target.value })}
           >
@@ -617,26 +674,44 @@ const DoctorAppointments = () => {
         </div>
 
         <div className="filter-group">
-          <label>Ngày khám:</label>
+          <label htmlFor="date-filter">
+            <i className="bi-calendar"></i> Ngày khám
+          </label>
           <input
+            id="date-filter"
             type="date"
             value={filters.date}
             onChange={(e) => setFilters({ ...filters, date: e.target.value })}
           />
         </div>
 
-        <div className="filter-group search-group">
-          <label>Tìm kiếm:</label>
-          <input
-            type="text"
-            placeholder="Tên, SĐT, mã đơn..."
-            value={filters.search}
-            onChange={(e) => setFilters({ ...filters, search: e.target.value })}
-          />
+        <div className="filter-group filter-search">
+          <label htmlFor="search-filter">
+            <i className="bi-search"></i> Tìm kiếm
+          </label>
+          <div className="search-wrapper">
+            <input
+              id="search-filter"
+              type="text"
+              placeholder="Tên, SĐT, mã đơn, khoa..."
+              value={filters.search}
+              onChange={(e) =>
+                setFilters({ ...filters, search: e.target.value })
+              }
+            />
+            {filters.search && (
+              <button
+                className="clear-search-btn"
+                onClick={() => setFilters({ ...filters, search: "" })}
+              >
+                ✕
+              </button>
+            )}
+          </div>
         </div>
 
         <button
-          className="clear-filters"
+          className="clear-filters-btn"
           onClick={() =>
             setFilters({
               status: "ALL",
@@ -645,212 +720,328 @@ const DoctorAppointments = () => {
             })
           }
         >
-          🔄 Xóa lọc
+          <i className="bi-x-circle"></i> Xóa bộ lọc
         </button>
       </div>
 
-      {/* Danh sách bệnh nhân */}
-      <div className="patients-list">
+      {/* Appointments List */}
+      <div className="appointments-list">
         <div className="list-header">
           <h2>
-            Danh sách bệnh nhân ({filteredAppointments.length})
-            {filters.status === "TODAY" && " - Hôm nay"}
-            {filters.date && ` - Ngày ${formatDate(filters.date)}`}
-            {filters.status !== "ALL" &&
-              filters.status !== "TODAY" &&
-              ` - ${getStatusText(filters.status)}`}
+            <i className="bi-person-lines-fill"></i>
+            Danh sách bệnh nhân
+            <span className="count-badge">{filteredAppointments.length}</span>
           </h2>
-          <div className="list-actions">
-            <button
-              className="btn-refresh"
-              onClick={() => window.location.reload()}
-            >
-              🔄 Làm mới
-            </button>
-          </div>
+          <button
+            className="refresh-btn"
+            onClick={() => window.location.reload()}
+          >
+            <i className="bi-arrow-clockwise"></i>
+            Làm mới
+          </button>
         </div>
 
         {filteredAppointments.length === 0 ? (
-          <div className="no-patients">
-            <div className="no-patients-icon">👨‍⚕️</div>
-            <p>Không có bệnh nhân nào</p>
-            <small>Vui lòng kiểm tra lại bộ lọc hoặc ngày khám</small>
+          <div className="empty-state">
+            <i className="bi-person-x"></i>
+            <h3>Không có bệnh nhân nào</h3>
+            <p>Vui lòng kiểm tra lại bộ lọc hoặc ngày khám</p>
           </div>
         ) : (
-          <div className="patients-grid">
+          <div className="appointments">
             {filteredAppointments.map((appointment) => (
-              <div key={appointment.id} className="patient-card">
-                <div className="patient-header">
-                  <div className="patient-basic">
-                    <div className="patient-name-id">
-                      <h3>{appointment.fullName}</h3>
-                      <span className="patient-code">
-                        #{appointment.registrationNumber || appointment.id}
+              <div
+                key={appointment.id}
+                className={`appointment-card ${
+                  expandedCard === appointment.id ? "expanded" : ""
+                }`}
+              >
+                <div
+                  className="card-header"
+                  onClick={() => toggleCardExpand(appointment.id)}
+                >
+                  <div className="patient-info">
+                    <i className="bi-person-circle"></i>
+                    <div>
+                      <h3>
+                        {appointment.fullName}
+                        <span className="appointment-id">
+                          #{appointment.registrationNumber || appointment.id}
+                        </span>
+                      </h3>
+                      <div className="status-container">
+                        {/* Sử dụng getStatusBadge và getPaymentStatusBadge */}
+                        {getStatusBadge(appointment.status)}
+                        {getPaymentStatusBadge(
+                          appointment.paymentStatus || "UNPAID"
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  <button className="expand-toggle">
+                    <i
+                      className={`bi-chevron-${
+                        expandedCard === appointment.id ? "up" : "down"
+                      }`}
+                    ></i>
+                  </button>
+                </div>
+
+                <div className="quick-info">
+                  <div className="info-row">
+                    <div className="info-item">
+                      <span className="info-label">
+                        <i className="bi-telephone"></i> SĐT
+                      </span>
+                      <span className="info-value">
+                        {appointment.phone || "Chưa có"}
                       </span>
                     </div>
-                    <div className="patient-meta">
-                      <span className="patient-age">
-                        {appointment.dob
-                          ? new Date().getFullYear() -
-                            new Date(appointment.dob).getFullYear() +
-                            " tuổi"
-                          : "Chưa có tuổi"}
+                    <div className="info-item">
+                      <span className="info-label">
+                        <i className="bi-envelope"></i> Email
                       </span>
-                      <span className="patient-gender">
-                        {appointment.gender}
+                      <span className="info-value">
+                        {appointment.email || "Chưa có"}
+                      </span>
+                    </div>
+                    <div className="info-item">
+                      <span className="info-label">
+                        <i className="bi-hospital"></i> Khoa
+                      </span>
+                      <span className="info-value">
+                        {appointment.department || "Chưa có"}
                       </span>
                     </div>
                   </div>
-                  <div className="status-group">
-                    {getStatusBadge(appointment.status)}
-                    {getPaymentStatusBadge(
-                      appointment.paymentStatus || "UNPAID"
+                  <div className="info-row">
+                    <div className="info-item">
+                      <span className="info-label">
+                        <i className="bi-calendar-event"></i> Ngày khám
+                      </span>
+                      <span className="info-value">
+                        {formatDate(appointment.appointmentDate)}
+                      </span>
+                    </div>
+                    <div className="info-item">
+                      <span className="info-label">
+                        <i className="bi-cash"></i> Phí khám
+                      </span>
+                      <span
+                        className={`info-value fee-${
+                          appointment.paymentStatus === "PAID"
+                            ? "paid"
+                            : "unpaid"
+                        }`}
+                      >
+                        {formatCurrency(appointment.examinationFee)}
+                      </span>
+                    </div>
+                    <div className="info-item">
+                      <span className="info-label">
+                        <i className="bi-sort-numeric-up"></i> Số thứ tự
+                      </span>
+                      <span className="info-value queue-number">
+                        {appointment.queueNumber
+                          ? `#${appointment.queueNumber}`
+                          : "Chưa có"}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {expandedCard === appointment.id && (
+                  <div className="expanded-details">
+                    {appointment.symptoms && (
+                      <div className="detail-section symptoms-section">
+                        <div className="section-header">
+                          <h4 className="section-title">
+                            <i className="bi-clipboard-pulse"></i> TRIỆU CHỨNG
+                          </h4>
+                          <div className="section-divider"></div>
+                        </div>
+                        <div className="symptoms-content">
+                          <p>{appointment.symptoms}</p>
+                        </div>
+                      </div>
                     )}
-                  </div>
-                </div>
 
-                <div className="patient-details">
-                  <div className="detail-row">
-                    <span className="label">📞 SĐT:</span>
-                    <span>{appointment.phone || "Chưa có"}</span>
-                  </div>
-                  <div className="detail-row">
-                    <span className="label">📅 Ngày khám:</span>
-                    <span>{formatDate(appointment.appointmentDate)}</span>
-                  </div>
-                  <div className="detail-row">
-                    <span className="label">🕒 Giờ hẹn:</span>
-                    <span>{appointment.expectedTimeSlot || "Chưa có"}</span>
-                  </div>
-                  <div className="detail-row">
-                    <span className="label">🎯 Số thứ tự:</span>
-                    <span className="queue-number">
-                      {appointment.queueNumber
-                        ? `#${appointment.queueNumber}`
-                        : "Chưa có"}
-                    </span>
-                  </div>
-                  <div className="detail-row">
-                    <span className="label">🏥 Khoa:</span>
-                    <span>{appointment.department || "Chưa có"}</span>
-                  </div>
-                  {appointment.symptoms && (
-                    <div className="detail-row">
-                      <span className="label">📝 Triệu chứng:</span>
-                      <span className="symptoms">{appointment.symptoms}</span>
+                    <div className="detail-section appointment-section">
+                      <div className="section-header">
+                        <h4 className="section-title">
+                          <i className="bi-calendar-check"></i> THÔNG TIN KHÁM
+                        </h4>
+                        <div className="section-divider"></div>
+                      </div>
+                      <div className="appointment-info">
+                        <div>
+                          <span>Giờ hẹn:</span>{" "}
+                          {appointment.expectedTimeSlot || "Chưa có"}
+                        </div>
+                        {appointment.roomNumber && (
+                          <div>
+                            <span>Phòng khám:</span> {appointment.roomNumber}
+                          </div>
+                        )}
+                        {appointment.dob && (
+                          <div>
+                            <span>Ngày sinh:</span>{" "}
+                            {formatDate(appointment.dob)}
+                          </div>
+                        )}
+                        {appointment.gender && (
+                          <div>
+                            <span>Giới tính:</span> {appointment.gender}
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  )}
-                </div>
 
-                <div className="patient-actions">
-                  {/* Action cho lịch chờ khám */}
-                  {(appointment.status === "CONFIRMED" ||
-                    appointment.status === "APPROVED") && (
-                    <>
-                      <button
-                        className="btn-start-exam primary"
-                        onClick={() => handleStartExamination(appointment.id)}
-                        disabled={actionLoading === appointment.id}
-                      >
-                        {actionLoading === appointment.id ? "⏳" : "🩺"} Bắt đầu
-                        khám
-                      </button>
-                      <button
-                        className="btn-complete"
-                        onClick={() =>
-                          handleCompleteAppointment(appointment.id)
-                        }
-                        disabled={actionLoading === appointment.id}
-                      >
-                        {actionLoading === appointment.id ? "⏳" : "✅"} Đã khám
-                      </button>
-                      <button
-                        className="btn-missed"
-                        onClick={() => handleMarkAsMissed(appointment.id)}
-                        disabled={actionLoading === appointment.id}
-                      >
-                        {actionLoading === appointment.id ? "⏳" : "❌"} Chưa
-                        khám
-                      </button>
-                    </>
-                  )}
+                    <div className="actions-section">
+                      <div className="section-header">
+                        <h4 className="section-title">
+                          <i className="bi-gear"></i> THAO TÁC
+                        </h4>
+                        <div className="section-divider"></div>
+                      </div>
+                      <div className="actions-content">
+                        {(appointment.status === "CONFIRMED" ||
+                          appointment.status === "APPROVED") && (
+                          <>
+                            <button
+                              className="action-btn start-exam-btn"
+                              onClick={() =>
+                                handleStartExamination(appointment.id)
+                              }
+                              disabled={actionLoading === appointment.id}
+                            >
+                              {actionLoading === appointment.id ? (
+                                <i className="bi-hourglass-split"></i>
+                              ) : (
+                                <i className="bi-heart-pulse"></i>
+                              )}
+                              {actionLoading === appointment.id
+                                ? "Đang xử lý..."
+                                : "Bắt đầu khám"}
+                            </button>
+                            <button
+                              className="action-btn complete-btn"
+                              onClick={() =>
+                                handleCompleteAppointment(appointment.id)
+                              }
+                              disabled={actionLoading === appointment.id}
+                            >
+                              {actionLoading === appointment.id ? (
+                                <i className="bi-hourglass-split"></i>
+                              ) : (
+                                <i className="bi-check-circle"></i>
+                              )}
+                              {actionLoading === appointment.id
+                                ? "Đang xử lý..."
+                                : "Đánh dấu đã khám"}
+                            </button>
+                            {/* Thêm nút đánh dấu không đi khám */}
+                            <button
+                              className="action-btn missed-btn"
+                              onClick={() => handleMarkAsMissed(appointment.id)}
+                              disabled={actionLoading === appointment.id}
+                            >
+                              {actionLoading === appointment.id ? (
+                                <i className="bi-hourglass-split"></i>
+                              ) : (
+                                <i className="bi-x-circle"></i>
+                              )}
+                              {actionLoading === appointment.id
+                                ? "Đang xử lý..."
+                                : "Không đi khám"}
+                            </button>
+                          </>
+                        )}
 
-                  {/* Action cho lịch đang khám */}
-                  {appointment.status === "IN_PROGRESS" && (
-                    <div className="in-progress-actions">
-                      <button
-                        className="btn-start-exam primary"
-                        onClick={() =>
-                          navigate(`/doctor/examination/${appointment.id}`)
-                        }
-                      >
-                        🩺 Tiếp tục khám
-                      </button>
-                    </div>
-                  )}
-
-                  {/* Action cho lịch đã khám - HIỆN NÚT KÊ ĐƠN NẾU ĐÃ THANH TOÁN */}
-                  {appointment.status === "COMPLETED" && (
-                    <div className="completed-actions">
-                      {shouldShowPrescribeButton(appointment) ? (
-                        <>
-                          <span className="completed-text">
-                            ✅ ĐÃ KHÁM & THANH TOÁN
-                          </span>
+                        {appointment.status === "IN_PROGRESS" && (
                           <button
-                            className="btn-prescribe"
+                            className="action-btn start-exam-btn"
                             onClick={() =>
-                              handlePrescribeMedication(appointment.id)
+                              navigate(`/doctor/examination/${appointment.id}`)
                             }
                           >
-                            💊 Kê đơn thuốc
+                            <i className="bi-heart-pulse"></i>
+                            Tiếp tục khám
                           </button>
-                        </>
-                      ) : (
-                        <>
-                          <span className="completed-text">
-                            ✅ ĐÃ HOÀN THÀNH KHÁM
-                          </span>
-                          <div className="payment-required-note">
-                            ⏳ Chờ thanh toán để kê đơn
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  )}
+                        )}
 
-                  {/* Action cho lịch đã hủy */}
-                  {appointment.status === "CANCELLED" && (
-                    <div className="cancelled-actions">
-                      <span className="cancelled-text">❌ ĐÃ HỦY LỊCH HẸN</span>
+                        {appointment.status === "COMPLETED" &&
+                          shouldShowPrescribeButton(appointment) && (
+                            <button
+                              className="action-btn prescribe-btn"
+                              onClick={() =>
+                                handlePrescribeMedication(appointment.id)
+                              }
+                            >
+                              <i className="bi-capsule"></i>
+                              Kê đơn thuốc
+                            </button>
+                          )}
+                      </div>
                     </div>
-                  )}
-                </div>
-
-                {/* Thông tin nhanh */}
-                <div className="quick-info">
-                  <div className="info-item">
-                    <span className="label">Phí khám:</span>
-                    <span
-                      className={
-                        appointment.paymentStatus === "PAID"
-                          ? "paid-amount"
-                          : "unpaid-amount"
-                      }
-                    >
-                      {formatCurrency(appointment.examinationFee)}
-                    </span>
                   </div>
-                  <div className="info-item">
-                    <span className="label">Phòng:</span>
-                    <span>{appointment.roomNumber || "Chưa có"}</span>
-                  </div>
-                </div>
+                )}
               </div>
             ))}
           </div>
         )}
       </div>
+
+      {/* Notification Toast */}
+      {showNotification && newAppointment && (
+        <div className="notification-toast">
+          <div className="toast-header">
+            <div className="toast-icon">
+              <i className="bi-bell-fill"></i>
+            </div>
+            <div className="toast-title">
+              <h4>Có bệnh nhân mới cần khám!</h4>
+            </div>
+            <button
+              className="toast-close"
+              onClick={() => setShowNotification(false)}
+            >
+              <i className="bi-x"></i>
+            </button>
+          </div>
+          <div className="toast-body">
+            <p className="toast-patient">
+              <strong>{newAppointment.fullName}</strong>
+            </p>
+            <div className="toast-details">
+              <p>
+                <i className="bi-hospital"></i> {newAppointment.department}
+              </p>
+              <p>
+                <i className="bi-calendar"></i>{" "}
+                {formatDate(newAppointment.appointmentDate)}
+              </p>
+            </div>
+            <div className="toast-actions">
+              <button
+                className="toast-btn quick"
+                onClick={() => {
+                  handleStartExamination(newAppointment.id);
+                  setShowNotification(false);
+                }}
+              >
+                <i className="bi-lightning"></i> Bắt đầu khám
+              </button>
+              <button
+                className="toast-btn close"
+                onClick={() => setShowNotification(false)}
+              >
+                <i className="bi-eye"></i> Xem sau
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

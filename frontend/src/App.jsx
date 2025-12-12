@@ -24,6 +24,7 @@ import PaymentResult from "./pages/Patient/PaymentResult.jsx";
 import InvoiceHistory from "./pages/Patient/InvoiceHistory";
 import InvoiceDetail from "./pages/Patient/InvoiceDetail";
 import MedicalExaminationResults from "./pages/Patient/MedicalExaminationResults";
+import TransactionHistory from "./pages/Patient/TransactionHistory.jsx";
 
 // Import Admin
 import AdminUsers from "./pages/Admin/AdminUsers.jsx";
@@ -108,6 +109,19 @@ function App() {
               <>
                 <Header />
                 <WalletPage />
+              </>
+            </PrivateRoute>
+          }
+        />
+
+        <Route
+          path="/transaction-history"
+          element={
+            <PrivateRoute role="PATIENT">
+              <>
+                <Header />
+                <TransactionHistory />
+                <Footer />
               </>
             </PrivateRoute>
           }

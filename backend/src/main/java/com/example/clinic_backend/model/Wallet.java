@@ -16,22 +16,22 @@ public class Wallet {
     @JoinColumn(name = "patient_id", nullable = false)
     private Patient patient;
 
-    @Column(name = "card_holder", nullable = false)
+    @Column(name = "card_holder")
     private String cardHolder;
 
-    @Column(name = "card_number", nullable = false)
+    @Column(name = "card_number")
     private String cardNumber;
 
-    @Column(nullable = false, length = 3)
+    @Column(length = 3)
     private String cvv;
 
-    @Column(nullable = false)
+    @Column
     private String expiry; // MM/YYYY
 
-    @Column(name = "wallet_code", unique = true, nullable = false)
+    @Column(name = "wallet_code", unique = true)
     private String walletCode;
 
-    @Column(nullable = false)
+    @Column(precision = 38, scale = 2)
     private BigDecimal balance = BigDecimal.ZERO;
 
     @Column(name = "created_at")
@@ -39,7 +39,6 @@ public class Wallet {
 
     public Wallet() {}
 
-    // --- Getters & Setters ---
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
@@ -61,7 +60,7 @@ public class Wallet {
     public String getWalletCode() { return walletCode; }
     public void setWalletCode(String walletCode) { this.walletCode = walletCode; }
 
-    public BigDecimal getBalance() { return balance; }
+    public BigDecimal getBalance() { return balance == null ? BigDecimal.ZERO : balance; }
     public void setBalance(BigDecimal balance) { this.balance = balance; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }

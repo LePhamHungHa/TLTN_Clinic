@@ -8,6 +8,9 @@ import com.example.clinic_backend.repository.PatientRegistrationRepository;
 import com.example.clinic_backend.service.EmailService;
 import com.example.clinic_backend.service.PaymentService;
 import com.example.clinic_backend.service.InvoiceService;
+import com.example.clinic_backend.model.Wallet;
+import com.example.clinic_backend.repository.WalletRepository;
+import java.math.BigDecimal;
 import jakarta.servlet.http.HttpServletRequest;
 import org.apache.commons.codec.digest.HmacUtils;
 import org.springframework.http.ResponseEntity;
@@ -30,17 +33,20 @@ public class VnPayController {
     private final EmailService emailService;
     private final PatientRegistrationRepository patientRegistrationRepository;
     private final InvoiceService invoiceService;
+    private final WalletRepository walletRepository;
 
     public VnPayController(PaymentService paymentService, 
                           PaymentRepository paymentRepository,
                           EmailService emailService,
                           PatientRegistrationRepository patientRegistrationRepository,
-                          InvoiceService invoiceService) {
+                          InvoiceService invoiceService,
+                          WalletRepository walletRepository) {
         this.paymentService = paymentService;
         this.paymentRepository = paymentRepository;
         this.emailService = emailService;
         this.patientRegistrationRepository = patientRegistrationRepository;
         this.invoiceService = invoiceService;
+        this.walletRepository = walletRepository;
     }
 
     // ==================== API PUBLIC ====================
@@ -205,6 +211,75 @@ public class VnPayController {
         }
     }
 
+    @PostMapping("/create-wallet-payment")
+    public ResponseEntity<?> createWalletPayment(@RequestBody Map<String, Object> req, HttpServletRequest request) {
+        try {
+            System.out.println("=== 🚀 BẮT ĐẦU TẠO THANH TOÁN VNPAY (WALLET) ===");
+            System.out.println("📦 Dữ liệu request (wallet): " + req);
+
+            long amount = ((Number) req.get("amount")).longValue() * 100;
+            Long walletId = req.get("walletId") != null ? ((Number) req.get("walletId")).longValue() : null;
+            String orderInfo = "WALLET_DEPOSIT:" + walletId;
+
+            if (walletId == null) {
+                throw new Exception("walletId là bắt buộc cho nạp tiền ví");
+            }
+
+            // Sinh mã giao dịch
+            String vnp_TxnRef = "VNPAY-WALLET-" + System.currentTimeMillis() + "-" + walletId;
+            String vnp_IpAddr = getClientIpAddress(request);
+
+            // Tạo map tham số
+            Map<String, String> vnp_Params = new HashMap<>();
+            vnp_Params.put("vnp_Version", "2.1.0");
+            vnp_Params.put("vnp_Command", "pay");
+            vnp_Params.put("vnp_TmnCode", VNPayConfig.vnp_TmnCode);
+            vnp_Params.put("vnp_Amount", String.valueOf(amount));
+            vnp_Params.put("vnp_CurrCode", "VND");
+            vnp_Params.put("vnp_TxnRef", vnp_TxnRef);
+            vnp_Params.put("vnp_OrderInfo", orderInfo);
+            vnp_Params.put("vnp_OrderType", "billpayment");
+            vnp_Params.put("vnp_Locale", "vn");
+            vnp_Params.put("vnp_ReturnUrl", VNPayConfig.vnp_ReturnUrl);
+            vnp_Params.put("vnp_IpAddr", vnp_IpAddr);
+
+            Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("Etc/GMT+7"));
+            SimpleDateFormat formatter = new SimpleDateFormat("yyyyMMddHHmmss");
+            String createDate = formatter.format(cal.getTime());
+            vnp_Params.put("vnp_CreateDate", createDate);
+
+            // Tạo URL thanh toán
+            String paymentUrl = createPaymentUrl(vnp_Params);
+            System.out.println("🔗 Payment URL (wallet) đã tạo: " + paymentUrl);
+
+            // Lưu thông tin thanh toán vào database
+            Payment payment = new Payment();
+            payment.setPatientRegistrationId(null);
+            payment.setAmount((double) amount / 100);
+            payment.setOrderInfo(orderInfo);
+            payment.setTransactionNo(vnp_TxnRef);
+            payment.setStatus("Đang chờ xử lý");
+
+            Payment savedPayment = paymentService.savePayment(payment);
+            System.out.println("💾 Đã lưu payment (wallet) với ID: " + savedPayment.getId());
+
+            Map<String, String> result = new HashMap<>();
+            result.put("paymentUrl", paymentUrl);
+            result.put("transactionNo", vnp_TxnRef);
+
+            System.out.println("✅ Tạo thanh toán ví thành công!");
+            System.out.println("=== KẾT THÚC TẠO THANH TOÁN (WALLET) ===");
+            return ResponseEntity.ok(result);
+
+        } catch (Exception e) {
+            System.err.println("❌ Lỗi tạo thanh toán ví: " + e.getMessage());
+            e.printStackTrace();
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Không thể tạo giao dịch ví: " + e.getMessage());
+            return ResponseEntity.badRequest().body(error);
+        }
+    }
+
     @GetMapping("/payment-return")
     @Transactional
     public ResponseEntity<Map<String, String>> paymentReturn(@RequestParam Map<String, String> params) {
@@ -291,7 +366,7 @@ public class VnPayController {
                 System.out.println("   📊 Status: " + updatedPayment.getStatus());
                 System.out.println("   📅 Updated At: " + updatedPayment.getUpdatedAt());
                 
-                // 3. Cập nhật PatientRegistration
+                // 3. Cập nhật PatientRegistration hoặc Wallet nếu là nạp tiền ví
                 if (updatedPayment.getPatientRegistrationId() != null) {
                     System.out.println("🔍 Đang tìm PatientRegistration với ID: " + updatedPayment.getPatientRegistrationId());
                     Optional<PatientRegistration> registrationOpt = patientRegistrationRepository
@@ -383,7 +458,32 @@ public class VnPayController {
                         System.err.println("❌ Không tìm thấy PatientRegistration với ID: " + updatedPayment.getPatientRegistrationId());
                     }
                 } else {
-                    System.err.println("❌ Payment không có patientRegistrationId");
+                    // Có thể là giao dịch nạp tiền vào ví, kiểm tra orderInfo
+                    String orderInfoStr = updatedPayment.getOrderInfo();
+                    if (orderInfoStr != null && orderInfoStr.startsWith("WALLET_DEPOSIT:")) {
+                        try {
+                            String[] parts = orderInfoStr.split(":");
+                            Long walletId = Long.parseLong(parts[1]);
+                            System.out.println("🔍 Đây là giao dịch nạp tiền ví, walletId=" + walletId);
+
+                            Optional<Wallet> walletOpt = walletRepository.findById(walletId);
+                            if (walletOpt.isPresent()) {
+                                Wallet wallet = walletOpt.get();
+                                BigDecimal current = wallet.getBalance() == null ? BigDecimal.ZERO : wallet.getBalance();
+                                BigDecimal added = BigDecimal.valueOf(Double.parseDouble(vnp_Amount) / 100.0);
+                                wallet.setBalance(current.add(added));
+                                walletRepository.save(wallet);
+                                System.out.println("✅ Đã cập nhật số dư ví: " + wallet.getBalance());
+                                result.put("walletBalance", wallet.getBalance().toString());
+                            } else {
+                                System.err.println("❌ Không tìm thấy ví với ID: " + walletId);
+                            }
+                        } catch (Exception we) {
+                            System.err.println("❌ Lỗi khi cập nhật ví: " + we.getMessage());
+                        }
+                    } else {
+                        System.err.println("❌ Payment không có patientRegistrationId");
+                    }
                 }
                 
             } catch (Exception e) {

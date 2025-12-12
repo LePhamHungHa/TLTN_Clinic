@@ -153,14 +153,6 @@ const Header = () => {
           Hóa đơn
         </Link>,
         <Link
-          key="p-health-records"
-          to="/patient/health-records"
-          className={linkClass}
-          onClick={isMobile ? toggleMobileMenu : undefined}
-        >
-          Hồ sơ sức khỏe
-        </Link>,
-        <Link
           key="p-bmi-tracking"
           to="/patient/health-tracking"
           className={linkClass}

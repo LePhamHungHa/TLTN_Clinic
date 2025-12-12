@@ -35,7 +35,7 @@ public class EmailService {
     
 
     //CẤU HÌNH THỜI GIAN GỬI EMAIL TỰ ĐỘNG
-    private static final String REMINDER_START_TIME = "07:00";
+    private static final String REMINDER_START_TIME = "00:00";
     private static final String REMINDER_END_TIME = "23:59";
 
     // Biến khóa để tránh chạy song song

@@ -1,15 +1,41 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { format } from "date-fns";
 import vi from "date-fns/locale/vi";
+import {
+  FaFileMedical,
+  FaSearch,
+  FaTimes,
+  FaEye,
+  FaPrint,
+  FaDownload,
+  FaShareAlt,
+  FaChevronLeft,
+  FaChevronRight,
+  FaFilter,
+  FaCalendar,
+  FaUserMd,
+  FaPills,
+  FaNotesMedical,
+  FaStethoscope,
+  FaClipboardCheck,
+  FaExclamationTriangle,
+  FaInfoCircle,
+  FaSpinner,
+  FaHome,
+  FaPhoneAlt,
+  FaQuestionCircle,
+  FaRedo,
+  FaClock, // THÊM DÒNG NÀY
+} from "react-icons/fa";
 import "../../css/MedicalExaminationResults.css";
 
 const MedicalExaminationResults = () => {
   const [user, setUser] = useState(null);
   const [medicalRecords, setMedicalRecords] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
   const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [rowsPerPage] = useState(10);
   const [totalRecords, setTotalRecords] = useState(0);
 
   // States for search
@@ -22,29 +48,32 @@ const MedicalExaminationResults = () => {
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
   const [detailLoading, setDetailLoading] = useState(false);
 
-  useEffect(() => {
-    const storedUser = localStorage.getItem("user");
-    if (storedUser) {
-      try {
-        const parsedUser = JSON.parse(storedUser);
-        setUser(parsedUser);
-        if (parsedUser.id) {
-          fetchMedicalRecords(parsedUser.id);
-        }
-      } catch (e) {
-        console.error("Error parsing user:", e);
-      }
+  const getToken = useCallback(() => {
+    const userData = localStorage.getItem("user");
+    if (!userData) return null;
+    try {
+      return JSON.parse(userData)?.token || null;
+    } catch {
+      return null;
     }
-  }, [page, rowsPerPage]);
+  }, []);
 
-  const fetchMedicalRecords = async (patientId) => {
+  const fetchMedicalRecords = useCallback(async () => {
+    if (!user?.id) return;
+
     setLoading(true);
-    setError("");
+    setErrorMessage("");
 
     try {
-      const token = localStorage.getItem("token");
+      const token = getToken();
+      if (!token) {
+        setErrorMessage("Vui lòng đăng nhập để xem kết quả khám bệnh");
+        setLoading(false);
+        return;
+      }
+
       const response = await fetch(
-        `http://localhost:8080/api/patient/medical-records?patientId=${patientId}&page=${page}&size=${rowsPerPage}`,
+        `http://localhost:8080/api/patient/medical-records?patientId=${user.id}&page=${page}&size=${rowsPerPage}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -63,24 +92,42 @@ const MedicalExaminationResults = () => {
         setMedicalRecords(data.medicalRecords || []);
         setTotalRecords(data.totalItems || 0);
       } else {
-        setError(data.message || "Không thể tải dữ liệu");
+        setErrorMessage(data.message || "Không thể tải dữ liệu");
       }
     } catch (err) {
       console.error("Error fetching medical records:", err);
-      setError("Lỗi khi kết nối đến server");
+      setErrorMessage("Lỗi khi kết nối đến server");
     } finally {
       setLoading(false);
     }
-  };
+  }, [user, page, rowsPerPage, getToken]);
+
+  useEffect(() => {
+    const storedUser = localStorage.getItem("user");
+    if (storedUser) {
+      try {
+        const parsedUser = JSON.parse(storedUser);
+        setUser(parsedUser);
+      } catch (e) {
+        console.error("Error parsing user:", e);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    if (user?.id) {
+      fetchMedicalRecords();
+    }
+  }, [user, fetchMedicalRecords]);
 
   const handleSearch = async () => {
     if (!user?.id) return;
 
     setLoading(true);
-    setError("");
+    setErrorMessage("");
 
     try {
-      const token = localStorage.getItem("token");
+      const token = getToken();
       let url = `http://localhost:8080/api/patient/medical-records/search?patientId=${user.id}&page=0&size=${rowsPerPage}`;
 
       if (searchKeyword) {
@@ -111,11 +158,11 @@ const MedicalExaminationResults = () => {
         setTotalRecords(data.totalItems || 0);
         setPage(0);
       } else {
-        setError(data.message || "Không thể tìm kiếm dữ liệu");
+        setErrorMessage(data.message || "Không thể tìm kiếm dữ liệu");
       }
     } catch (err) {
       console.error("Error searching medical records:", err);
-      setError("Lỗi khi tìm kiếm");
+      setErrorMessage("Lỗi khi tìm kiếm");
     } finally {
       setLoading(false);
     }
@@ -126,7 +173,7 @@ const MedicalExaminationResults = () => {
     setSearchFromDate("");
     setSearchToDate("");
     if (user?.id) {
-      fetchMedicalRecords(user.id);
+      fetchMedicalRecords();
     }
   };
 
@@ -134,7 +181,7 @@ const MedicalExaminationResults = () => {
     setDetailLoading(true);
 
     try {
-      const token = localStorage.getItem("token");
+      const token = getToken();
       const response = await fetch(
         `http://localhost:8080/api/patient/medical-records/${recordId}?patientId=${user.id}`,
         {
@@ -155,11 +202,11 @@ const MedicalExaminationResults = () => {
         setSelectedRecord(data.medicalRecord);
         setDetailDialogOpen(true);
       } else {
-        setError(data.message || "Không thể xem chi tiết");
+        setErrorMessage(data.message || "Không thể xem chi tiết");
       }
     } catch (err) {
       console.error("Error fetching record detail:", err);
-      setError("Lỗi khi lấy chi tiết");
+      setErrorMessage("Lỗi khi lấy chi tiết");
     } finally {
       setDetailLoading(false);
     }
@@ -284,139 +331,273 @@ const MedicalExaminationResults = () => {
     printWindow.print();
   };
 
-  const handleChangePage = (event, newPage) => {
+  const handleChangePage = (newPage) => {
     setPage(newPage);
   };
 
-  const handleChangeRowsPerPage = (event) => {
-    setRowsPerPage(parseInt(event.target.value, 10));
-    setPage(0);
-  };
+  const getStatusBadge = (status) => {
+    const statusConfig = {
+      COMPLETED: {
+        label: "ĐÃ HOÀN THÀNH",
+        class: "status-completed",
+        icon: <FaClipboardCheck size={14} />,
+      },
+      IN_PROGRESS: {
+        label: "ĐANG KHÁM",
+        class: "status-in-progress",
+        icon: <FaStethoscope size={14} />,
+      },
+      PENDING: {
+        label: "CHỜ KHÁM",
+        class: "status-pending",
+        icon: <FaClock size={14} />,
+      },
+      CANCELLED: {
+        label: "ĐÃ HỦY",
+        class: "status-cancelled",
+        icon: <FaTimes size={14} />,
+      },
+    };
 
-  const getStatusChip = (status) => {
-    let className = "status-badge ";
-    let label = status || "Không xác định";
+    const config = statusConfig[status] || {
+      label: "KHÔNG XÁC ĐỊNH",
+      class: "status-default",
+      icon: <FaInfoCircle size={14} />,
+    };
 
-    switch (status) {
-      case "COMPLETED":
-        className += "status-completed";
-        label = "Đã hoàn thành";
-        break;
-      case "IN_PROGRESS":
-        className += "status-in-progress";
-        label = "Đang khám";
-        break;
-      case "PENDING":
-        className += "status-pending";
-        label = "Chờ khám";
-        break;
-      case "CANCELLED":
-        className += "status-cancelled";
-        label = "Đã hủy";
-        break;
-      default:
-        className += "status-default";
-    }
-
-    return <span className={className}>{label}</span>;
+    return (
+      <span className={`status-badge ${config.class}`}>
+        {config.icon}
+        <span>{config.label}</span>
+      </span>
+    );
   };
 
   const startIndex = page * rowsPerPage;
-  const endIndex = Math.min(startIndex + rowsPerPage, totalRecords);
-  const currentRecords = medicalRecords.slice(startIndex, endIndex);
+  const currentRecords = medicalRecords;
+  const endIndex = startIndex + (medicalRecords ? medicalRecords.length : 0);
+
+  const formatDate = (dateString) => {
+    if (!dateString) return "Chưa có";
+    return format(new Date(dateString), "dd/MM/yyyy", { locale: vi });
+  };
+
+  // const formatDateTime = (dateString) => {
+  //   if (!dateString) return "Chưa có";
+  //   return format(new Date(dateString), "dd/MM/yyyy HH:mm", { locale: vi });
+  // };
+
+  if (loading && medicalRecords.length === 0) {
+    return (
+      <div className="medical-results-container">
+        <div className="loading-overlay">
+          <div className="loading-content">
+            <div className="spinner-large">
+              <FaSpinner className="animate-spin" size={48} />
+            </div>
+            <p className="loading-text">Đang tải kết quả khám bệnh...</p>
+            <p className="loading-subtext">Vui lòng đợi trong giây lát</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="medical-examination-results-container">
-      <div className="container">
-        <div className="page-header">
-          <h1 className="page-title">
-            <i className="fas fa-file-medical"></i> KẾT QUẢ KHÁM BỆNH
-          </h1>
-          <p className="page-subtitle">
+    <div className="medical-results-container">
+      {/* Header */}
+      <div className="patient-header">
+        <div className="header-content">
+          <div className="header-icon-wrapper">
+            <FaFileMedical size={40} />
+          </div>
+          <h1 className="header-title">KẾT QUẢ KHÁM BỆNH CỦA TÔI</h1>
+          <p className="header-subtitle">
             Xem và quản lý toàn bộ kết quả khám bệnh của bạn
           </p>
         </div>
+      </div>
 
-        {error && (
-          <div className="alert alert-error">
-            <i className="fas fa-exclamation-circle"></i> {error}
+      {/* Thông báo lỗi */}
+      {errorMessage && (
+        <div className="error-message-card">
+          <div className="error-icon">
+            <FaExclamationTriangle size={40} />
           </div>
-        )}
+          <div className="error-content">
+            <h4>CÓ LỖI XẢY RA</h4>
+            <p>{errorMessage}</p>
+          </div>
+          <button className="retry-button-large" onClick={fetchMedicalRecords}>
+            <FaRedo size={18} />
+            THỬ LẠI
+          </button>
+        </div>
+      )}
 
-        {/* Search Section */}
-        <div className="search-section card">
-          <h3 className="search-title">
-            <i className="fas fa-search"></i> Tìm kiếm kết quả khám
-          </h3>
-
-          <div className="search-form">
-            <div className="form-row">
-              <div className="form-group">
-                <label>Tìm kiếm theo triệu chứng, chẩn đoán...</label>
-                <input
-                  type="text"
-                  className="form-control"
-                  value={searchKeyword}
-                  onChange={(e) => setSearchKeyword(e.target.value)}
-                  placeholder="Nhập từ khóa tìm kiếm..."
-                />
-              </div>
-              <div className="form-group">
-                <label>Từ ngày</label>
-                <input
-                  type="date"
-                  className="form-control"
-                  value={searchFromDate}
-                  onChange={(e) => setSearchFromDate(e.target.value)}
-                />
-              </div>
-              <div className="form-group">
-                <label>Đến ngày</label>
-                <input
-                  type="date"
-                  className="form-control"
-                  value={searchToDate}
-                  onChange={(e) => setSearchToDate(e.target.value)}
-                />
-              </div>
-              <div className="form-group form-buttons">
-                <button
-                  className="btn btn-primary"
-                  onClick={handleSearch}
-                  disabled={loading}
-                >
-                  <i className="fas fa-search"></i> Tìm kiếm
-                </button>
-                <button
-                  className="btn btn-secondary"
-                  onClick={handleClearSearch}
-                  disabled={loading}
-                >
-                  <i className="fas fa-times"></i> Xóa
-                </button>
-              </div>
-            </div>
+      {/* Thống kê nhanh */}
+      <div className="quick-stats">
+        <div className="stat-card">
+          <div className="stat-icon">
+            <FaFileMedical size={32} />
+          </div>
+          <div className="stat-content">
+            <h3>Tổng số kết quả</h3>
+            <p className="stat-number">{totalRecords}</p>
           </div>
         </div>
 
-        {/* Results Section */}
-        <div className="results-section card">
-          {loading ? (
-            <div className="loading-container">
-              <div className="spinner"></div>
-              <p>Đang tải dữ liệu...</p>
+        <div className="stat-card">
+          <div className="stat-icon">
+            <FaClipboardCheck size={32} />
+          </div>
+          <div className="stat-content">
+            <h3>Đã hoàn thành</h3>
+            <p className="stat-number">
+              {
+                medicalRecords.filter(
+                  (r) => r.examinationStatus === "COMPLETED"
+                ).length
+              }
+            </p>
+          </div>
+        </div>
+
+        <div className="stat-card">
+          <div className="stat-icon">
+            <FaStethoscope size={32} />
+          </div>
+          <div className="stat-content">
+            <h3>Đang khám</h3>
+            <p className="stat-number">
+              {
+                medicalRecords.filter(
+                  (r) => r.examinationStatus === "IN_PROGRESS"
+                ).length
+              }
+            </p>
+          </div>
+        </div>
+
+        <div className="stat-card">
+          <div className="stat-icon">
+            <FaPills size={32} />
+          </div>
+          <div className="stat-content">
+            <h3>Có thuốc kê</h3>
+            <p className="stat-number">
+              {
+                medicalRecords.filter(
+                  (r) => r.medications && r.medications.length > 0
+                ).length
+              }
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Bộ lọc đơn giản */}
+      <div className="simple-filters">
+        <div className="filters-title">
+          <FaSearch size={24} />
+          <h2>TÌM KẾT QUẢ KHÁM</h2>
+        </div>
+
+        <div className="filter-row single">
+          <div className="filter-group">
+            <label htmlFor="keyword-search">
+              <FaSearch size={18} />
+              <span>Từ khóa</span>
+            </label>
+            <input
+              id="keyword-search"
+              type="text"
+              placeholder="Triệu chứng, chẩn đoán, bác sĩ..."
+              value={searchKeyword}
+              onChange={(e) => setSearchKeyword(e.target.value)}
+              className="filter-input"
+            />
+          </div>
+        </div>
+
+        <div className="filter-row">
+          <div className="filter-group">
+            <label htmlFor="from-date">
+              <FaCalendar size={18} />
+              <span>Từ ngày</span>
+            </label>
+            <input
+              id="from-date"
+              type="date"
+              value={searchFromDate}
+              onChange={(e) => setSearchFromDate(e.target.value)}
+              className="filter-input"
+            />
+          </div>
+
+          <div className="filter-group">
+            <label htmlFor="to-date">
+              <FaCalendar size={18} />
+              <span>Đến ngày</span>
+            </label>
+            <input
+              id="to-date"
+              type="date"
+              value={searchToDate}
+              onChange={(e) => setSearchToDate(e.target.value)}
+              className="filter-input"
+            />
+          </div>
+
+          <div className="filter-group form-buttons">
+            <button className="search-button" onClick={handleSearch}>
+              <FaSearch size={18} />
+              TÌM KIẾM
+            </button>
+            {(searchKeyword || searchFromDate || searchToDate) && (
+              <button
+                className="clear-filters-button"
+                onClick={handleClearSearch}
+              >
+                <FaTimes size={18} />
+                XÓA BỘ LỌC
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Danh sách kết quả */}
+      <div className="results-section">
+        <div className="section-header">
+          <div className="section-title">
+            <FaFileMedical size={24} />
+            <h2>
+              DANH SÁCH KẾT QUẢ
+              <span className="record-count"> ({currentRecords.length})</span>
+            </h2>
+          </div>
+          <button className="refresh-button" onClick={fetchMedicalRecords}>
+            <FaRedo size={18} />
+            <span>LÀM MỚI</span>
+          </button>
+        </div>
+
+        {medicalRecords.length === 0 ? (
+          <div className="empty-state">
+            <div className="empty-icon">
+              <FaFileMedical size={80} />
             </div>
-          ) : medicalRecords.length === 0 ? (
-            <div className="empty-state">
-              <i className="fas fa-file-medical-alt"></i>
-              <p>
-                {searchKeyword || searchFromDate || searchToDate
-                  ? "Không tìm thấy kết quả khám nào phù hợp"
-                  : "Chưa có kết quả khám nào"}
-              </p>
-            </div>
-          ) : (
-            <>
+            <h3>KHÔNG CÓ KẾT QUẢ NÀO</h3>
+            <p>
+              {searchKeyword || searchFromDate || searchToDate
+                ? "Không tìm thấy kết quả khám nào phù hợp với bộ lọc"
+                : "Bạn chưa có kết quả khám bệnh nào"}
+            </p>
+          </div>
+        ) : (
+          <>
+            <div className="results-table-container">
               <div className="table-responsive">
                 <table className="results-table">
                   <thead>
@@ -427,7 +608,7 @@ const MedicalExaminationResults = () => {
                       <th>Chẩn đoán</th>
                       <th>Bác sĩ</th>
                       <th>Trạng thái</th>
-                      <th>Thao tác</th>
+                      <th>Thao tác (Xem chi tiết, In)</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -436,11 +617,7 @@ const MedicalExaminationResults = () => {
                         <td>{startIndex + index + 1}</td>
                         <td>
                           {record.examinationDate
-                            ? format(
-                                new Date(record.examinationDate),
-                                "dd/MM/yyyy",
-                                { locale: vi }
-                              )
+                            ? formatDate(record.examinationDate)
                             : "Không xác định"}
                         </td>
                         <td
@@ -457,7 +634,7 @@ const MedicalExaminationResults = () => {
                         </td>
                         <td>
                           <div className="doctor-info">
-                            <i className="fas fa-user-md"></i>
+                            <FaUserMd size={18} />
                             <div>
                               <strong>
                                 {record.doctorName || "Không xác định"}
@@ -466,23 +643,27 @@ const MedicalExaminationResults = () => {
                             </div>
                           </div>
                         </td>
-                        <td>{getStatusChip(record.examinationStatus)}</td>
-                        <td>
+                        <td>{getStatusBadge(record.examinationStatus)}</td>
+                        <td className="action-cell">
                           <div className="action-buttons">
                             <button
-                              className="btn btn-sm btn-info"
+                              className="btn btn-sm btn-info action-btn-view"
                               onClick={() => handleViewDetail(record.id)}
                               disabled={detailLoading}
+                              aria-label="Xem chi tiết"
                               title="Xem chi tiết"
                             >
-                              <i className="fas fa-eye"></i>
+                              <FaEye aria-hidden="true" />
+                              <span className="action-label">Xem chi tiết</span>
                             </button>
                             <button
-                              className="btn btn-sm btn-secondary"
+                              className="btn btn-sm btn-secondary action-btn-print"
                               onClick={() => handlePrint(record)}
+                              aria-label="In kết quả"
                               title="In kết quả"
                             >
-                              <i className="fas fa-print"></i>
+                              <FaPrint aria-hidden="true" />
+                              <span className="action-label">In</span>
                             </button>
                           </div>
                         </td>
@@ -500,226 +681,238 @@ const MedicalExaminationResults = () => {
                 <div className="pagination-controls">
                   <button
                     className="btn btn-sm"
-                    onClick={() => handleChangePage(null, page - 1)}
+                    onClick={() => handleChangePage(page - 1)}
                     disabled={page === 0}
                   >
-                    <i className="fas fa-chevron-left"></i> Trước
+                    <FaChevronLeft size={16} /> Trước
                   </button>
                   <span className="page-numbers">
-                    Trang {page + 1} / {Math.ceil(totalRecords / rowsPerPage)}
+                    Trang {page + 1} /{" "}
+                    {Math.max(1, Math.ceil(totalRecords / rowsPerPage))}
                   </span>
                   <button
                     className="btn btn-sm"
-                    onClick={() => handleChangePage(null, page + 1)}
+                    onClick={() => handleChangePage(page + 1)}
                     disabled={endIndex >= totalRecords}
                   >
-                    Sau <i className="fas fa-chevron-right"></i>
+                    Sau <FaChevronRight size={16} />
                   </button>
                 </div>
-                <div className="page-size-selector">
-                  <select
-                    value={rowsPerPage}
-                    onChange={(e) =>
-                      handleChangeRowsPerPage({
-                        target: { value: e.target.value },
-                      })
-                    }
-                    className="form-control-sm"
-                  >
-                    <option value="5">5 dòng/trang</option>
-                    <option value="10">10 dòng/trang</option>
-                    <option value="25">25 dòng/trang</option>
-                    <option value="50">50 dòng/trang</option>
-                  </select>
-                </div>
+                {/* page-size selector removed per UX request */}
               </div>
-            </>
-          )}
-        </div>
+            </div>
+          </>
+        )}
+      </div>
 
-        {/* Detail Dialog */}
-        {detailDialogOpen && (
-          <div
-            className="modal-overlay"
-            onClick={() => setDetailDialogOpen(false)}
-          >
-            <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-              {detailLoading ? (
-                <div className="modal-loading">
-                  <div className="spinner"></div>
-                  <p>Đang tải chi tiết...</p>
+      {/* Modal chi tiết kết quả */}
+      {detailDialogOpen && selectedRecord && (
+        <div
+          className="modal-overlay"
+          onClick={() => setDetailDialogOpen(false)}
+        >
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            {detailLoading ? (
+              <div className="modal-loading">
+                <FaSpinner className="animate-spin" size={32} />
+                <p>Đang tải chi tiết...</p>
+              </div>
+            ) : (
+              <>
+                <div className="modal-header">
+                  <h2>
+                    <FaFileMedical size={24} />
+                    <span>CHI TIẾT KẾT QUẢ KHÁM</span>
+                  </h2>
+                  <button
+                    className="close-modal"
+                    onClick={() => setDetailDialogOpen(false)}
+                    aria-label="Đóng cửa sổ"
+                  >
+                    <FaTimes size={24} />
+                  </button>
                 </div>
-              ) : selectedRecord ? (
-                <>
-                  <div className="modal-header">
-                    <h3>
-                      <i className="fas fa-file-medical-alt"></i> Chi tiết kết
-                      quả khám
+
+                <div className="modal-body">
+                  {/* Thông tin chung */}
+                  <div className="detail-section">
+                    <h3 className="section-title">
+                      <FaInfoCircle size={18} />
+                      <span>THÔNG TIN CHUNG</span>
                     </h3>
-                    <button
-                      className="btn btn-close"
-                      onClick={() => setDetailDialogOpen(false)}
-                    >
-                      <i className="fas fa-times"></i>
-                    </button>
+                    <div className="info-grid">
+                      <div className="info-item">
+                        <span className="info-label">Ngày khám:</span>
+                        <span className="info-value">
+                          {formatDate(selectedRecord.examinationDate)}
+                        </span>
+                      </div>
+                      <div className="info-item">
+                        <span className="info-label">Bác sĩ:</span>
+                        <span className="info-value highlight">
+                          {selectedRecord.doctorName}
+                        </span>
+                      </div>
+                      <div className="info-item">
+                        <span className="info-label">Chuyên khoa:</span>
+                        <span className="info-value">
+                          {selectedRecord.doctorSpecialty}
+                        </span>
+                      </div>
+                      <div className="info-item">
+                        <span className="info-label">Trạng thái:</span>
+                        <span className="info-value">
+                          {getStatusBadge(selectedRecord.examinationStatus)}
+                        </span>
+                      </div>
+                    </div>
                   </div>
 
-                  <div className="modal-body">
-                    {/* Thông tin chung */}
-                    <div className="detail-section">
-                      <h4 className="section-title">Thông tin chung</h4>
-                      <div className="info-grid">
-                        <div className="info-row">
-                          <span className="info-label">Ngày khám:</span>
-                          <span className="info-value">
-                            {selectedRecord.examinationDate
-                              ? format(
-                                  new Date(selectedRecord.examinationDate),
-                                  "dd/MM/yyyy",
-                                  { locale: vi }
-                                )
-                              : "Không xác định"}
-                          </span>
+                  {/* Thông tin khám */}
+                  <div className="detail-section">
+                    <h3 className="section-title">
+                      <FaStethoscope size={18} />
+                      <span>THÔNG TIN KHÁM</span>
+                    </h3>
+                    <div className="info-content">
+                      <div className="info-block">
+                        <h4>Triệu chứng chính:</h4>
+                        <div className="info-text">
+                          {selectedRecord.chiefComplaint || "Không có"}
                         </div>
-                        <div className="info-row">
-                          <span className="info-label">Bác sĩ:</span>
-                          <span className="info-value">
-                            {selectedRecord.doctorName || "Không xác định"}
-                          </span>
+                      </div>
+                      <div className="info-block">
+                        <h4>Tiền sử bệnh:</h4>
+                        <div className="info-text">
+                          {selectedRecord.historyOfIllness || "Không có"}
                         </div>
-                        <div className="info-row">
-                          <span className="info-label">Chuyên khoa:</span>
-                          <span className="info-value">
-                            {selectedRecord.doctorSpecialty || "Không xác định"}
-                          </span>
-                        </div>
-                        <div className="info-row">
-                          <span className="info-label">Trạng thái:</span>
-                          <span className="info-value">
-                            {getStatusChip(selectedRecord.examinationStatus)}
-                          </span>
+                      </div>
+                      <div className="info-block">
+                        <h4>Khám thực thể:</h4>
+                        <div className="info-text">
+                          {selectedRecord.physicalExamination || "Không có"}
                         </div>
                       </div>
                     </div>
+                  </div>
 
-                    {/* Thông tin khám */}
-                    <div className="detail-section">
-                      <h4 className="section-title">Thông tin khám bệnh</h4>
-                      <div className="info-grid">
-                        <div className="info-row full-width">
-                          <span className="info-label">Triệu chứng chính:</span>
-                          <div className="info-value multiline">
-                            {selectedRecord.chiefComplaint || "Không có"}
-                          </div>
+                  {/* Chẩn đoán */}
+                  <div className="detail-section">
+                    <h3 className="section-title">
+                      <FaNotesMedical size={18} />
+                      <span>CHẨN ĐOÁN</span>
+                    </h3>
+                    <div className="info-content">
+                      <div className="info-block">
+                        <h4>Chẩn đoán sơ bộ:</h4>
+                        <div className="info-text">
+                          {selectedRecord.preliminaryDiagnosis || "Không có"}
                         </div>
-                        <div className="info-row full-width">
-                          <span className="info-label">Tiền sử bệnh:</span>
-                          <div className="info-value multiline">
-                            {selectedRecord.historyOfIllness || "Không có"}
-                          </div>
-                        </div>
-                        <div className="info-row full-width">
-                          <span className="info-label">Khám thực thể:</span>
-                          <div className="info-value multiline">
-                            {selectedRecord.physicalExamination || "Không có"}
-                          </div>
+                      </div>
+                      <div className="info-block">
+                        <h4>Chẩn đoán chính thức:</h4>
+                        <div className="info-text">
+                          {selectedRecord.finalDiagnosis || "Không có"}
                         </div>
                       </div>
                     </div>
+                  </div>
 
-                    {/* Chẩn đoán */}
-                    <div className="detail-section">
-                      <h4 className="section-title">Chẩn đoán</h4>
-                      <div className="info-grid">
-                        <div className="info-row full-width">
-                          <span className="info-label">Chẩn đoán sơ bộ:</span>
-                          <div className="info-value multiline">
-                            {selectedRecord.preliminaryDiagnosis || "Không có"}
-                          </div>
-                        </div>
-                        <div className="info-row full-width">
-                          <span className="info-label">
-                            Chẩn đoán chính thức:
-                          </span>
-                          <div className="info-value multiline">
-                            {selectedRecord.finalDiagnosis || "Không có"}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Thuốc */}
-                    {selectedRecord.medications &&
-                      selectedRecord.medications.length > 0 && (
-                        <div className="detail-section">
-                          <h4 className="section-title">Thuốc được kê</h4>
-                          <div className="table-responsive">
-                            <table className="medication-table">
-                              <thead>
-                                <tr>
-                                  <th>Tên thuốc</th>
-                                  <th>Liều lượng</th>
-                                  <th>Tần suất</th>
-                                  <th>Thời gian</th>
-                                  <th>Hướng dẫn</th>
+                  {/* Thuốc được kê */}
+                  {selectedRecord.medications &&
+                    selectedRecord.medications.length > 0 && (
+                      <div className="detail-section">
+                        <h3 className="section-title">
+                          <FaPills size={18} />
+                          <span>THUỐC ĐƯỢC KÊ</span>
+                        </h3>
+                        <div className="medication-table-container">
+                          <table className="medication-table">
+                            <thead>
+                              <tr>
+                                <th>Tên thuốc</th>
+                                <th>Liều lượng</th>
+                                <th>Tần suất</th>
+                                <th>Thời gian</th>
+                                <th>Hướng dẫn</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {selectedRecord.medications.map((med, index) => (
+                                <tr key={index}>
+                                  <td>{med.name || ""}</td>
+                                  <td>{med.dosage || ""}</td>
+                                  <td>{med.frequency || ""}</td>
+                                  <td>{med.duration || ""}</td>
+                                  <td>{med.instructions || ""}</td>
                                 </tr>
-                              </thead>
-                              <tbody>
-                                {selectedRecord.medications.map(
-                                  (med, index) => (
-                                    <tr key={index}>
-                                      <td>{med.name || ""}</td>
-                                      <td>{med.dosage || ""}</td>
-                                      <td>{med.frequency || ""}</td>
-                                      <td>{med.duration || ""}</td>
-                                      <td>{med.instructions || ""}</td>
-                                    </tr>
-                                  )
-                                )}
-                              </tbody>
-                            </table>
-                          </div>
+                              ))}
+                            </tbody>
+                          </table>
                         </div>
-                      )}
+                      </div>
+                    )}
 
-                    {/* Lời khuyên */}
-                    <div className="detail-section">
-                      <h4 className="section-title">Hướng dẫn & Lời khuyên</h4>
-                      <div className="advice-content">
+                  {/* Hướng dẫn & lời khuyên */}
+                  <div className="detail-section">
+                    <h3 className="section-title">
+                      <FaClipboardCheck size={18} />
+                      <span>HƯỚNG DẪN & LỜI KHUYÊN</span>
+                    </h3>
+                    <div className="advice-content">
+                      <div className="advice-text">
                         {selectedRecord.advice || "Không có lời khuyên cụ thể"}
                       </div>
                       {selectedRecord.followUpDate && (
                         <div className="follow-up-info">
-                          <strong>Hẹn tái khám:</strong>{" "}
-                          {format(
-                            new Date(selectedRecord.followUpDate),
-                            "dd/MM/yyyy",
-                            { locale: vi }
-                          )}
+                          <div className="follow-up-icon">
+                            <FaCalendar size={16} />
+                          </div>
+                          <div className="follow-up-text">
+                            <strong>HẸN TÁI KHÁM:</strong>{" "}
+                            {formatDate(selectedRecord.followUpDate)}
+                          </div>
                         </div>
                       )}
                     </div>
                   </div>
+                </div>
 
-                  <div className="modal-footer">
-                    <button
-                      className="btn btn-secondary"
-                      onClick={() => setDetailDialogOpen(false)}
-                    >
-                      Đóng
-                    </button>
-                    <button
-                      className="btn btn-primary"
-                      onClick={() => handlePrint(selectedRecord)}
-                    >
-                      <i className="fas fa-print"></i> In kết quả
-                    </button>
-                  </div>
-                </>
-              ) : null}
-            </div>
+                <div className="modal-footer">
+                  <button
+                    className="modal-button secondary"
+                    onClick={() => setDetailDialogOpen(false)}
+                  >
+                    ĐÓNG
+                  </button>
+                  <button
+                    className="modal-button primary"
+                    onClick={() => handlePrint(selectedRecord)}
+                  >
+                    <FaPrint size={18} />
+                    IN KẾT QUẢ
+                  </button>
+                </div>
+              </>
+            )}
           </div>
-        )}
+        </div>
+      )}
+
+      {/* Hỗ trợ nhanh */}
+      <div className="quick-help">
+        <div className="help-header">
+          <FaPhoneAlt size={24} />
+          <h3>CẦN HỖ TRỢ?</h3>
+        </div>
+        <p>
+          Gọi tổng đài: <strong>1900 1234</strong> (Miễn phí)
+        </p>
+        <p className="help-time">Thời gian: 7:00 - 22:00 hàng ngày</p>
+        <button className="help-button">
+          <FaQuestionCircle size={20} />
+          <span>HƯỚNG DẪN CHI TIẾT</span>
+        </button>
       </div>
     </div>
   );
