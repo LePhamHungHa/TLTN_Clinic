@@ -35,13 +35,13 @@ public class DoctorStatisticsController {
             @PathVariable Long userId,
             @RequestParam(defaultValue = "TODAY") String period) {
         
-        System.out.println("📊 [Controller] Getting statistics for userId: " + userId + ", period: " + period);
+        System.out.println("[Controller] Getting statistics for userId: " + userId + ", period: " + period);
         
         try {
             // Tìm doctor theo userId
             var doctorOpt = doctorRepository.findByUserId(userId);
             if (!doctorOpt.isPresent()) {
-                System.out.println("❌ [Controller] Không tìm thấy bác sĩ với userId: " + userId);
+                System.out.println("[Controller] Không tìm thấy bác sĩ với userId: " + userId);
                 
                 Map<String, Object> errorResponse = new HashMap<>();
                 errorResponse.put("success", false);
@@ -52,16 +52,16 @@ public class DoctorStatisticsController {
             var doctor = doctorOpt.get();
             Long doctorId = doctor.getId();
             
-            System.out.println("✅ [Controller] Mapping: userId=" + userId + " -> doctorId=" + doctorId + 
+            System.out.println("[Controller] Mapping: userId=" + userId + " -> doctorId=" + doctorId + 
                              ", doctorName=" + doctor.getFullName());
             
-            // Gọi service với doctorId đúng
+            // Gọi service với doctorId\
             Map<String, Object> statistics = statisticsService.getDoctorStatistics(doctorId, period);
             
             return ResponseEntity.ok(statistics);
             
         } catch (Exception e) {
-            System.out.println("💥 [Controller] Error: " + e.getMessage());
+            System.out.println("[Controller] Error: " + e.getMessage());
             e.printStackTrace();
             
             Map<String, Object> errorResponse = new HashMap<>();
@@ -78,14 +78,14 @@ public class DoctorStatisticsController {
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
         
-        System.out.println("📊 [Controller] Getting custom statistics for userId: " + userId + 
+        System.out.println("[Controller] Getting custom statistics for userId: " + userId + 
                           ", from " + startDate + " to " + endDate);
         
         try {
             // Tìm doctor theo userId
             var doctorOpt = doctorRepository.findByUserId(userId);
             if (!doctorOpt.isPresent()) {
-                System.out.println("❌ [Controller] Không tìm thấy bác sĩ với userId: " + userId);
+                System.out.println("[Controller] Không tìm thấy bác sĩ với userId: " + userId);
                 
                 Map<String, Object> errorResponse = new HashMap<>();
                 errorResponse.put("success", false);
@@ -96,13 +96,13 @@ public class DoctorStatisticsController {
             var doctor = doctorOpt.get();
             Long doctorId = doctor.getId();
             
-            System.out.println("✅ [Controller] Custom Mapping: userId=" + userId + " -> doctorId=" + doctorId);
+            System.out.println("[Controller] Custom Mapping: userId=" + userId + " -> doctorId=" + doctorId);
             
             Map<String, Object> statistics = statisticsService.getCustomStatistics(doctorId, startDate, endDate);
             return ResponseEntity.ok(statistics);
             
         } catch (Exception e) {
-            System.out.println("💥 [Controller] Error: " + e.getMessage());
+            System.out.println("[Controller] Error: " + e.getMessage());
             e.printStackTrace();
             
             Map<String, Object> errorResponse = new HashMap<>();
@@ -115,13 +115,13 @@ public class DoctorStatisticsController {
     // Cập nhật thống kê
     @PostMapping("/update/{userId}")
     public ResponseEntity<Map<String, Object>> updateStatistics(@PathVariable Long userId) {
-        System.out.println("🔄 [Controller] Updating statistics for userId: " + userId);
+        System.out.println("[Controller] Updating statistics for userId: " + userId);
         
         try {
             // Tìm doctor theo userId
             var doctorOpt = doctorRepository.findByUserId(userId);
             if (!doctorOpt.isPresent()) {
-                System.out.println("❌ [Controller] Không tìm thấy bác sĩ với userId: " + userId);
+                System.out.println("[Controller] Không tìm thấy bác sĩ với userId: " + userId);
                 
                 Map<String, Object> errorResponse = new HashMap<>();
                 errorResponse.put("success", false);
@@ -132,7 +132,7 @@ public class DoctorStatisticsController {
             var doctor = doctorOpt.get();
             Long doctorId = doctor.getId();
             
-            System.out.println("✅ [Controller] Update Mapping: userId=" + userId + " -> doctorId=" + doctorId);
+            System.out.println("[Controller] Update Mapping: userId=" + userId + " -> doctorId=" + doctorId);
             
             statisticsService.updateDailyStatistics(doctorId);
             
@@ -145,7 +145,7 @@ public class DoctorStatisticsController {
             return ResponseEntity.ok(response);
             
         } catch (Exception e) {
-            System.out.println("💥 [Controller] Error: " + e.getMessage());
+            System.out.println("[Controller] Error: " + e.getMessage());
             e.printStackTrace();
             
             Map<String, Object> errorResponse = new HashMap<>();
@@ -158,7 +158,7 @@ public class DoctorStatisticsController {
     // API test để kiểm tra mapping
     @GetMapping("/test-mapping/{userId}")
     public ResponseEntity<Map<String, Object>> testMapping(@PathVariable Long userId) {
-        System.out.println("🧪 [Controller] Testing mapping for userId: " + userId);
+        System.out.println("[Controller] Testing mapping for userId: " + userId);
         
         Map<String, Object> response = new HashMap<>();
         
@@ -168,7 +168,6 @@ public class DoctorStatisticsController {
                 response.put("success", false);
                 response.put("message", "Không tìm thấy bác sĩ với userId: " + userId);
                 
-                // Thử tìm trực tiếp trong bảng doctors
                 var directDoctorOpt = doctorRepository.findById(userId);
                 if (directDoctorOpt.isPresent()) {
                     response.put("note", "Found doctor directly with id=" + userId + 
@@ -198,7 +197,7 @@ public class DoctorStatisticsController {
             @PathVariable Long doctorId,
             @RequestParam LocalDate date) {
         
-        System.out.println("🔍 DEBUG API for doctorId: " + doctorId + ", date: " + date);
+        System.out.println("DEBUG API for doctorId: " + doctorId + ", date: " + date);
         
         Map<String, Object> response = new HashMap<>();
         
@@ -217,25 +216,20 @@ public class DoctorStatisticsController {
             response.put("doctorName", doctor.getFullName());
             response.put("doctorUserId", doctor.getUserId());
             
-            // 2. Kiểm appointments trong ngày (tất cả status)
             List<PatientRegistration> appointments = patientRegistrationRepository
                     .findByDoctorAndDateAndSession(doctorId, date, null);
             
             response.put("appointmentsCount", appointments.size());
             
-            // Sửa lỗi: Kiểm tra method getPatientName có tồn tại không
             List<Map<String, Object>> appointmentList = appointments.stream()
                     .map(apt -> {
                         Map<String, Object> appointmentMap = new HashMap<>();
                         appointmentMap.put("id", apt.getId());
                         
-                        // Kiểm tra xem có method getPatientName không, nếu không dùng getFullName
                         try {
-                            // Thử với getPatientName (nếu có)
                             Object patientName = apt.getClass().getMethod("getPatientName").invoke(apt);
                             appointmentMap.put("patientName", patientName);
                         } catch (Exception e) {
-                            // Nếu không có, dùng phương thức khác hoặc để trống
                             appointmentMap.put("patientName", "Unknown");
                         }
                         
@@ -269,7 +263,7 @@ public class DoctorStatisticsController {
             
             response.put("appointments", appointmentList);
             
-            // 3. Tính thống kê chi tiết - SỬA LỖI Anonymous class
+           
             int total = appointments.size();
             int completed = 0;
             int cancelled = 0;
@@ -288,11 +282,9 @@ public class DoctorStatisticsController {
                     Object examStatus = apt.getClass().getMethod("getExaminationStatus").invoke(apt);
                     if ("MISSED".equals(examStatus)) noShow++;
                 } catch (Exception e) {
-                    // Ignore
                 }
             }
             
-            // SỬA: Không dùng anonymous class, dùng Map.of
             Map<String, Object> statsMap = new HashMap<>();
             statsMap.put("total", total);
             statsMap.put("completed", completed);
@@ -303,7 +295,6 @@ public class DoctorStatisticsController {
             
             response.put("stats", statsMap);
             
-            // 4. Thống kê theo session
             Map<String, Long> sessionStats = appointments.stream()
                     .collect(Collectors.groupingBy(
                             apt -> {
@@ -430,7 +421,6 @@ public class DoctorStatisticsController {
         Map<String, Object> response = new HashMap<>();
         
         try {
-            // 1. Kiểm tra doctor có tồn tại không
             var doctorOpt = doctorRepository.findById(doctorId);
             if (!doctorOpt.isPresent()) {
                 response.put("success", false);
@@ -445,7 +435,6 @@ public class DoctorStatisticsController {
                 put("userId", doctor.getUserId());
             }});
             
-            // 2. Lấy TẤT CẢ appointments của doctor này
             List<PatientRegistration> allAppointments = patientRegistrationRepository.findAll()
                     .stream()
                     .filter(apt -> doctorId.equals(apt.getDoctorId()))
@@ -453,16 +442,12 @@ public class DoctorStatisticsController {
             
             response.put("totalAppointmentsInDB", allAppointments.size());
             
-            // 3. Phân tích appointments theo ngày và status
             Map<String, Long> appointmentsByDate = new HashMap<>();
             Map<String, Long> appointmentsByStatus = new HashMap<>();
             
             for (PatientRegistration apt : allAppointments) {
-                // Theo ngày
                 String dateStr = apt.getAppointmentDate().toString();
                 appointmentsByDate.put(dateStr, appointmentsByDate.getOrDefault(dateStr, 0L) + 1);
-                
-                // Theo status
                 String status = apt.getStatus();
                 appointmentsByStatus.put(status, appointmentsByStatus.getOrDefault(status, 0L) + 1);
             }
@@ -470,7 +455,6 @@ public class DoctorStatisticsController {
             response.put("appointmentsByDate", appointmentsByDate);
             response.put("appointmentsByStatus", appointmentsByStatus);
             
-            // 4. Lấy 5 appointments gần nhất để kiểm tra
             List<Map<String, Object>> recentAppointments = allAppointments.stream()
                     .sorted((a, b) -> b.getCreatedAt().compareTo(a.getCreatedAt()))
                     .limit(5)
@@ -488,7 +472,6 @@ public class DoctorStatisticsController {
             
             response.put("recentAppointments", recentAppointments);
             
-            // 5. Kiểm tra appointments trong vòng 7 ngày gần đây
             LocalDate today = LocalDate.now();
             LocalDate weekAgo = today.minusDays(7);
             

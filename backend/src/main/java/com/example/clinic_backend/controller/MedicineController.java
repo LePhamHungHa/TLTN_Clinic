@@ -11,7 +11,7 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/admin/structure/medicines")  // Cập nhật đường dẫn để trùng với FE
+@RequestMapping("/api/admin/structure/medicines") 
 @CrossOrigin(origins = {"http://localhost:5173", "http://localhost:3000"}, 
              allowedHeaders = "*", 
              methods = {RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, 
@@ -23,7 +23,6 @@ public class MedicineController {
     @Autowired
     private MedicineService medicineService;
     
-    // ========== GET METHODS ==========
     
     @GetMapping
     public ResponseEntity<List<Medicine>> getAllMedicines() {
@@ -45,7 +44,6 @@ public class MedicineController {
         return ResponseEntity.ok(medicineService.getMedicineById(id));
     }
     
-    // ========== POST METHODS ==========
     
     @PostMapping
     public ResponseEntity<Medicine> createMedicine(@RequestBody Medicine medicine) {
@@ -63,7 +61,6 @@ public class MedicineController {
                 return ResponseEntity.badRequest().body(response);
             }
             
-            // Check file type
             String fileName = file.getOriginalFilename();
             if (fileName == null || (!fileName.endsWith(".xlsx") && !fileName.endsWith(".xls"))) {
                 response.put("success", false);
@@ -84,7 +81,6 @@ public class MedicineController {
         }
     }
     
-    // ========== PUT METHODS ==========
     
     @PutMapping("/{id}")
     public ResponseEntity<Medicine> updateMedicine(@PathVariable Long id, @RequestBody Medicine medicineDetails) {
@@ -106,7 +102,6 @@ public class MedicineController {
         return ResponseEntity.ok(response);
     }
     
-    // ========== DELETE METHODS ==========
     
     @DeleteMapping("/{id}")
     public ResponseEntity<Map<String, String>> deleteMedicine(@PathVariable Long id) {
@@ -117,7 +112,6 @@ public class MedicineController {
         return ResponseEntity.ok(response);
     }
     
-    // ========== HEALTH CHECK ==========
     @GetMapping("/health")
     public ResponseEntity<Map<String, String>> healthCheck() {
         Map<String, String> response = new HashMap<>();

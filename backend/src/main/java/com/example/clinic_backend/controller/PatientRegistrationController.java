@@ -1,22 +1,34 @@
 package com.example.clinic_backend.controller;
 
+import com.example.clinic_backend.dto.ErrorResponseDTO;
 import com.example.clinic_backend.dto.PatientRegistrationDTO;
 import com.example.clinic_backend.model.PatientRegistration;
 import com.example.clinic_backend.repository.PatientRegistrationRepository;
 import com.example.clinic_backend.service.PatientRegistrationService;
+import jakarta.validation.Valid;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.BindingResult;
+import org.springframework.validation.FieldError;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.context.request.WebRequest;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/patient-registrations")
 @CrossOrigin(origins = "http://localhost:5173")
 public class PatientRegistrationController {
 
+    private static final Logger log = LoggerFactory.getLogger(PatientRegistrationController.class);
+    
     private final PatientRegistrationRepository registrationRepository;
     private final PatientRegistrationService registrationService;
 
@@ -30,56 +42,55 @@ public class PatientRegistrationController {
     @GetMapping("/by-email")
     public ResponseEntity<List<PatientRegistration>> getRegistrationsByEmail(@RequestParam String email) {
         try {
-            System.out.println("📥 Getting registrations for email: " + email);
+            log.info("Đang lấy lịch hẹn cho email: {}", email);
             
             List<PatientRegistration> registrations = registrationService.getByEmail(email);
             
-            // 🔥 THÊM DEBUG: Kiểm tra thông tin bác sĩ
-            System.out.println("🔍 DEBUG - Checking doctor information:");
+            // DEBUG: Kiểm tra thông tin bác sĩ
+            log.debug("DEBUG - Kiểm tra thông tin bác sĩ:");
             registrations.forEach(reg -> {
                 if (reg.getDoctor() != null) {
-                    System.out.println("✅ Registration ID: " + reg.getId() + 
-                                     " - Doctor: " + reg.getDoctor().getFullName() +
-                                     " - Degree: " + reg.getDoctor().getDegree() +
-                                     " - Position: " + reg.getDoctor().getPosition());
+                    log.debug("Registration ID: {} - Bác sĩ: {} - Học vị: {} - Chức vụ: {}", 
+                            reg.getId(), reg.getDoctor().getFullName(), 
+                            reg.getDoctor().getDegree(), reg.getDoctor().getPosition());
                 } else {
-                    System.out.println("❌ Registration ID: " + reg.getId() + 
-                                     " - Doctor: NULL" +
-                                     " - Doctor ID: " + reg.getDoctorId());
+                    log.debug("Registration ID: {} - Bác sĩ: NULL - Doctor ID: {}", 
+                            reg.getId(), reg.getDoctorId());
                 }
             });
             
-            System.out.println("✅ Found " + registrations.size() + " registrations for email: " + email);
+            log.info("Đã tìm thấy {} lịch hẹn cho email: {}", registrations.size(), email);
             return ResponseEntity.ok(registrations);
             
         } catch (Exception e) {
-            System.err.println("❌ Error getting registrations by email: " + e.getMessage());
-            e.printStackTrace();
+            log.error("Lỗi khi lấy lịch hẹn theo email: {}", e.getMessage(), e);
             return ResponseEntity.internalServerError().build();
         }
     }
 
-    // ... CÁC METHOD KHÁC GIỮ NGUYÊN ...
     // POST method - Tạo đăng ký mới VỚI TÍCH HỢP SLOT VÀ THÔNG BÁO
     @PostMapping
-    public ResponseEntity<?> createRegistration(@RequestBody PatientRegistrationDTO dto) {
+    public ResponseEntity<?> createRegistration(@Valid @RequestBody PatientRegistrationDTO dto) {
         try {
-            System.out.println("=== RECEIVED REGISTRATION REQUEST ===");
-            System.out.println("DTO: " + dto.toString());
-            System.out.println("================================");
+            log.info("=== NHẬN YÊU CẦU ĐĂNG KÝ ===");
+            log.info("DTO: {}", dto);
+            log.info("================================");
 
             // Validation cơ bản
             if (dto.getFullName() == null || dto.getFullName().trim().isEmpty()) {
-                return ResponseEntity.badRequest().body("Full name is required");
+                return ResponseEntity.badRequest().body("Họ và tên là bắt buộc");
             }
             if (dto.getEmail() == null || dto.getEmail().trim().isEmpty()) {
-                return ResponseEntity.badRequest().body("Email is required");
+                return ResponseEntity.badRequest().body("Email là bắt buộc");
             }
             if (dto.getPhone() == null || dto.getPhone().trim().isEmpty()) {
-                return ResponseEntity.badRequest().body("Phone is required");
+                return ResponseEntity.badRequest().body("Số điện thoại là bắt buộc");
             }
-            // QUAN TRỌNG: Bỏ validation cho doctorId - có thể null
-            // QUAN TRỌNG: Bỏ validation cho timeSlot - có thể null
+            
+            // QUAN TRỌNG: Nếu có doctorId thì phải có timeSlot
+            if (dto.getDoctorId() != null && (dto.getTimeSlot() == null || dto.getTimeSlot().trim().isEmpty())) {
+                return ResponseEntity.badRequest().body("Nếu chọn bác sĩ thì phải chọn khung giờ");
+            }
 
             PatientRegistration registration = new PatientRegistration();
             registration.setFullName(dto.getFullName().trim());
@@ -89,10 +100,10 @@ public class PatientRegistrationController {
                 try {
                     registration.setDob(LocalDate.parse(dto.getDob()));
                 } catch (Exception e) {
-                    return ResponseEntity.badRequest().body("Invalid date format for DOB. Use YYYY-MM-DD");
+                    return ResponseEntity.badRequest().body("Định dạng ngày sinh không hợp lệ. Sử dụng YYYY-MM-DD");
                 }
             } else {
-                return ResponseEntity.badRequest().body("Date of birth is required");
+                return ResponseEntity.badRequest().body("Ngày sinh là bắt buộc");
             }
 
             registration.setGender(dto.getGender());
@@ -107,10 +118,10 @@ public class PatientRegistrationController {
                 try {
                     registration.setAppointmentDate(LocalDate.parse(dto.getAppointmentDate()));
                 } catch (Exception e) {
-                    return ResponseEntity.badRequest().body("Invalid date format for appointment date. Use YYYY-MM-DD");
+                    return ResponseEntity.badRequest().body("Định dạng ngày hẹn không hợp lệ. Sử dụng YYYY-MM-DD");
                 }
             } else {
-                return ResponseEntity.badRequest().body("Appointment date is required");
+                return ResponseEntity.badRequest().body("Ngày hẹn là bắt buộc");
             }
 
             // QUAN TRỌNG: doctorId có thể là null nếu người dùng không chọn bác sĩ
@@ -123,31 +134,41 @@ public class PatientRegistrationController {
             registration.setCreatedAt(LocalDateTime.now());
             registration.setStatus("PROCESSING");
 
-            System.out.println("🔄 Gọi service xử lý đăng ký...");
-            System.out.println("📋 Thông tin đăng ký:");
-            System.out.println("   - Doctor ID: " + registration.getDoctorId());
-            System.out.println("   - Appointment Date: " + registration.getAppointmentDate());
-            System.out.println("   - Time Slot: " + registration.getAssignedSession());
+            log.info("Đang gọi service xử lý đăng ký...");
+            log.info("Thông tin đăng ký:");
+            log.info("   - Doctor ID: {}", registration.getDoctorId());
+            log.info("   - Appointment Date: {}", registration.getAppointmentDate());
+            log.info("   - Time Slot: {}", registration.getAssignedSession());
             
-            // GỌI SERVICE XỬ LÝ ĐĂNG KÝ (ĐÃ TÍCH HỢP THÔNG BÁO)
+            // GỌI SERVICE XỬ LÝ ĐĂNG KÝ
             PatientRegistration savedRegistration = registrationService.createRegistration(registration);
             
-            System.out.println("✅ Registration processed successfully with status: " + savedRegistration.getStatus());
-            System.out.println("📋 Registration details:");
-            System.out.println("   - ID: " + savedRegistration.getId());
-            System.out.println("   - Status: " + savedRegistration.getStatus());
-            System.out.println("   - Registration Number: " + savedRegistration.getRegistrationNumber());
-            System.out.println("   - Assigned Session: " + savedRegistration.getAssignedSession());
-            System.out.println("   - Queue Number: " + savedRegistration.getQueueNumber());
-            System.out.println("   - Expected Time: " + savedRegistration.getExpectedTimeSlot());
-            System.out.println("   - Room Number: " + savedRegistration.getRoomNumber());
+            // ĐẢM BẢO LUÔN CÓ REGISTRATION NUMBER
+            if (savedRegistration.getRegistrationNumber() == null || 
+                savedRegistration.getRegistrationNumber().isEmpty()) {
+                savedRegistration.setRegistrationNumber(generateRegistrationNumber());
+                savedRegistration = registrationService.save(savedRegistration);
+            }
+            
+            log.info("Đăng ký đã được xử lý thành công với trạng thái: {}", savedRegistration.getStatus());
+            log.info("Chi tiết đăng ký:");
+            log.info("   - ID: {}", savedRegistration.getId());
+            log.info("   - Status: {}", savedRegistration.getStatus());
+            log.info("   - Registration Number: {}", savedRegistration.getRegistrationNumber());
+            log.info("   - Assigned Session: {}", savedRegistration.getAssignedSession());
+            log.info("   - Queue Number: {}", savedRegistration.getQueueNumber());
             
             return ResponseEntity.ok(savedRegistration);
 
         } catch (Exception e) {
-            System.err.println("❌ ERROR in createRegistration: " + e.getMessage());
-            e.printStackTrace();
-            return ResponseEntity.internalServerError().body("Error creating registration: " + e.getMessage());
+            log.error("LỖI trong createRegistration: {}", e.getMessage(), e);
+            ErrorResponseDTO errorResponse = new ErrorResponseDTO(
+                HttpStatus.INTERNAL_SERVER_ERROR.value(),
+                "Lỗi Server",
+                "Lỗi khi tạo đăng ký: " + e.getMessage(),
+                "/api/patient-registrations"
+            );
+            return ResponseEntity.internalServerError().body(errorResponse);
         }
     }
 
@@ -156,11 +177,10 @@ public class PatientRegistrationController {
     public ResponseEntity<List<PatientRegistration>> getAllRegistrations() {
         try {
             List<PatientRegistration> registrations = registrationService.getAllWithDoctor();
-            System.out.println("✅ Retrieved " + registrations.size() + " registrations with doctor info");
+            log.info("Đã lấy {} đăng ký với thông tin bác sĩ", registrations.size());
             return ResponseEntity.ok(registrations);
         } catch (Exception e) {
-            System.err.println("❌ Error getting all registrations: " + e.getMessage());
-            e.printStackTrace();
+            log.error("Lỗi khi lấy tất cả đăng ký: {}", e.getMessage(), e);
             return ResponseEntity.internalServerError().build();
         }
     }
@@ -171,15 +191,14 @@ public class PatientRegistrationController {
         try {
             Optional<PatientRegistration> registration = registrationService.getById(id);
             if (registration.isPresent()) {
-                System.out.println("✅ Found registration with ID: " + id);
+                log.info("Đã tìm thấy đăng ký với ID: {}", id);
                 return ResponseEntity.ok(registration.get());
             } else {
-                System.out.println("❌ Registration not found with ID: " + id);
+                log.warn("Không tìm thấy đăng ký với ID: {}", id);
                 return ResponseEntity.notFound().build();
             }
         } catch (Exception e) {
-            System.err.println("❌ Error getting registration by ID: " + e.getMessage());
-            e.printStackTrace();
+            log.error("Lỗi khi lấy đăng ký theo ID: {}", e.getMessage(), e);
             return ResponseEntity.internalServerError().build();
         }
     }
@@ -187,11 +206,11 @@ public class PatientRegistrationController {
     // Cập nhật đăng ký
     @PutMapping("/{id}")
     public ResponseEntity<PatientRegistration> updateRegistration(@PathVariable Long id, 
-                                                                 @RequestBody PatientRegistrationDTO dto) {
+                                                                 @Valid @RequestBody PatientRegistrationDTO dto) {
         try {
             Optional<PatientRegistration> existingOpt = registrationService.getById(id);
             if (existingOpt.isEmpty()) {
-                System.out.println("❌ Registration not found for update with ID: " + id);
+                log.warn("Không tìm thấy đăng ký để cập nhật với ID: {}", id);
                 return ResponseEntity.notFound().build();
             }
 
@@ -212,21 +231,24 @@ public class PatientRegistrationController {
             }
             if (dto.getSymptoms() != null) existing.setSymptoms(dto.getSymptoms());
             
-            // Cập nhật doctor ID và time slot nếu có
-            // QUAN TRỌNG: doctorId có thể là null
+            // QUAN TRỌNG: Nếu có doctorId thì phải có timeSlot
+            if (dto.getDoctorId() != null && (dto.getTimeSlot() == null || dto.getTimeSlot().trim().isEmpty())) {
+                log.error("Lỗi validation: Đã chọn bác sĩ nhưng không có khung giờ");
+                return ResponseEntity.badRequest().body(null);
+            }
+            
             existing.setDoctorId(dto.getDoctorId());
             if (dto.getTimeSlot() != null) {
                 existing.setAssignedSession(dto.getTimeSlot());
             }
 
             PatientRegistration updated = registrationService.update(existing);
-            System.out.println("✅ Updated registration with ID: " + id);
+            log.info("Đã cập nhật đăng ký với ID: {}", id);
             
             return ResponseEntity.ok(updated);
 
         } catch (Exception e) {
-            System.err.println("❌ Error updating registration: " + e.getMessage());
-            e.printStackTrace();
+            log.error("Lỗi khi cập nhật đăng ký: {}", e.getMessage(), e);
             return ResponseEntity.internalServerError().build();
         }
     }
@@ -236,15 +258,14 @@ public class PatientRegistrationController {
     public ResponseEntity<?> deleteRegistration(@PathVariable Long id) {
         try {
             if (!registrationService.existsById(id)) {
-                System.out.println("❌ Registration not found for deletion with ID: " + id);
+                log.warn("Không tìm thấy đăng ký để xóa với ID: {}", id);
                 return ResponseEntity.notFound().build();
             }
             registrationService.deleteById(id);
-            System.out.println("✅ Deleted registration with ID: " + id);
+            log.info("Đã xóa đăng ký với ID: {}", id);
             return ResponseEntity.ok().build();
         } catch (Exception e) {
-            System.err.println("❌ Error deleting registration: " + e.getMessage());
-            e.printStackTrace();
+            log.error("Lỗi khi xóa đăng ký: {}", e.getMessage(), e);
             return ResponseEntity.internalServerError().build();
         }
     }
@@ -254,11 +275,10 @@ public class PatientRegistrationController {
     public ResponseEntity<List<PatientRegistration>> getRegistrationsNeedingManualReview() {
         try {
             List<PatientRegistration> registrations = registrationService.getRegistrationsNeedingManualReview();
-            System.out.println("✅ Found " + registrations.size() + " registrations needing manual review");
+            log.info("Đã tìm thấy {} đăng ký cần xử lý thủ công", registrations.size());
             return ResponseEntity.ok(registrations);
         } catch (Exception e) {
-            System.err.println("❌ Error getting registrations for manual review: " + e.getMessage());
-            e.printStackTrace();
+            log.error("Lỗi khi lấy đăng ký cần xử lý thủ công: {}", e.getMessage(), e);
             return ResponseEntity.internalServerError().build();
         }
     }
@@ -267,22 +287,27 @@ public class PatientRegistrationController {
     @PostMapping("/{id}/try-approve")
     public ResponseEntity<?> tryApproveRegistration(@PathVariable Long id) {
         try {
-            System.out.println("🔄 Attempting to manually approve registration with ID: " + id);
+            log.info("Đang thử duyệt đơn thủ công với ID: {}", id);
             
             PatientRegistration approvedRegistration = registrationService.tryApproveRegistration(id);
             
-            System.out.println("✅ Successfully approved registration with ID: " + id);
-            System.out.println("📋 Approval details:");
-            System.out.println("   - New Status: " + approvedRegistration.getStatus());
-            System.out.println("   - Queue Number: " + approvedRegistration.getQueueNumber());
-            System.out.println("   - Room Number: " + approvedRegistration.getRoomNumber());
+            log.info("Đã duyệt thành công đăng ký với ID: {}", id);
+            log.info("Chi tiết duyệt đơn:");
+            log.info("   - Trạng thái mới: {}", approvedRegistration.getStatus());
+            log.info("   - Số thứ tự: {}", approvedRegistration.getQueueNumber());
+            log.info("   - Số phòng: {}", approvedRegistration.getRoomNumber());
             
             return ResponseEntity.ok(approvedRegistration);
             
         } catch (Exception e) {
-            System.err.println("❌ Error trying to approve registration: " + e.getMessage());
-            e.printStackTrace();
-            return ResponseEntity.badRequest().body("Cannot approve registration: " + e.getMessage());
+            log.error("Lỗi khi thử duyệt đăng ký: {}", e.getMessage(), e);
+            ErrorResponseDTO errorResponse = new ErrorResponseDTO(
+                HttpStatus.BAD_REQUEST.value(),
+                "Yêu cầu không hợp lệ",
+                "Không thể duyệt đơn: " + e.getMessage(),
+                "/api/patient-registrations/" + id + "/try-approve"
+            );
+            return ResponseEntity.badRequest().body(errorResponse);
         }
     }
 
@@ -290,18 +315,23 @@ public class PatientRegistrationController {
     @PostMapping("/{id}/reject")
     public ResponseEntity<?> rejectRegistration(@PathVariable Long id, @RequestBody(required = false) String reason) {
         try {
-            System.out.println("🔄 Rejecting registration with ID: " + id);
-            System.out.println("Reason: " + (reason != null ? reason : "No reason provided"));
+            log.info("Đang từ chối đăng ký với ID: {}", id);
+            log.info("Lý do: {}", (reason != null ? reason : "Không có lý do"));
             
             PatientRegistration rejectedRegistration = registrationService.rejectRegistration(id, reason);
             
-            System.out.println("✅ Successfully rejected registration with ID: " + id);
+            log.info("Đã từ chối thành công đăng ký với ID: {}", id);
             return ResponseEntity.ok(rejectedRegistration);
             
         } catch (Exception e) {
-            System.err.println("❌ Error rejecting registration: " + e.getMessage());
-            e.printStackTrace();
-            return ResponseEntity.badRequest().body("Cannot reject registration: " + e.getMessage());
+            log.error("Lỗi khi từ chối đăng ký: {}", e.getMessage(), e);
+            ErrorResponseDTO errorResponse = new ErrorResponseDTO(
+                HttpStatus.BAD_REQUEST.value(),
+                "Yêu cầu không hợp lệ",
+                "Không thể từ chối đơn: " + e.getMessage(),
+                "/api/patient-registrations/" + id + "/reject"
+            );
+            return ResponseEntity.badRequest().body(errorResponse);
         }
     }
 
@@ -309,16 +339,15 @@ public class PatientRegistrationController {
     @GetMapping("/by-phone")
     public ResponseEntity<List<PatientRegistration>> getRegistrationsByPhone(@RequestParam String phone) {
         try {
-            System.out.println("📥 Getting registrations for phone: " + phone);
+            log.info("Đang lấy lịch hẹn cho số điện thoại: {}", phone);
             
             List<PatientRegistration> registrations = registrationService.getByPhone(phone);
             
-            System.out.println("✅ Found " + registrations.size() + " registrations for phone: " + phone);
+            log.info("Đã tìm thấy {} lịch hẹn cho số điện thoại: {}", registrations.size(), phone);
             return ResponseEntity.ok(registrations);
             
         } catch (Exception e) {
-            System.err.println("❌ Error getting registrations by phone: " + e.getMessage());
-            e.printStackTrace();
+            log.error("Lỗi khi lấy lịch hẹn theo số điện thoại: {}", e.getMessage(), e);
             return ResponseEntity.internalServerError().build();
         }
     }
@@ -327,29 +356,28 @@ public class PatientRegistrationController {
     @GetMapping("/by-status")
     public ResponseEntity<List<PatientRegistration>> getRegistrationsByStatus(@RequestParam String status) {
         try {
-            System.out.println("📥 Getting registrations with status: " + status);
+            log.info("Đang lấy lịch hẹn với trạng thái: {}", status);
             
             List<PatientRegistration> registrations = registrationService.getByStatus(status);
             
-            System.out.println("✅ Found " + registrations.size() + " registrations with status: " + status);
+            log.info("Đã tìm thấy {} lịch hẹn với trạng thái: {}", registrations.size(), status);
             return ResponseEntity.ok(registrations);
             
         } catch (Exception e) {
-            System.err.println("❌ Error getting registrations by status: " + e.getMessage());
-            e.printStackTrace();
+            log.error("Lỗi khi lấy lịch hẹn theo trạng thái: {}", e.getMessage(), e);
             return ResponseEntity.internalServerError().build();
         }
     }
 
-    // THÊM API XỬ LÝ THANH TOÁN THÀNH CÔNG
+    // API XỬ LÝ THANH TOÁN THÀNH CÔNG
     @PostMapping("/{id}/payment-success")
     public ResponseEntity<?> processPaymentSuccess(@PathVariable Long id, 
                                                   @RequestBody PaymentRequest paymentRequest) {
         try {
-            System.out.println("💳 Nhận yêu cầu xử lý thanh toán thành công");
-            System.out.println("   - Registration ID: " + id);
-            System.out.println("   - Transaction: " + paymentRequest.getTransactionNumber());
-            System.out.println("   - Amount: " + paymentRequest.getAmount());
+            log.info("Nhận yêu cầu xử lý thanh toán thành công");
+            log.info("   - Registration ID: {}", id);
+            log.info("   - Transaction: {}", paymentRequest.getTransactionNumber());
+            log.info("   - Amount: {}", paymentRequest.getAmount());
 
             PatientRegistration updatedRegistration = registrationService.processPaymentSuccess(
                 id, 
@@ -357,37 +385,55 @@ public class PatientRegistrationController {
                 paymentRequest.getAmount()
             );
 
-            System.out.println("✅ Xử lý thanh toán thành công và đã gửi email xác nhận");
+            log.info("Đã xử lý thanh toán thành công và gửi email xác nhận");
             return ResponseEntity.ok(updatedRegistration);
 
         } catch (Exception e) {
-            System.err.println("❌ Lỗi xử lý thanh toán: " + e.getMessage());
-            e.printStackTrace();
-            return ResponseEntity.badRequest().body("Lỗi xử lý thanh toán: " + e.getMessage());
+            log.error("Lỗi xử lý thanh toán: {}", e.getMessage(), e);
+            ErrorResponseDTO errorResponse = new ErrorResponseDTO(
+                HttpStatus.BAD_REQUEST.value(),
+                "Yêu cầu không hợp lệ",
+                "Lỗi xử lý thanh toán: " + e.getMessage(),
+                "/api/patient-registrations/" + id + "/payment-success"
+            );
+            return ResponseEntity.badRequest().body(errorResponse);
         }
     }
 
-    // THÊM API GỬI EMAIL NHẮC LỊCH THỦ CÔNG (CHO TESTING)
+    // API GỬI EMAIL NHẮC LỊCH THỦ CÔNG (CHO TESTING)
     @PostMapping("/{id}/send-reminder")
     public ResponseEntity<?> sendManualReminder(@PathVariable Long id) {
         try {
             Optional<PatientRegistration> registrationOpt = registrationService.getById(id);
             if (registrationOpt.isEmpty()) {
+                log.warn("Không tìm thấy đăng ký để gửi nhắc lịch với ID: {}", id);
                 return ResponseEntity.notFound().build();
             }
 
             PatientRegistration registration = registrationOpt.get();
+            log.info("Đang gửi email nhắc lịch thủ công cho registration ID: {}", id);
             
-            // Gọi email service để gửi reminder
-            // Bạn có thể tạo method mới trong EmailService cho việc này
-            // hoặc sử dụng method hiện có với điều chỉnh
+            // TODO: Gọi email service để gửi reminder
             
             return ResponseEntity.ok().body("Đã gửi email nhắc lịch");
 
         } catch (Exception e) {
-            System.err.println("❌ Lỗi gửi email nhắc lịch: " + e.getMessage());
-            return ResponseEntity.badRequest().body("Lỗi gửi email: " + e.getMessage());
+            log.error("Lỗi gửi email nhắc lịch: {}", e.getMessage(), e);
+            ErrorResponseDTO errorResponse = new ErrorResponseDTO(
+                HttpStatus.BAD_REQUEST.value(),
+                "Yêu cầu không hợp lệ",
+                "Lỗi gửi email: " + e.getMessage(),
+                "/api/patient-registrations/" + id + "/send-reminder"
+            );
+            return ResponseEntity.badRequest().body(errorResponse);
         }
+    }
+
+    // Helper method để tạo registration number
+    private String generateRegistrationNumber() {
+        String timestamp = String.valueOf(System.currentTimeMillis());
+        String random = String.valueOf((int)(Math.random() * 1000));
+        return "REG-" + timestamp.substring(timestamp.length() - 8) + "-" + random;
     }
 
     // Inner class cho Payment Request
@@ -403,4 +449,35 @@ public class PatientRegistrationController {
         public void setAmount(Double amount) { this.amount = amount; }
     }
 
+    // Global Exception Handler cho Controller này
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<ErrorResponseDTO> handleValidationExceptions(MethodArgumentNotValidException ex) {
+        BindingResult result = ex.getBindingResult();
+        String errorMessage = result.getFieldErrors().stream()
+            .map(FieldError::getDefaultMessage)
+            .collect(Collectors.joining(", "));
+        
+        ErrorResponseDTO errorResponse = new ErrorResponseDTO(
+            HttpStatus.BAD_REQUEST.value(),
+            "Lỗi Validation",
+            errorMessage,
+            "/api/patient-registrations"
+        );
+        
+        return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
+    }
+    
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ErrorResponseDTO> handleGeneralException(Exception ex) {
+        log.error("Ngoại lệ chưa được xử lý: {}", ex.getMessage(), ex);
+        
+        ErrorResponseDTO errorResponse = new ErrorResponseDTO(
+            HttpStatus.INTERNAL_SERVER_ERROR.value(),
+            "Lỗi Server",
+            "Đã xảy ra lỗi không mong muốn",
+            "/api/patient-registrations"
+        );
+        
+        return new ResponseEntity<>(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
 }

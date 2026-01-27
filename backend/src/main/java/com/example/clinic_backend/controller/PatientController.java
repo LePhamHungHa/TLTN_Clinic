@@ -12,7 +12,7 @@ import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/patients")
-@PreAuthorize("hasAuthority('ROLE_PATIENT')")  // 🔥 THÊM DÒNG NÀY
+@PreAuthorize("hasAuthority('ROLE_PATIENT')")
 public class PatientController {
 
     private final PatientService patientService;
@@ -45,7 +45,7 @@ public class PatientController {
 
     @GetMapping("/me")
     public ResponseEntity<Patient> getCurrentPatient(Authentication authentication) {
-        String email = authentication.getName(); // lấy username từ token (sub)
+        String email = authentication.getName();
         return patientService.getPatientByEmail(email)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());

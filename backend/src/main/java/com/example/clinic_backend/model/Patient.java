@@ -18,7 +18,10 @@ public class Patient {
     private String fullName;
 
     @Column(name = "dob")
-    private LocalDate dob; // GIỮ LocalDate
+    private LocalDate dob; 
+
+    @Column(name = "gender", length = 10)
+    private String gender;
 
     @Column(name = "bhyt")
     private String bhyt;
@@ -45,6 +48,13 @@ public class Patient {
     // Constructors
     public Patient() {}
 
+    public Patient(User user, String fullName, String email, String phone) {
+        this.user = user;
+        this.fullName = fullName;
+        this.email = email;
+        this.phone = phone;
+    }
+
     // Getters / Setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -57,6 +67,9 @@ public class Patient {
 
     public LocalDate getDob() { return dob; }
     public void setDob(LocalDate dob) { this.dob = dob; }
+
+    public String getGender() { return gender; }
+    public void setGender(String gender) { this.gender = gender; }
 
     public String getPhone() { return phone; }
     public void setPhone(String phone) { this.phone = phone; }
@@ -90,4 +103,15 @@ public class Patient {
 
     public String getRelativeRelationship() { return relativeRelationship; }
     public void setRelativeRelationship(String relativeRelationship) { this.relativeRelationship = relativeRelationship; }
+
+    @Override
+    public String toString() {
+        return "Patient{" +
+                "id=" + id +
+                ", fullName='" + fullName + '\'' +
+                ", email='" + email + '\'' +
+                ", phone='" + phone + '\'' +
+                ", gender='" + gender + '\'' +
+                '}';
+    }
 }

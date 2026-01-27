@@ -46,7 +46,7 @@ public class DoctorController {
             
             return ResponseEntity.ok(doctors);
         } catch (Exception e) {
-            System.err.println("❌ Lỗi DoctorController.getAllDoctors: " + e.getMessage());
+            System.err.println("Lỗi DoctorController.getAllDoctors: " + e.getMessage());
             e.printStackTrace();
             return ResponseEntity.internalServerError().build();
         }
@@ -61,7 +61,7 @@ public class DoctorController {
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         } catch (Exception e) {
-            System.err.println("❌ Lỗi tạo bác sĩ: " + e.getMessage());
+            System.err.println("Lỗi tạo bác sĩ: " + e.getMessage());
             return ResponseEntity.internalServerError().body("Lỗi server khi tạo bác sĩ");
         }
     }
@@ -127,36 +127,35 @@ public class DoctorController {
         }
     }
 
-    // ========== IMPORT EXCEL ==========
-    // Trong DoctorController, đảm bảo endpoint import đúng
-@PostMapping("/import")
-public ResponseEntity<Map<String, Object>> importDoctors(@RequestParam("file") MultipartFile file) {
-    Map<String, Object> response = new HashMap<>();
-    
-    try {
-        if (file.isEmpty()) {
+    // Import dữ liệu từ Excel
+    @PostMapping("/import")
+    public ResponseEntity<Map<String, Object>> importDoctors(@RequestParam("file") MultipartFile file) {
+        Map<String, Object> response = new HashMap<>();
+        
+        try {
+            if (file.isEmpty()) {
+                response.put("success", false);
+                response.put("message", "File không được để trống");
+                return ResponseEntity.badRequest().body(response);
+            }
+            
+            String fileName = file.getOriginalFilename();
+            if (fileName == null || (!fileName.endsWith(".xlsx") && !fileName.endsWith(".xls"))) {
+                response.put("success", false);
+                response.put("message", "Chỉ hỗ trợ file Excel (.xlsx, .xls)");
+                return ResponseEntity.badRequest().body(response);
+            }
+            
+            doctorService.importFromExcel(file);
+            
+            response.put("success", true);
+            response.put("message", "Import bác sĩ thành công");
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
             response.put("success", false);
-            response.put("message", "File không được để trống");
+            response.put("message", "Import thất bại: " + e.getMessage());
             return ResponseEntity.badRequest().body(response);
         }
-        
-        String fileName = file.getOriginalFilename();
-        if (fileName == null || (!fileName.endsWith(".xlsx") && !fileName.endsWith(".xls"))) {
-            response.put("success", false);
-            response.put("message", "Chỉ hỗ trợ file Excel (.xlsx, .xls)");
-            return ResponseEntity.badRequest().body(response);
-        }
-        
-        doctorService.importFromExcel(file);
-        
-        response.put("success", true);
-        response.put("message", "Import bác sĩ thành công");
-        return ResponseEntity.ok(response);
-        
-    } catch (Exception e) {
-        response.put("success", false);
-        response.put("message", "Import thất bại: " + e.getMessage());
-        return ResponseEntity.badRequest().body(response);
     }
-}
 }

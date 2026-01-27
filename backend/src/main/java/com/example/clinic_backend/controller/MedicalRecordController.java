@@ -21,28 +21,28 @@ public class MedicalRecordController {
         this.medicalRecordService = medicalRecordService;
     }
     
-    // Bắt đầu khám bệnh - ĐÃ THÊM LOGGING CHI TIẾT
+    // Bắt đầu khám bệnh 
     @PostMapping("/{appointmentId}/start")
     public ResponseEntity<Map<String, Object>> startExamination(
             @PathVariable Long appointmentId,
             @RequestBody Map<String, Long> request,
             HttpServletRequest httpRequest) {
         
-        logger.info("📞 POST /api/doctor/medical-records/{}/start called", appointmentId);
+        logger.info("POST /api/doctor/medical-records/{}/start called", appointmentId);
         
-        // Log chi tiết request
+        
         String authHeader = httpRequest.getHeader("Authorization");
-        logger.info("🔐 Authorization header: {}", authHeader != null ? "Present" : "Missing");
-        logger.info("👤 Remote User: {}", httpRequest.getRemoteUser());
-        logger.info("🔒 User Principal: {}", httpRequest.getUserPrincipal());
+        logger.info("Authorization header: {}", authHeader != null ? "Present" : "Missing");
+        logger.info("Remote User: {}", httpRequest.getRemoteUser());
+        logger.info("User Principal: {}", httpRequest.getUserPrincipal());
         
         try {
             Long doctorId = request.get("doctorId");
-            logger.info("🩺 Doctor ID from request: {}", doctorId);
-            logger.info("📅 Appointment ID: {}", appointmentId);
+            logger.info("Doctor ID from request: {}", doctorId);
+            logger.info("Appointment ID: {}", appointmentId);
             
             if (doctorId == null) {
-                logger.warn("❌ Doctor ID is null in request");
+                logger.warn("Doctor ID is null in request");
                 return ResponseEntity.badRequest().body(Map.of(
                     "success", false,
                     "message", "Doctor ID is required"
@@ -50,11 +50,11 @@ public class MedicalRecordController {
             }
             
             Map<String, Object> response = medicalRecordService.startExamination(appointmentId, doctorId);
-            logger.info("✅ Start examination response: {}", response.get("success"));
+            logger.info("Start examination response: {}", response.get("success"));
             
             return ResponseEntity.ok(response);
         } catch (Exception e) {
-            logger.error("❌ Error starting examination: {}", e.getMessage(), e);
+            logger.error("Error starting examination: {}", e.getMessage(), e);
             return ResponseEntity.internalServerError().body(Map.of(
                 "success", false,
                 "message", "Internal server error: " + e.getMessage()
@@ -68,14 +68,14 @@ public class MedicalRecordController {
             @PathVariable Long appointmentId,
             @RequestBody MedicalRecord medicalRecord) {
         
-        logger.info("📞 PUT /api/doctor/medical-records/{} called", appointmentId);
+        logger.info("PUT /api/doctor/medical-records/{} called", appointmentId);
         
         try {
             medicalRecord.setAppointmentId(appointmentId);
             Map<String, Object> response = medicalRecordService.saveMedicalRecord(medicalRecord);
             return ResponseEntity.ok(response);
         } catch (Exception e) {
-            logger.error("❌ Error saving medical record: {}", e.getMessage(), e);
+            logger.error("Error saving medical record: {}", e.getMessage(), e);
             return ResponseEntity.internalServerError().body(Map.of(
                 "success", false,
                 "message", "Internal server error: " + e.getMessage()
@@ -88,13 +88,13 @@ public class MedicalRecordController {
     public ResponseEntity<Map<String, Object>> completeExamination(
             @PathVariable Long appointmentId) {
         
-        logger.info("📞 PUT /api/doctor/medical-records/{}/complete called", appointmentId);
+        logger.info("PUT /api/doctor/medical-records/{}/complete called", appointmentId);
         
         try {
             Map<String, Object> response = medicalRecordService.completeExamination(appointmentId);
             return ResponseEntity.ok(response);
         } catch (Exception e) {
-            logger.error("❌ Error completing examination: {}", e.getMessage(), e);
+            logger.error("Error completing examination: {}", e.getMessage(), e);
             return ResponseEntity.internalServerError().body(Map.of(
                 "success", false,
                 "message", "Internal server error: " + e.getMessage()
@@ -107,13 +107,13 @@ public class MedicalRecordController {
     public ResponseEntity<Map<String, Object>> markAsMissed(
             @PathVariable Long appointmentId) {
         
-        logger.info("📞 PUT /api/doctor/medical-records/{}/missed called", appointmentId);
+        logger.info("PUT /api/doctor/medical-records/{}/missed called", appointmentId);
         
         try {
             Map<String, Object> response = medicalRecordService.markAsMissed(appointmentId);
             return ResponseEntity.ok(response);
         } catch (Exception e) {
-            logger.error("❌ Error marking as missed: {}", e.getMessage(), e);
+            logger.error("Error marking as missed: {}", e.getMessage(), e);
             return ResponseEntity.internalServerError().body(Map.of(
                 "success", false,
                 "message", "Internal server error: " + e.getMessage()
@@ -126,13 +126,13 @@ public class MedicalRecordController {
     public ResponseEntity<Map<String, Object>> getExaminationDetail(
             @PathVariable Long appointmentId) {
         
-        logger.info("📞 GET /api/doctor/medical-records/{} called", appointmentId);
+        logger.info("GET /api/doctor/medical-records/{} called", appointmentId);
         
         try {
             Map<String, Object> response = medicalRecordService.getExaminationDetail(appointmentId);
             return ResponseEntity.ok(response);
         } catch (Exception e) {
-            logger.error("❌ Error getting examination detail: {}", e.getMessage(), e);
+            logger.error("Error getting examination detail: {}", e.getMessage(), e);
             return ResponseEntity.internalServerError().body(Map.of(
                 "success", false,
                 "message", "Internal server error: " + e.getMessage()
@@ -140,20 +140,20 @@ public class MedicalRecordController {
         }
     }
 
-    // THÊM ENDPOINT MỚI: Lấy danh sách hồ sơ bệnh án theo doctor ID
+    //Lấy danh sách hồ sơ bệnh án theo doctor ID
     @GetMapping("/doctor/{doctorId}")
     public ResponseEntity<Map<String, Object>> getMedicalRecordsByDoctor(
             @PathVariable Long doctorId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
         
-        logger.info("📞 GET /api/doctor/medical-records/doctor/{} called, page: {}, size: {}", doctorId, page, size);
+        logger.info("GET /api/doctor/medical-records/doctor/{} called, page: {}, size: {}", doctorId, page, size);
         
         try {
             Map<String, Object> response = medicalRecordService.getMedicalRecordsByDoctor(doctorId, page, size);
             return ResponseEntity.ok(response);
         } catch (Exception e) {
-            logger.error("❌ Error getting medical records by doctor: {}", e.getMessage(), e);
+            logger.error("Error getting medical records by doctor: {}", e.getMessage(), e);
             return ResponseEntity.internalServerError().body(Map.of(
                 "success", false,
                 "message", "Internal server error: " + e.getMessage()
@@ -166,13 +166,13 @@ public class MedicalRecordController {
 public ResponseEntity<Map<String, Object>> checkPaymentStatus(
         @PathVariable Long appointmentId) {
     
-    logger.info("📞 GET /api/doctor/medical-records/{}/payment-status called", appointmentId);
+    logger.info("GET /api/doctor/medical-records/{}/payment-status called", appointmentId);
     
     try {
         Map<String, Object> response = medicalRecordService.checkPaymentStatus(appointmentId);
         return ResponseEntity.ok(response);
     } catch (Exception e) {
-        logger.error("❌ Error checking payment status: {}", e.getMessage(), e);
+        logger.error("Error checking payment status: {}", e.getMessage(), e);
         return ResponseEntity.internalServerError().body(Map.of(
             "success", false,
             "message", "Internal server error: " + e.getMessage()

@@ -23,7 +23,6 @@ public interface PatientRegistrationRepository extends JpaRepository<PatientRegi
             @Param("date") LocalDate date, 
             @Param("status") String status);
     
-    // 🔥 METHOD MỚI: CHỈ LẤY CÁC LỊCH CHƯA ĐƯỢC GỬI REMINDER
     @Query("SELECT p FROM PatientRegistration p WHERE p.appointmentDate = :date AND p.status = :status AND (p.reminderSent = false OR p.reminderSent IS NULL)")
     List<PatientRegistration> findByAppointmentDateAndStatusAndReminderNotSent(
             @Param("date") LocalDate date, 
@@ -37,7 +36,6 @@ public interface PatientRegistrationRepository extends JpaRepository<PatientRegi
     
     List<PatientRegistration> findAll();
     
-    // 🔥 THÊM METHOD MỚI: Lấy theo email với JOIN FETCH doctor
     @Query("SELECT p FROM PatientRegistration p LEFT JOIN FETCH p.doctor WHERE p.email = :email ORDER BY p.createdAt DESC")
     List<PatientRegistration> findByEmailWithDoctor(@Param("email") String email);
     
@@ -47,7 +45,6 @@ public interface PatientRegistrationRepository extends JpaRepository<PatientRegi
     List<PatientRegistration> findByPhone(String phone);
     List<PatientRegistration> findByStatus(String status);
     
-    // 🔥 THÊM PHƯƠNG THỨC MỚI: Tìm theo paymentStatus (đã sửa lỗi)
     List<PatientRegistration> findByPaymentStatus(String paymentStatus);
 
     @Query("SELECT COUNT(r) FROM PatientRegistration r WHERE DATE(r.createdAt) = CURRENT_DATE")
@@ -139,15 +136,12 @@ public interface PatientRegistrationRepository extends JpaRepository<PatientRegi
     
     // ==================== THÊM PHƯƠNG THỨC MỚI CHO PATIENT MEDICAL RECORDS ====================
     
-    // 🔥 SỬA: Thay findByPatientId thành findByUserId (vì model có userId, không có patientId)
     @Query("SELECT p FROM PatientRegistration p WHERE p.userId = :userId ORDER BY p.appointmentDate DESC")
     List<PatientRegistration> findByUserId(@Param("userId") Long userId);
     
-    // 🔥 THÊM PHƯƠNG THỨC TÌM THEO PATIENT_CODE
     @Query("SELECT p FROM PatientRegistration p WHERE p.patientCode = :patientCode ORDER BY p.appointmentDate DESC")
     List<PatientRegistration> findByPatientCode(@Param("patientCode") String patientCode);
     
-    // 🔥 THÊM PHƯƠNG THỨC TÌM THEO EMAIL VÀ SẮP XẾP THEO NGÀY HẸN
     @Query("SELECT p FROM PatientRegistration p WHERE p.email = :email ORDER BY p.appointmentDate DESC")
     List<PatientRegistration> findByEmailOrderByAppointmentDateDesc(@Param("email") String email);
 }

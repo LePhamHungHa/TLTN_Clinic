@@ -24,10 +24,10 @@ public class FirebaseConfig {
 
             if (FirebaseApp.getApps().isEmpty()) {
                 FirebaseApp.initializeApp(options);
-                System.out.println("✅ Firebase Admin SDK initialized successfully.");
+                System.out.println("Firebase Admin SDK đã được khởi tạo thành công.");
             }
         } catch (IOException e) {
-            System.err.println(" Failed to initialize Firebase Admin: " + e.getMessage());
+            System.err.println("Không thể khởi tạo Firebase Admin: " + e.getMessage());
         }
     }
 }

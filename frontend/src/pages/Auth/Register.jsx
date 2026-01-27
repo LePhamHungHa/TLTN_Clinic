@@ -2,6 +2,19 @@ import React, { useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import "../../css/Register.css";
+
+// Icons cho phần bệnh viện
+import {
+  FaHospital,
+  FaStethoscope,
+  FaCalendarCheck,
+  FaFileMedical,
+} from "react-icons/fa";
+import { MdHealthAndSafety, MdEmergency } from "react-icons/md";
+import { GiMedicines } from "react-icons/gi";
+import { FaHeartbeat } from "react-icons/fa";
+
+// Icons cho form
 import { CiUser } from "react-icons/ci";
 import { FaUserTie } from "react-icons/fa6";
 import { FaRegAddressCard } from "react-icons/fa";
@@ -9,7 +22,7 @@ import { BiLogoGmail } from "react-icons/bi";
 import { IoPhonePortraitOutline } from "react-icons/io5";
 import { FaRegCalendarAlt } from "react-icons/fa";
 import { TbLockPassword } from "react-icons/tb";
-import { FaRegEye } from "react-icons/fa";
+import { FaRegEye, FaEyeSlash } from "react-icons/fa";
 import { FaLocationDot } from "react-icons/fa6";
 
 const Register = () => {
@@ -65,7 +78,7 @@ const Register = () => {
       // Đăng ký tài khoản
       const res = await axios.post(
         "http://localhost:8080/api/auth/register",
-        user
+        user,
       );
       console.log("Đăng ký thành công:", res.data);
 
@@ -75,7 +88,7 @@ const Register = () => {
         {
           username: user.email,
           password: user.password,
-        }
+        },
       );
 
       if (loginRes.data?.token) {
@@ -107,7 +120,7 @@ const Register = () => {
     } catch (error) {
       console.error("Đăng ký thất bại:", error);
       alert(
-        "Đăng ký thất bại: " + (error.response?.data?.message || error.message)
+        "Đăng ký thất bại: " + (error.response?.data?.message || error.message),
       );
     } finally {
       setLoading(false);
@@ -131,335 +144,473 @@ const Register = () => {
   return (
     <div className="register-page">
       <div className="floating-dots">
-        {[...Array(10)].map((_, i) => (
+        {[...Array(15)].map((_, i) => (
           <div
             key={i}
             className="dot"
             style={{
-              width: `${Math.random() * 20 + 10}px`,
-              height: `${Math.random() * 20 + 10}px`,
+              width: `${Math.random() * 8 + 4}px`,
+              height: `${Math.random() * 8 + 4}px`,
               top: `${Math.random() * 100}%`,
               left: `${Math.random() * 100}%`,
-              animationDelay: `${Math.random() * 10}s`,
+              animationDelay: `${Math.random() * 5}s`,
             }}
           />
         ))}
       </div>
 
+      <div className="medical-bg">
+        {[...Array(12)].map((_, i) => (
+          <div
+            key={`cross-${i}`}
+            className="cross"
+            style={{
+              top: `${Math.random() * 100}%`,
+              left: `${Math.random() * 100}%`,
+              animationDelay: `${Math.random() * 3}s`,
+            }}
+          >
+            <MdHealthAndSafety />
+          </div>
+        ))}
+        {[...Array(8)].map((_, i) => (
+          <div
+            key={`heart-${i}`}
+            className="heart"
+            style={{
+              top: `${Math.random() * 100}%`,
+              left: `${Math.random() * 100}%`,
+              animationDelay: `${Math.random() * 2}s`,
+            }}
+          >
+            <FaHeartbeat />
+          </div>
+        ))}
+        {[...Array(6)].map((_, i) => (
+          <div
+            key={`plus-${i}`}
+            className="plus"
+            style={{
+              top: `${Math.random() * 100}%`,
+              left: `${Math.random() * 100}%`,
+              animationDelay: `${Math.random() * 5}s`,
+            }}
+          >
+            <GiMedicines />
+          </div>
+        ))}
+      </div>
+
       <div className="register-container">
         <div className="register-card slide-in">
-          <div className="header" style={{ textAlign: "center" }}>
-            <div className="avatar" style={{ margin: "0 auto 1rem" }}>
-              <i className="fas fa-hospital-user">
-                <CiUser />
+          {/* Phần sidebar bệnh viện */}
+          <div className="hospital-sidebar">
+            <div className="hospital-logo">
+              <i className="fas fa-hospital">
+                <FaHospital />
               </i>
             </div>
-            <h1 className="header-title">Đăng ký tài khoản</h1>
-            <p className="header-subtitle">
-              Hệ thống đăng ký khám bệnh trực tuyến
+            <h2 className="hospital-name">BỆNH VIỆN ĐA KHOA MEDICAL</h2>
+            <p className="hospital-tagline">
+              Chăm sóc sức khỏe toàn diện - Vì cộng đồng
             </p>
+
+            <div className="hospital-features">
+              <div className="feature">
+                <div className="feature-icon">
+                  <FaStethoscope />
+                </div>
+                <div className="feature-text">
+                  <h4>Đội ngũ bác sĩ</h4>
+                  <p>Chuyên gia đầu ngành</p>
+                </div>
+              </div>
+              <div className="feature">
+                <div className="feature-icon">
+                  <FaCalendarCheck />
+                </div>
+                <div className="feature-text">
+                  <h4>Đặt lịch nhanh</h4>
+                  <p>24/7 trực tuyến</p>
+                </div>
+              </div>
+              <div className="feature">
+                <div className="feature-icon">
+                  <MdEmergency />
+                </div>
+                <div className="feature-text">
+                  <h4>Cấp cứu 24/7</h4>
+                  <p>Hỗ trợ khẩn cấp</p>
+                </div>
+              </div>
+              <div className="feature">
+                <div className="feature-icon">
+                  <FaFileMedical />
+                </div>
+                <div className="feature-text">
+                  <h4>Hồ sơ điện tử</h4>
+                  <p>Lưu trữ an toàn</p>
+                </div>
+              </div>
+            </div>
           </div>
 
-          <div className="card-content">
-            <form onSubmit={handleSubmit} className="form">
-              {/* Các trường form giữ nguyên */}
-              <div className="form-group">
-                <label htmlFor="fullname" className="label">
-                  Họ và tên
-                </label>
-                <div className="input-container">
-                  <i className="fas fa-user input-icon">
-                    <FaUserTie />
-                  </i>
-                  <input
-                    type="text"
-                    id="fullname"
-                    name="fullname"
-                    required
-                    className="input-field"
-                    placeholder="Nguyễn Văn A"
-                    value={user.fullname}
-                    onChange={handleChange}
-                  />
+          {/* Phần form đăng ký */}
+          <div className="form-section">
+            <div className="form-header">
+              <h2>
+                <i className="fas fa-user-plus">
+                  <CiUser />
+                </i>
+                Đăng ký tài khoản bệnh nhân
+              </h2>
+              <p>Vui lòng điền đầy đủ thông tin để đăng ký tài khoản</p>
+            </div>
+
+            <form onSubmit={handleSubmit}>
+              <div className="form-grid">
+                {/* Họ và tên */}
+                <div className="form-group full-width">
+                  <label className="label">
+                    <i className="fas fa-user">
+                      <FaUserTie />
+                    </i>
+                    Họ và tên
+                    <span className="required">*</span>
+                  </label>
+                  <div className="input-container">
+                    <input
+                      type="text"
+                      id="fullname"
+                      name="fullname"
+                      required
+                      className="input-field"
+                      placeholder="Nguyễn Văn A"
+                      value={user.fullname}
+                      onChange={handleChange}
+                    />
+                  </div>
+                </div>
+
+                {/* Số BHYT */}
+                <div className="form-group full-width">
+                  <label className="label">
+                    <i className="fas fa-id-card">
+                      <FaRegAddressCard />
+                    </i>
+                    Số BHYT
+                    <span className="required">*</span>
+                  </label>
+                  <div className="input-container">
+                    <input
+                      type="text"
+                      id="bhyt"
+                      name="bhyt"
+                      required
+                      className="input-field"
+                      placeholder="VD: HC123456789"
+                      value={user.bhyt}
+                      onChange={handleChange}
+                    />
+                  </div>
+                </div>
+
+                {/* Địa chỉ */}
+                <div className="form-group full-width">
+                  <label className="label">
+                    <i className="fas fa-location-dot">
+                      <FaLocationDot />
+                    </i>
+                    Địa chỉ
+                    <span className="required">*</span>
+                  </label>
+                  <div className="input-container">
+                    <input
+                      type="text"
+                      id="address"
+                      name="address"
+                      required
+                      className="input-field"
+                      placeholder="123 Đường ABC, Quận X, Thành phố Y"
+                      value={user.address}
+                      onChange={handleChange}
+                    />
+                  </div>
+                </div>
+
+                {/* Email */}
+                <div className="form-group">
+                  <label className="label">
+                    <i className="fas fa-envelope">
+                      <BiLogoGmail />
+                    </i>
+                    Email
+                    <span className="required">*</span>
+                  </label>
+                  <div className="input-container">
+                    <input
+                      type="email"
+                      id="email"
+                      name="email"
+                      required
+                      className="input-field"
+                      placeholder="example@email.com"
+                      value={user.email}
+                      onChange={handleChange}
+                    />
+                  </div>
+                </div>
+
+                {/* Số điện thoại */}
+                <div className="form-group">
+                  <label className="label">
+                    <i className="fas fa-phone">
+                      <IoPhonePortraitOutline />
+                    </i>
+                    Số điện thoại
+                    <span className="required">*</span>
+                  </label>
+                  <div className="input-container">
+                    <input
+                      type="tel"
+                      id="phone"
+                      name="phone"
+                      required
+                      className="input-field"
+                      placeholder="0987 654 321"
+                      value={user.phone}
+                      onChange={handleChange}
+                    />
+                  </div>
+                </div>
+
+                {/* Ngày sinh */}
+                <div className="form-group">
+                  <label className="label">
+                    <i className="fas fa-calendar-alt">
+                      <FaRegCalendarAlt />
+                    </i>
+                    Ngày sinh
+                    <span className="required">*</span>
+                  </label>
+                  <div className="input-container">
+                    <input
+                      type="date"
+                      id="birthday"
+                      name="birthday"
+                      required
+                      className="input-field"
+                      value={user.birthday}
+                      onChange={handleChange}
+                    />
+                  </div>
+                </div>
+
+                {/* Giới tính */}
+                <div className="form-group">
+                  <label className="label">
+                    <i className="fas fa-venus-mars"></i>
+                    Giới tính
+                    <span className="required">*</span>
+                  </label>
+                  <div className="gender-options">
+                    <div className="gender-option">
+                      <input
+                        type="radio"
+                        id="male"
+                        name="gender"
+                        value="male"
+                        checked={user.gender === "male"}
+                        onChange={handleChange}
+                      />
+                      <label htmlFor="male" className="gender-label">
+                        Nam
+                      </label>
+                    </div>
+                    <div className="gender-option">
+                      <input
+                        type="radio"
+                        id="female"
+                        name="gender"
+                        value="female"
+                        checked={user.gender === "female"}
+                        onChange={handleChange}
+                      />
+                      <label htmlFor="female" className="gender-label">
+                        Nữ
+                      </label>
+                    </div>
+                    <div className="gender-option">
+                      <input
+                        type="radio"
+                        id="other"
+                        name="gender"
+                        value="other"
+                        checked={user.gender === "other"}
+                        onChange={handleChange}
+                      />
+                      <label htmlFor="other" className="gender-label">
+                        Khác
+                      </label>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Mật khẩu */}
+                <div className="form-group">
+                  <label className="label">
+                    <i className="fas fa-lock">
+                      <TbLockPassword />
+                    </i>
+                    Mật khẩu
+                    <span className="required">*</span>
+                  </label>
+                  <div className="input-container">
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      id="password"
+                      name="password"
+                      required
+                      className="input-field"
+                      placeholder="Nhập mật khẩu"
+                      value={user.password}
+                      onChange={handleChange}
+                    />
+                    <button
+                      type="button"
+                      className="password-toggle"
+                      onClick={() => togglePasswordVisibility("password")}
+                    >
+                      {showPassword ? <FaEyeSlash /> : <FaRegEye />}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Xác nhận mật khẩu */}
+                <div className="form-group">
+                  <label className="label">
+                    <i className="fas fa-lock">
+                      <TbLockPassword />
+                    </i>
+                    Xác nhận mật khẩu
+                    <span className="required">*</span>
+                  </label>
+                  <div className="input-container">
+                    <input
+                      type={showConfirmPassword ? "text" : "password"}
+                      id="confirmPassword"
+                      name="confirmPassword"
+                      required
+                      className="input-field"
+                      placeholder="Nhập lại mật khẩu"
+                      value={user.confirmPassword}
+                      onChange={handleChange}
+                    />
+                    <button
+                      type="button"
+                      className="password-toggle"
+                      onClick={() =>
+                        togglePasswordVisibility("confirmPassword")
+                      }
+                    >
+                      {showConfirmPassword ? <FaEyeSlash /> : <FaRegEye />}
+                    </button>
+                  </div>
                 </div>
               </div>
 
-              <div className="form-group">
-                <label htmlFor="bhyt" className="label">
-                  Số BHYT
-                </label>
-                <div className="input-container">
-                  <i className="fas fa-id-card input-icon">
-                    <FaRegAddressCard />
-                  </i>
-                  <input
-                    type="text"
-                    id="bhyt"
-                    name="bhyt"
-                    required
-                    className="input-field"
-                    placeholder="VD: HC123456789"
-                    value={user.bhyt}
-                    onChange={handleChange}
-                  />
+              {/* Điều khoản */}
+              <div className="terms-section">
+                <div className="terms-agreement">
+                  <div className="checkbox-container">
+                    <input
+                      id="terms"
+                      name="terms"
+                      type="checkbox"
+                      checked={user.terms}
+                      onChange={handleChange}
+                    />
+                  </div>
+                  <div className="terms-text">
+                    Tôi đồng ý với{" "}
+                    <a href="#" className="terms-link">
+                      điều khoản dịch vụ
+                    </a>{" "}
+                    và{" "}
+                    <a href="#" className="terms-link">
+                      chính sách bảo mật
+                    </a>{" "}
+                    của Bệnh viện Đa khoa Medical
+                  </div>
                 </div>
               </div>
 
-              <div className="form-group">
-                <label htmlFor="address" className="label">
-                  Địa chỉ
-                </label>
-                <div className="input-container">
-                  <i className="fas fa-address input-icon">
-                    <FaLocationDot />
-                  </i>
-                  <input
-                    type="text"
-                    id="address"
-                    name="address"
-                    required
-                    className="input-field"
-                    placeholder="123 Đường ABC Quận X"
-                    value={user.address}
-                    onChange={handleChange}
-                  />
-                </div>
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="email" className="label">
-                  Email
-                </label>
-                <div className="input-container">
-                  <i className="fas fa-envelope input-icon">
-                    <BiLogoGmail />
-                  </i>
-                  <input
-                    type="email"
-                    id="email"
-                    name="email"
-                    required
-                    className="input-field"
-                    placeholder="example@email.com"
-                    value={user.email}
-                    onChange={handleChange}
-                  />
-                </div>
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="phone" className="label">
-                  Số điện thoại
-                </label>
-                <div className="input-container">
-                  <i className="fas fa-phone input-icon">
-                    <IoPhonePortraitOutline />
-                  </i>
-                  <input
-                    type="tel"
-                    id="phone"
-                    name="phone"
-                    required
-                    className="input-field"
-                    placeholder="0987 654 321"
-                    value={user.phone}
-                    onChange={handleChange}
-                  />
-                </div>
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="birthday" className="label">
-                  Ngày sinh
-                </label>
-                <div className="input-container">
-                  <i className="fas fa-calendar-alt input-icon">
-                    <FaRegCalendarAlt />
-                  </i>
-                  <input
-                    type="date"
-                    id="birthday"
-                    name="birthday"
-                    required
-                    className="input-field"
-                    value={user.birthday}
-                    onChange={handleChange}
-                  />
-                </div>
-              </div>
-
-              <div className="form-group">
-                <label className="label">Giới tính</label>
-                <div
-                  className="gender-options"
-                  style={{ display: "flex", gap: "1rem" }}
+              {/* Nút đăng ký */}
+              <div className="submit-section">
+                <button
+                  type="submit"
+                  className="register-button"
+                  disabled={loading}
                 >
-                  <label className="inline-flex items-center">
-                    <input
-                      type="radio"
-                      name="gender"
-                      value="male"
-                      checked={user.gender === "male"}
-                      onChange={handleChange}
-                      className="radio-input"
-                    />
-                    <span className="gender-label">Nam</span>
-                  </label>
-                  <label className="inline-flex items-center">
-                    <input
-                      type="radio"
-                      name="gender"
-                      value="female"
-                      checked={user.gender === "female"}
-                      onChange={handleChange}
-                      className="radio-input"
-                    />
-                    <span className="gender-label">Nữ</span>
-                  </label>
-                  <label className="inline-flex items-center">
-                    <input
-                      type="radio"
-                      name="gender"
-                      value="other"
-                      checked={user.gender === "other"}
-                      onChange={handleChange}
-                      className="radio-input"
-                    />
-                    <span className="gender-label">Khác</span>
-                  </label>
-                </div>
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="password" className="label">
-                  Mật khẩu
-                </label>
-                <div className="input-container">
-                  <i className="fas fa-lock input-icon">
-                    <TbLockPassword />
-                  </i>
-                  <input
-                    type={showPassword ? "text" : "password"}
-                    id="password"
-                    name="password"
-                    required
-                    className="input-field"
-                    placeholder="••••••••"
-                    value={user.password}
-                    onChange={handleChange}
-                  />
-                  <button
-                    type="button"
-                    className="password-toggle"
-                    onClick={() => togglePasswordVisibility("password")}
+                  {loading ? (
+                    <>
+                      <div className="spinner"></div>
+                      Đang xử lý...
+                    </>
+                  ) : (
+                    <>
+                      Đăng ký tài khoản
+                      <i className="button-icon fas fa-arrow-right"></i>
+                    </>
+                  )}
+                </button>
+                <div className="login-link">
+                  Đã có tài khoản?{" "}
+                  <a
+                    href="/login"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      navigate("/login");
+                    }}
                   >
-                    <i
-                      className={`fas ${
-                        showPassword ? "fa-eye-slash" : "fa-eye"
-                      }`}
-                    >
-                      <FaRegEye />
-                    </i>
-                  </button>
-                </div>
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="confirmPassword" className="label">
-                  Xác nhận mật khẩu
-                </label>
-                <div className="input-container">
-                  <i className="fas fa-lock input-icon">
-                    <TbLockPassword />
-                  </i>
-                  <input
-                    type={showConfirmPassword ? "text" : "password"}
-                    id="confirmPassword"
-                    name="confirmPassword"
-                    required
-                    className="input-field"
-                    placeholder="••••••••"
-                    value={user.confirmPassword}
-                    onChange={handleChange}
-                  />
-                  <button
-                    type="button"
-                    className="password-toggle"
-                    onClick={() => togglePasswordVisibility("confirmPassword")}
-                  >
-                    <i
-                      className={`fas ${
-                        showConfirmPassword ? "fa-eye-slash" : "fa-eye"
-                      }`}
-                    >
-                      <FaRegEye />
-                    </i>
-                  </button>
-                </div>
-              </div>
-
-              <div className="terms-container">
-                <input
-                  id="terms"
-                  name="terms"
-                  type="checkbox"
-                  checked={user.terms}
-                  onChange={handleChange}
-                  className="checkbox-input"
-                />
-                <label htmlFor="terms" className="terms-label">
-                  Tôi đồng ý với{" "}
-                  <a href="#" className="terms-link">
-                    điều khoản dịch vụ
-                  </a>{" "}
-                  và{" "}
-                  <a href="#" className="terms-link">
-                    chính sách bảo mật
+                    Đăng nhập tại đây
                   </a>
-                </label>
-              </div>
-
-              <button
-                type="submit"
-                className="register-button"
-                disabled={loading}
-              >
-                {loading ? "Đang xử lý..." : "Đăng ký tài khoản"}
-              </button>
-            </form>
-
-            {/* Modal */}
-            {showModal && (
-              <div className="modal">
-                <div className="modal-content slide-in">
-                  <div className="modal-icon">
-                    <i className="fas fa-check-circle"></i>
-                  </div>
-                  <h3 className="modal-title">Đăng ký thành công!</h3>
-                  <p className="modal-message">
-                    Bạn có muốn tạo thẻ/ ví điện tử để thanh toán viện phí
-                    không?
-                  </p>
-                  <div className="modal-actions">
-                    <button
-                      onClick={handleGoToLogin}
-                      className="modal-button secondary"
-                    >
-                      Không, để sau
-                    </button>
-                    <button
-                      onClick={handleCreateCard}
-                      className="modal-button primary"
-                    >
-                      Có, tôi muốn tạo thẻ
-                    </button>
-                  </div>
                 </div>
               </div>
-            )}
+            </form>
           </div>
         </div>
       </div>
+
+      {/* Modal thành công */}
+      {showModal && (
+        <div className="modal">
+          <div className="modal-content">
+            <div className="modal-icon">
+              <i className="fas fa-check-circle"></i>
+            </div>
+            <h3 className="modal-title">Đăng ký thành công!</h3>
+            <p className="modal-message">
+              Tài khoản của bạn đã được tạo thành công. Bạn có muốn tạo thẻ/ví
+              điện tử để thanh toán viện phí không?
+            </p>
+            <div className="modal-actions">
+              <button
+                onClick={handleGoToLogin}
+                className="modal-button secondary"
+              >
+                Không, để sau
+              </button>
+              <button
+                onClick={handleCreateCard}
+                className="modal-button primary"
+              >
+                Có, tôi muốn tạo thẻ
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

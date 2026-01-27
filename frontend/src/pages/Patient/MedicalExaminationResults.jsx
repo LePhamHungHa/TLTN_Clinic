@@ -25,7 +25,7 @@ import {
   FaPhoneAlt,
   FaQuestionCircle,
   FaRedo,
-  FaClock, // THÊM DÒNG NÀY
+  FaClock,
 } from "react-icons/fa";
 import "../../css/MedicalExaminationResults.css";
 
@@ -79,7 +79,7 @@ const MedicalExaminationResults = () => {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
-        }
+        },
       );
 
       if (!response.ok) {
@@ -189,7 +189,7 @@ const MedicalExaminationResults = () => {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
-        }
+        },
       );
 
       if (!response.ok) {
@@ -304,7 +304,7 @@ const MedicalExaminationResults = () => {
                     <td>${med.duration || ""}</td>
                     <td>${med.instructions || ""}</td>
                   </tr>
-                `
+                `,
                   )
                   .join("")}
               </tbody>
@@ -411,9 +411,9 @@ const MedicalExaminationResults = () => {
           <div className="header-icon-wrapper">
             <FaFileMedical size={40} />
           </div>
-          <h1 className="header-title">KẾT QUẢ KHÁM BỆNH CỦA TÔI</h1>
+          <h1 className="header-title">KẾT QUẢ KHÁM BỆNH</h1>
           <p className="header-subtitle">
-            Xem và quản lý toàn bộ kết quả khám bệnh của bạn
+            Toàn bộ kết quả khám bệnh của bạn được lưu ở trang này
           </p>
         </div>
       </div>
@@ -456,7 +456,7 @@ const MedicalExaminationResults = () => {
             <p className="stat-number">
               {
                 medicalRecords.filter(
-                  (r) => r.examinationStatus === "COMPLETED"
+                  (r) => r.examinationStatus === "COMPLETED",
                 ).length
               }
             </p>
@@ -472,7 +472,7 @@ const MedicalExaminationResults = () => {
             <p className="stat-number">
               {
                 medicalRecords.filter(
-                  (r) => r.examinationStatus === "IN_PROGRESS"
+                  (r) => r.examinationStatus === "IN_PROGRESS",
                 ).length
               }
             </p>
@@ -488,7 +488,7 @@ const MedicalExaminationResults = () => {
             <p className="stat-number">
               {
                 medicalRecords.filter(
-                  (r) => r.medications && r.medications.length > 0
+                  (r) => r.medications && r.medications.length > 0,
                 ).length
               }
             </p>

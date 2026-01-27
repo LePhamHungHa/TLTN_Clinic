@@ -3,6 +3,22 @@ import axios from "axios";
 import { useNavigate, useLocation } from "react-router-dom";
 import "../../css/RegisterPatient.css";
 
+// Icons cho giao diện bệnh viện
+import {
+  FaHospital,
+  FaStethoscope,
+  FaCalendarCheck,
+  FaFileMedical,
+  FaUser,
+  FaEnvelope,
+  FaPhone,
+  FaBirthdayCake,
+  FaVenusMars,
+  FaMapMarkerAlt,
+} from "react-icons/fa";
+import { MdHealthAndSafety, MdEmergency } from "react-icons/md";
+import { GiMedicines } from "react-icons/gi";
+
 const RegisterClinic = () => {
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -126,9 +142,6 @@ const RegisterClinic = () => {
     if (!formData.appointmentDate)
       newErrors.appointmentDate = "Ngày khám là bắt buộc";
 
-    // QUAN TRỌNG: Bỏ validation cho doctorId và timeSlot
-    // Người dùng có thể không chọn bác sĩ
-
     if (formData.appointmentDate) {
       const today = new Date();
       const appointmentDate = new Date(formData.appointmentDate);
@@ -200,8 +213,8 @@ const RegisterClinic = () => {
         department: formData.department,
         appointmentDate: formData.appointmentDate,
         symptoms: formData.symptoms || null,
-        doctorId: formData.doctorId || null, // QUAN TRỌNG: có thể là null
-        timeSlot: formData.timeSlot || null, // QUAN TRỌNG: có thể là null
+        doctorId: formData.doctorId || null,
+        timeSlot: formData.timeSlot || null,
       };
 
       console.log("📤 Frontend - Payload being sent:", payload);
@@ -215,7 +228,7 @@ const RegisterClinic = () => {
             Authorization: `Bearer ${token}`,
           },
           timeout: 10000,
-        }
+        },
       );
 
       console.log("✅ Backend response:", res.data);
@@ -228,17 +241,17 @@ const RegisterClinic = () => {
       } else if (result.status === "NEEDS_MANUAL_REVIEW") {
         if (!formData.doctorId) {
           alert(
-            "✅ Đơn của bạn đã được ghi nhận!. Chúng tôi sẽ liên hệ với bạn trong vòng 24h để xác nhận lịch hẹn."
+            "✅ Đơn của bạn đã được ghi nhận! Chúng tôi sẽ liên hệ với bạn trong vòng 24h để xác nhận lịch hẹn.",
           );
         } else {
           alert(
-            "⏳ Đơn của bạn đã được ghi nhận. Hiện tại khung giờ này đã đầy, chúng tôi sẽ xem xét và liên hệ lại với bạn trong vòng 24h."
+            "⏳ Đơn của bạn đã được ghi nhận. Hiện tại khung giờ này đã đầy, chúng tôi sẽ xem xét và liên hệ lại với bạn trong vòng 24h.",
           );
         }
         navigate("/appointments");
       } else {
         alert(
-          "📝 Đơn của bạn đang được xử lý. Vui lòng kiểm tra email để biết kết quả."
+          "📝 Đơn của bạn đang được xử lý. Vui lòng kiểm tra email để biết kết quả.",
         );
         navigate("/appointments");
       }
@@ -252,7 +265,7 @@ const RegisterClinic = () => {
           alert(
             `Dữ liệu không hợp lệ: ${
               typeof data === "string" ? data : JSON.stringify(data)
-            }`
+            }`,
           );
         } else if (status === 401) {
           alert("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.");
@@ -264,7 +277,7 @@ const RegisterClinic = () => {
         }
       } else if (err.request) {
         alert(
-          "Không thể kết nối đến server. Vui lòng kiểm tra kết nối mạng và backend."
+          "Không thể kết nối đến server. Vui lòng kiểm tra kết nối mạng và backend.",
         );
       } else {
         alert("Có lỗi xảy ra khi đăng ký. Vui lòng thử lại sau.");
@@ -287,7 +300,7 @@ const RegisterClinic = () => {
       });
     } else if (method === "direct") {
       alert(
-        `🎉 Đăng ký thành công!\n\n📋 Thông tin lịch hẹn:\n• Số thứ tự: ${registrationResult.queueNumber}\n• Bác sĩ: ${selectedDoctor?.fullName}\n• Phòng: ${selectedDoctor?.roomNumber}\n• Khung giờ: ${formData.timeSlot}\n• Mã phiếu: ${registrationResult.registrationNumber}\n\n💳 Phương thức thanh toán: Thanh toán trực tiếp tại bệnh viện\n\nVui lòng đến trước giờ hẹn 15 phút để làm thủ tục.`
+        `🎉 Đăng ký thành công!\n\n📋 Thông tin lịch hẹn:\n• Số thứ tự: ${registrationResult.queueNumber}\n• Bác sĩ: ${selectedDoctor?.fullName}\n• Phòng: ${selectedDoctor?.roomNumber}\n• Khung giờ: ${formData.timeSlot}\n• Mã phiếu: ${registrationResult.registrationNumber}\n\n💳 Phương thức thanh toán: Thanh toán trực tiếp tại bệnh viện\n\nVui lòng đến trước giờ hẹn 15 phút để làm thủ tục.`,
       );
 
       // Reset form
@@ -319,320 +332,460 @@ const RegisterClinic = () => {
   };
 
   return (
-    <div className="clinic-registration-container">
-      <div className="clinic-registration-card">
-        <h1 className="clinic-registration-title">ĐĂNG KÝ KHÁM</h1>
+    <div className="clinic-registration-page">
+      <div className="medical-bg">
+        {[...Array(12)].map((_, i) => (
+          <div
+            key={`cross-${i}`}
+            className="cross"
+            style={{
+              top: `${Math.random() * 100}%`,
+              left: `${Math.random() * 100}%`,
+              animationDelay: `${Math.random() * 3}s`,
+            }}
+          >
+            <MdHealthAndSafety />
+          </div>
+        ))}
+        {[...Array(8)].map((_, i) => (
+          <div
+            key={`heart-${i}`}
+            className="heart"
+            style={{
+              top: `${Math.random() * 100}%`,
+              left: `${Math.random() * 100}%`,
+              animationDelay: `${Math.random() * 2}s`,
+            }}
+          >
+            <FaStethoscope />
+          </div>
+        ))}
+      </div>
 
-        <div className="clinic-notice-box">
-          <h3 className="clinic-notice-title">Lưu ý quan trọng:</h3>
-          <p>
-            • Lịch hẹn có hiệu lực sau khi có xác nhận chính thức từ Phòng khám.
-          </p>
-          <p>
-            • Vui lòng cung cấp thông tin chính xác để được phục vụ tốt nhất.
-          </p>
-          <p>• Đặt lịch trước ít nhất 24 giờ.</p>
-          <p>• Mỗi khung giờ có tối đa 10 bệnh nhân.</p>
-          <p>• Giờ làm việc: 7:00 - 17:00 (Nghỉ trưa: 12:00 - 13:00)</p>
-        </div>
+      <div className="clinic-registration-container">
+        <div className="clinic-registration-card">
+          {/* Header với logo bệnh viện */}
+          <div className="clinic-registration-header">
+            <div className="hospital-logo">
+              <FaHospital />
+            </div>
+            <div className="clinic-header-content">
+              <h1 className="clinic-registration-title">ĐĂNG KÝ KHÁM BỆNH</h1>
+              <p className="clinic-header-subtitle">
+                Bệnh viện Đa khoa Medical - Chăm sóc sức khỏe toàn diện
+              </p>
+            </div>
+          </div>
 
-        <div className="clinic-form-section">
-          <h2 className="clinic-form-title">Thông tin bệnh nhân</h2>
-          <form onSubmit={handleSubmit} className="clinic-form">
-            <div className="clinic-form-grid">
-              {/* Các trường thông tin cá nhân giữ nguyên */}
-              <div className="clinic-form-group">
-                <label htmlFor="fullname">Họ và tên *</label>
-                <input
-                  id="fullname"
-                  type="text"
-                  value={formData.fullname}
-                  onChange={handleChange}
-                  className={`clinic-form-input ${
-                    errors.fullname ? "error" : ""
-                  }`}
-                  placeholder="Nhập họ và tên đầy đủ"
-                />
-                {errors.fullname && (
-                  <span className="clinic-error-message">
-                    {errors.fullname}
-                  </span>
-                )}
+          {/* Thông báo quan trọng */}
+          <div className="clinic-notice-box">
+            <h3 className="clinic-notice-title">
+              <FaFileMedical /> Lưu ý quan trọng:
+            </h3>
+            <div className="notice-items">
+              <div className="notice-item">
+                <MdHealthAndSafety />
+                <span>
+                  Lịch hẹn có hiệu lực sau khi có xác nhận chính thức từ Bệnh
+                  viện.
+                </span>
               </div>
-
-              <div className="clinic-form-group">
-                <label htmlFor="email">Email *</label>
-                <input
-                  id="email"
-                  type="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  className={`clinic-form-input ${errors.email ? "error" : ""}`}
-                  placeholder="example@email.com"
-                />
-                {errors.email && (
-                  <span className="clinic-error-message">{errors.email}</span>
-                )}
+              <div className="notice-item">
+                <FaUser />
+                <span>
+                  Vui lòng cung cấp thông tin chính xác để được phục vụ tốt
+                  nhất.
+                </span>
               </div>
-
-              <div className="clinic-form-group">
-                <label htmlFor="birthdate">Ngày sinh *</label>
-                <input
-                  id="birthdate"
-                  type="date"
-                  value={formData.birthdate}
-                  onChange={handleChange}
-                  className={`clinic-form-input ${
-                    errors.birthdate ? "error" : ""
-                  }`}
-                  max={new Date().toISOString().split("T")[0]}
-                />
-                {errors.birthdate && (
-                  <span className="clinic-error-message">
-                    {errors.birthdate}
-                  </span>
-                )}
+              <div className="notice-item">
+                <FaCalendarCheck />
+                <span>Đặt lịch trước ít nhất 24 giờ.</span>
               </div>
-
-              <div className="clinic-form-group">
-                <label htmlFor="phone">Số điện thoại *</label>
-                <input
-                  id="phone"
-                  type="tel"
-                  value={formData.phone}
-                  onChange={handleChange}
-                  className={`clinic-form-input ${errors.phone ? "error" : ""}`}
-                  placeholder="0901234567"
-                />
-                {errors.phone && (
-                  <span className="clinic-error-message">{errors.phone}</span>
-                )}
+              <div className="notice-item">
+                <FaStethoscope />
+                <span>Mỗi khung giờ có tối đa 10 bệnh nhân.</span>
               </div>
-
-              <div className="clinic-form-group">
-                <label htmlFor="gender">Giới tính *</label>
-                <select
-                  id="gender"
-                  value={formData.gender}
-                  onChange={handleChange}
-                  className={`clinic-form-input ${
-                    errors.gender ? "error" : ""
-                  }`}
-                >
-                  <option value="">Chọn giới tính</option>
-                  <option value="Nam">Nam</option>
-                  <option value="Nữ">Nữ</option>
-                  <option value="Khác">Khác</option>
-                </select>
-                {errors.gender && (
-                  <span className="clinic-error-message">{errors.gender}</span>
-                )}
+              <div className="notice-item">
+                <MdEmergency />
+                <span>
+                  Giờ làm việc: 7:00 - 17:00 (Nghỉ trưa: 12:00 - 13:00)
+                </span>
               </div>
+            </div>
+          </div>
 
-              <div className="clinic-form-group">
-                <label htmlFor="address">Địa chỉ *</label>
-                <input
-                  id="address"
-                  type="text"
-                  value={formData.address}
-                  onChange={handleChange}
-                  className={`clinic-form-input ${
-                    errors.address ? "error" : ""
-                  }`}
-                  placeholder="Nhập địa chỉ đầy đủ"
-                />
-                {errors.address && (
-                  <span className="clinic-error-message">{errors.address}</span>
-                )}
-              </div>
+          {/* Phần form đăng ký */}
+          <div className="clinic-form-section">
+            <h2 className="clinic-form-title">
+              <FaUser /> Thông tin bệnh nhân
+            </h2>
 
-              {/* Chuyên khoa */}
-              <div className="clinic-form-group full-width">
-                <label htmlFor="department">Chuyên khoa *</label>
-                <select
-                  id="department"
-                  value={formData.department}
-                  onChange={handleChange}
-                  className={`clinic-form-input ${
-                    errors.department ? "error" : ""
-                  }`}
-                >
-                  <option value="">-- Chọn khoa --</option>
-                  {departments.map((dept) => (
-                    <option key={dept.id} value={dept.departmentName}>
-                      {dept.departmentName}
-                    </option>
-                  ))}
-                </select>
-                {selectedDepartment && (
-                  <div className="department-description">
-                    <strong>Mô tả:</strong>
-                    <p>{selectedDepartment.description}</p>
+            <form onSubmit={handleSubmit} className="clinic-form">
+              <div className="clinic-form-grid">
+                {/* Họ và tên */}
+                <div className="clinic-form-group">
+                  <label className="clinic-form-label" htmlFor="fullname">
+                    <FaUser /> Họ và tên *
+                  </label>
+                  <div className="input-container">
+                    <input
+                      id="fullname"
+                      type="text"
+                      value={formData.fullname}
+                      onChange={handleChange}
+                      className={`clinic-form-input ${
+                        errors.fullname ? "error" : ""
+                      }`}
+                      placeholder="Nhập họ và tên đầy đủ"
+                    />
                   </div>
-                )}
-                {errors.department && (
-                  <span className="clinic-error-message">
-                    {errors.department}
-                  </span>
-                )}
-              </div>
+                  {errors.fullname && (
+                    <span className="clinic-error-message">
+                      {errors.fullname}
+                    </span>
+                  )}
+                </div>
 
-              {/* Bác sĩ */}
-              <div className="clinic-form-group full-width">
-                <label htmlFor="doctorId">Chọn bác sĩ</label>
-                <select
-                  id="doctorId"
-                  value={formData.doctorId}
-                  onChange={handleChange}
-                  className="clinic-form-input"
-                  disabled={!formData.department}
-                >
-                  <option value="">-- Không chọn bác sĩ cụ thể --</option>
-                  {doctors.map((d) => (
-                    <option key={d.id} value={d.id}>
-                      {d.fullName} - {d.degree} - {d.position} - {d.specialty} -
-                      Phòng {d.roomNumber}
-                    </option>
-                  ))}
-                </select>
-
-                {/* Hiển thị thông báo khi không chọn bác sĩ */}
-                {!formData.doctorId && (
-                  <div className="doctor-selection-info">
-                    <p>
-                      ℹ️ Bạn có thể chọn bác sĩ khám cho bạn (Bỏ qua nếu bạn
-                      không muốn).
-                    </p>
+                {/* Email */}
+                <div className="clinic-form-group">
+                  <label className="clinic-form-label" htmlFor="email">
+                    <FaEnvelope /> Email *
+                  </label>
+                  <div className="input-container">
+                    <input
+                      id="email"
+                      type="email"
+                      value={formData.email}
+                      onChange={handleChange}
+                      className={`clinic-form-input ${
+                        errors.email ? "error" : ""
+                      }`}
+                      placeholder="example@email.com"
+                    />
                   </div>
-                )}
+                  {errors.email && (
+                    <span className="clinic-error-message">{errors.email}</span>
+                  )}
+                </div>
 
-                {/* Hiển thị thông tin chi tiết bác sĩ khi chọn */}
-                {selectedDoctor && (
-                  <div className="doctor-detail-info">
-                    <h4>👨‍⚕️ Thông tin bác sĩ:</h4>
-                    <div className="doctor-detail-grid">
-                      <div>
-                        <strong>Họ tên:</strong> {selectedDoctor.fullName}
+                {/* Ngày sinh */}
+                <div className="clinic-form-group">
+                  <label className="clinic-form-label" htmlFor="birthdate">
+                    <FaBirthdayCake /> Ngày sinh *
+                  </label>
+                  <div className="input-container">
+                    <input
+                      id="birthdate"
+                      type="date"
+                      value={formData.birthdate}
+                      onChange={handleChange}
+                      className={`clinic-form-input ${
+                        errors.birthdate ? "error" : ""
+                      }`}
+                      max={new Date().toISOString().split("T")[0]}
+                    />
+                  </div>
+                  {errors.birthdate && (
+                    <span className="clinic-error-message">
+                      {errors.birthdate}
+                    </span>
+                  )}
+                </div>
+
+                {/* Số điện thoại */}
+                <div className="clinic-form-group">
+                  <label className="clinic-form-label" htmlFor="phone">
+                    <FaPhone /> Số điện thoại *
+                  </label>
+                  <div className="input-container">
+                    <input
+                      id="phone"
+                      type="tel"
+                      value={formData.phone}
+                      onChange={handleChange}
+                      className={`clinic-form-input ${
+                        errors.phone ? "error" : ""
+                      }`}
+                      placeholder="0901234567"
+                    />
+                  </div>
+                  {errors.phone && (
+                    <span className="clinic-error-message">{errors.phone}</span>
+                  )}
+                </div>
+
+                {/* Giới tính */}
+                <div className="clinic-form-group">
+                  <label className="clinic-form-label" htmlFor="gender">
+                    <FaVenusMars /> Giới tính *
+                  </label>
+                  <div className="input-container">
+                    <select
+                      id="gender"
+                      value={formData.gender}
+                      onChange={handleChange}
+                      className={`clinic-form-input ${
+                        errors.gender ? "error" : ""
+                      }`}
+                    >
+                      <option value="">Chọn giới tính</option>
+                      <option value="Nam">Nam</option>
+                      <option value="Nữ">Nữ</option>
+                      <option value="Khác">Khác</option>
+                    </select>
+                  </div>
+                  {errors.gender && (
+                    <span className="clinic-error-message">
+                      {errors.gender}
+                    </span>
+                  )}
+                </div>
+
+                {/* Địa chỉ */}
+                <div className="clinic-form-group">
+                  <label className="clinic-form-label" htmlFor="address">
+                    <FaMapMarkerAlt /> Địa chỉ *
+                  </label>
+                  <div className="input-container">
+                    <input
+                      id="address"
+                      type="text"
+                      value={formData.address}
+                      onChange={handleChange}
+                      className={`clinic-form-input ${
+                        errors.address ? "error" : ""
+                      }`}
+                      placeholder="Nhập địa chỉ đầy đủ"
+                    />
+                  </div>
+                  {errors.address && (
+                    <span className="clinic-error-message">
+                      {errors.address}
+                    </span>
+                  )}
+                </div>
+
+                {/* Chuyên khoa */}
+                <div className="clinic-form-group full-width">
+                  <label className="clinic-form-label" htmlFor="department">
+                    <GiMedicines /> Chuyên khoa *
+                  </label>
+                  <div className="input-container">
+                    <select
+                      id="department"
+                      value={formData.department}
+                      onChange={handleChange}
+                      className={`clinic-form-input ${
+                        errors.department ? "error" : ""
+                      }`}
+                    >
+                      <option value="">-- Chọn khoa --</option>
+                      {departments.map((dept) => (
+                        <option key={dept.id} value={dept.departmentName}>
+                          {dept.departmentName}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  {selectedDepartment && (
+                    <div className="department-description">
+                      <strong>📝 Mô tả khoa:</strong>
+                      <p>{selectedDepartment.description}</p>
+                    </div>
+                  )}
+                  {errors.department && (
+                    <span className="clinic-error-message">
+                      {errors.department}
+                    </span>
+                  )}
+                </div>
+
+                {/* Bác sĩ */}
+                <div className="clinic-form-group full-width">
+                  <label className="clinic-form-label" htmlFor="doctorId">
+                    <FaStethoscope /> Chọn bác sĩ
+                  </label>
+                  <div className="input-container">
+                    <select
+                      id="doctorId"
+                      value={formData.doctorId}
+                      onChange={handleChange}
+                      className="clinic-form-input"
+                      disabled={!formData.department}
+                    >
+                      <option value="">-- Không chọn bác sĩ cụ thể --</option>
+                      {doctors.map((d) => (
+                        <option key={d.id} value={d.id}>
+                          {d.fullName} - {d.degree} - {d.position} -{" "}
+                          {d.specialty} - Phòng {d.roomNumber}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Hiển thị thông báo khi không chọn bác sĩ */}
+                  {!formData.doctorId && formData.department && (
+                    <div className="doctor-selection-info">
+                      <p>
+                        ℹ️ Bạn có thể chọn bác sĩ khám cho bạn (Bỏ qua nếu bạn
+                        không muốn).
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Hiển thị thông tin chi tiết bác sĩ khi chọn */}
+                  {selectedDoctor && (
+                    <div className="doctor-detail-info">
+                      <h4>👨‍⚕️ Thông tin bác sĩ:</h4>
+                      <div className="doctor-detail-grid">
+                        <div>
+                          <strong>Họ tên:</strong> {selectedDoctor.fullName}
+                        </div>
+                        <div>
+                          <strong>Học vị:</strong> {selectedDoctor.degree}
+                        </div>
+                        <div>
+                          <strong>Chức vụ:</strong> {selectedDoctor.position}
+                        </div>
+                        <div>
+                          <strong>Chuyên khoa:</strong>{" "}
+                          {selectedDoctor.specialty}
+                        </div>
+                        <div>
+                          <strong>Phòng:</strong> {selectedDoctor.roomNumber}
+                        </div>
+                        <div>
+                          <strong>Tầng:</strong> {selectedDoctor.floor}
+                        </div>
                       </div>
-                      <div>
-                        <strong>Học vị:</strong> {selectedDoctor.degree}
-                      </div>
-                      <div>
-                        <strong>Chức vụ:</strong> {selectedDoctor.position}
-                      </div>
-                      <div>
-                        <strong>Chuyên khoa:</strong> {selectedDoctor.specialty}
-                      </div>
-                      <div>
-                        <strong>Phòng:</strong> {selectedDoctor.roomNumber}
-                      </div>
-                      <div>
-                        <strong>Tầng:</strong> {selectedDoctor.floor}
-                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Ngày khám */}
+                <div className="clinic-form-group">
+                  <label
+                    className="clinic-form-label"
+                    htmlFor="appointmentDate"
+                  >
+                    <FaCalendarCheck /> Ngày khám *
+                  </label>
+                  <div className="input-container">
+                    <input
+                      id="appointmentDate"
+                      type="date"
+                      min={getMinAppointmentDate()}
+                      value={formData.appointmentDate}
+                      onChange={handleChange}
+                      className={`clinic-form-input ${
+                        errors.appointmentDate ? "error" : ""
+                      }`}
+                    />
+                  </div>
+                  {errors.appointmentDate && (
+                    <span className="clinic-error-message">
+                      {errors.appointmentDate}
+                    </span>
+                  )}
+                </div>
+
+                {/* Khung giờ - Chỉ hiển thị khi có chọn bác sĩ */}
+                {formData.doctorId && (
+                  <div className="clinic-form-group full-width">
+                    <label className="clinic-form-label">
+                      ⏰ Chọn khung giờ khám
+                    </label>
+
+                    <div className="time-slots-container">
+                      {timeSlots.length > 0 ? (
+                        <div className="time-slots-grid">
+                          {timeSlots.map((slot) => (
+                            <button
+                              key={slot.timeSlot}
+                              type="button"
+                              className={`time-slot-btn ${
+                                formData.timeSlot === slot.timeSlot
+                                  ? "selected"
+                                  : ""
+                              } ${
+                                slot.currentPatients >= slot.maxPatients
+                                  ? "full"
+                                  : ""
+                              } ${slot.currentPatients >= 8 ? "warning" : ""}`}
+                              onClick={() => handleTimeSlotSelect(slot)}
+                              disabled={
+                                slot.currentPatients >= slot.maxPatients
+                              }
+                            >
+                              <div className="time-slot-time">
+                                {slot.timeSlot}
+                              </div>
+                              <div className="time-slot-info">
+                                {slot.currentPatients}/{slot.maxPatients} bệnh
+                                nhân
+                              </div>
+                              {slot.currentPatients >= slot.maxPatients && (
+                                <div className="slot-full">HẾT CHỖ</div>
+                              )}
+                              {slot.currentPatients >= 8 &&
+                                slot.currentPatients < 10 && (
+                                  <div className="slot-warning">
+                                    SẮP HẾT CHỖ
+                                  </div>
+                                )}
+                            </button>
+                          ))}
+                        </div>
+                      ) : (
+                        formData.doctorId &&
+                        formData.appointmentDate && (
+                          <div className="no-slots-message">
+                            Đang tải khung giờ...
+                          </div>
+                        )
+                      )}
                     </div>
                   </div>
                 )}
-              </div>
 
-              {/* Ngày khám */}
-              <div className="clinic-form-group">
-                <label htmlFor="appointmentDate">Ngày khám *</label>
-                <input
-                  id="appointmentDate"
-                  type="date"
-                  min={getMinAppointmentDate()}
-                  value={formData.appointmentDate}
-                  onChange={handleChange}
-                  className={`clinic-form-input ${
-                    errors.appointmentDate ? "error" : ""
-                  }`}
-                />
-                {errors.appointmentDate && (
-                  <span className="clinic-error-message">
-                    {errors.appointmentDate}
-                  </span>
-                )}
-              </div>
-
-              {/* Khung giờ - Chỉ hiển thị khi có chọn bác sĩ */}
-              {formData.doctorId && (
+                {/* Triệu chứng */}
                 <div className="clinic-form-group full-width">
-                  <label>Chọn khung giờ khám</label>
-
-                  <div className="time-slots-container">
-                    {timeSlots.length > 0 ? (
-                      <div className="time-slots-grid">
-                        {timeSlots.map((slot) => (
-                          <button
-                            key={slot.timeSlot}
-                            type="button"
-                            className={`time-slot-btn ${
-                              formData.timeSlot === slot.timeSlot
-                                ? "selected"
-                                : ""
-                            } ${
-                              slot.currentPatients >= slot.maxPatients
-                                ? "full"
-                                : ""
-                            } ${slot.currentPatients >= 8 ? "warning" : ""}`}
-                            onClick={() => handleTimeSlotSelect(slot)}
-                            disabled={slot.currentPatients >= slot.maxPatients}
-                          >
-                            <div className="time-slot-time">
-                              {slot.timeSlot}
-                            </div>
-                            <div className="time-slot-info">
-                              {slot.currentPatients}/{slot.maxPatients} bệnh
-                              nhân
-                            </div>
-                            {slot.currentPatients >= slot.maxPatients && (
-                              <div className="slot-full">HẾT CHỖ</div>
-                            )}
-                            {slot.currentPatients >= 8 &&
-                              slot.currentPatients < 10 && (
-                                <div className="slot-warning">SẮP HẾT CHỖ</div>
-                              )}
-                          </button>
-                        ))}
-                      </div>
-                    ) : (
-                      formData.doctorId &&
-                      formData.appointmentDate && (
-                        <div className="no-slots-message">
-                          Đang tải khung giờ...
-                        </div>
-                      )
-                    )}
+                  <label className="clinic-form-label" htmlFor="symptoms">
+                    📋 Triệu chứng
+                  </label>
+                  <div className="input-container">
+                    <textarea
+                      id="symptoms"
+                      value={formData.symptoms}
+                      onChange={handleChange}
+                      placeholder="Mô tả triệu chứng của bạn (nếu có)..."
+                      rows="3"
+                      className="clinic-form-textarea"
+                    />
                   </div>
                 </div>
-              )}
-
-              {/* Triệu chứng */}
-              <div className="clinic-form-group full-width">
-                <label htmlFor="symptoms">Triệu chứng</label>
-                <textarea
-                  id="symptoms"
-                  value={formData.symptoms}
-                  onChange={handleChange}
-                  placeholder="Mô tả triệu chứng của bạn (nếu có)..."
-                  rows="3"
-                  className="clinic-form-textarea"
-                />
               </div>
-            </div>
 
-            <div className="clinic-form-submit">
-              <button
-                type="submit"
-                className={`clinic-submit-button ${
-                  isSubmitting ? "submitting" : ""
-                }`}
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? "Đang xử lý..." : "Đăng ký lịch hẹn"}
-              </button>
-            </div>
-          </form>
+              <div className="clinic-form-submit">
+                <button
+                  type="submit"
+                  className={`clinic-submit-button ${
+                    isSubmitting ? "submitting" : ""
+                  }`}
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? (
+                    <>
+                      <div className="spinner"></div>
+                      Đang xử lý...
+                    </>
+                  ) : (
+                    "📅 Đăng ký lịch hẹn"
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       </div>
 
@@ -640,7 +793,8 @@ const RegisterClinic = () => {
       {showPaymentMethod && (
         <div className="payment-method-modal">
           <div className="payment-method-content">
-            <h3>Chọn phương thức thanh toán</h3>
+            <h3>💳 Chọn phương thức thanh toán</h3>
+
             <div className="payment-method-options">
               <button
                 className="payment-option-btn online-payment"
@@ -666,29 +820,31 @@ const RegisterClinic = () => {
             </div>
 
             <div className="registration-summary">
-              <h4>Thông tin đăng ký:</h4>
-              <p>
-                <strong>Họ tên:</strong> {formData.fullname}
-              </p>
-              <p>
-                <strong>Ngày khám:</strong> {formData.appointmentDate}
-              </p>
-              <p>
-                <strong>Khung giờ:</strong> {formData.timeSlot}
-              </p>
-              <p>
-                <strong>Bác sĩ:</strong> {selectedDoctor?.fullName}
-              </p>
-              <p>
-                <strong>Phòng:</strong> {selectedDoctor?.roomNumber}
-              </p>
-              <p>
-                <strong>Số thứ tự:</strong> {registrationResult?.queueNumber}
-              </p>
-              <p>
-                <strong>Mã phiếu:</strong>{" "}
-                {registrationResult?.registrationNumber}
-              </p>
+              <h4>📋 Thông tin đăng ký:</h4>
+              <div className="summary-grid">
+                <div className="summary-item">
+                  <strong>Họ tên:</strong> {formData.fullname}
+                </div>
+                <div className="summary-item">
+                  <strong>Ngày khám:</strong> {formData.appointmentDate}
+                </div>
+                <div className="summary-item">
+                  <strong>Khung giờ:</strong> {formData.timeSlot}
+                </div>
+                <div className="summary-item">
+                  <strong>Bác sĩ:</strong> {selectedDoctor?.fullName}
+                </div>
+                <div className="summary-item">
+                  <strong>Phòng:</strong> {selectedDoctor?.roomNumber}
+                </div>
+                <div className="summary-item">
+                  <strong>Số thứ tự:</strong> {registrationResult?.queueNumber}
+                </div>
+                <div className="summary-item">
+                  <strong>Mã phiếu:</strong>{" "}
+                  {registrationResult?.registrationNumber}
+                </div>
+              </div>
             </div>
           </div>
         </div>

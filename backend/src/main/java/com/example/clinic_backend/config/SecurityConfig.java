@@ -43,7 +43,7 @@ public class SecurityConfig {
                 // Cho phép preflight OPTIONS
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
-                // Public endpoints
+                // Các endpoint công khai
                 .requestMatchers(
                     "/api/auth/**",
                     "/api/patient-registrations/**",
@@ -54,18 +54,18 @@ public class SecurityConfig {
                     "/api/doctor/appointments/**"
                 ).permitAll()
 
-                // endpoints của admin
+                // Các endpoint của quản trị viên
                 .requestMatchers("/api/admin/**").hasAuthority("ROLE_ADMIN")
-                .requestMatchers("/api/slots/**").hasAuthority("ROLE_ADMIN")   // QUAN TRỌNG
+                .requestMatchers("/api/slots/**").hasAuthority("ROLE_ADMIN")
                 .requestMatchers("/api/admin/structure/**").hasAuthority("ROLE_ADMIN")
 
-                // endpoints của bác sĩ
+                // Các endpoint của bác sĩ
                 .requestMatchers("/api/doctor/**",
                     "/api/doctor/appointments/**",
                     "/api/doctor/medical-records/**",
                     "/api/doctor/statistics/**").hasAuthority("ROLE_DOCTOR")
 
-                // endpoints của bệnh nhân
+                // Các endpoint của bệnh nhân
                 .requestMatchers("/api/patients/me",
                     "/api/wallets/**",
                     "/api/bmi/**").hasAuthority("ROLE_PATIENT")

@@ -1,5 +1,3 @@
-// Chưa login được bằng facebook (Lỗi do firebase)
-
 import { auth } from "../../api/firebase";
 import {
   signInWithCredential,
@@ -10,11 +8,24 @@ import React, { useState, useEffect } from "react";
 import { loginUser } from "../../api/userAPI";
 import { useNavigate, Link } from "react-router-dom";
 import "../../css/Login.css";
-import { FaUserTie } from "react-icons/fa6";
+
+// Icons mới
+import {
+  FaHospital,
+  FaStethoscope,
+  FaCalendarCheck,
+  FaFileMedical,
+} from "react-icons/fa";
+import { MdHealthAndSafety, MdEmergency } from "react-icons/md";
+import { GiMedicines } from "react-icons/gi";
+import { FaHeartbeat, FaUserTie, FaLock } from "react-icons/fa";
 import { IoIosLock } from "react-icons/io";
 import { FaFacebookF } from "react-icons/fa";
+
+// Google và Facebook auth
 import { GoogleOAuthProvider, GoogleLogin } from "@react-oauth/google";
 import { LoginSocialFacebook } from "reactjs-social-login";
+
 import { useToast } from "../../hooks/useToast";
 
 // secret
@@ -37,16 +48,16 @@ const LoginContent = () => {
     const container = document.querySelector(".floating-dots");
     if (!container) return;
     container.innerHTML = "";
-    const dotCount = 20;
+    const dotCount = 15;
     for (let i = 0; i < dotCount; i++) {
       const dot = document.createElement("div");
       dot.classList.add("dot");
-      const size = Math.random() * 10 + 5;
+      const size = Math.random() * 6 + 3;
       dot.style.width = `${size}px`;
       dot.style.height = `${size}px`;
       dot.style.left = `${Math.random() * 100}%`;
       dot.style.top = `${Math.random() * 100}%`;
-      dot.style.opacity = Math.random() * 0.6 + 0.2;
+      dot.style.opacity = Math.random() * 0.4 + 0.1;
       const duration = Math.random() * 15 + 10;
       dot.style.animationDuration = `${duration}s`;
       dot.style.animationDelay = `${Math.random() * 5}s`;
@@ -121,7 +132,7 @@ const LoginContent = () => {
             name: firebaseUser.displayName || firebaseUser.email,
             picture: firebaseUser.photoURL,
           }),
-        }
+        },
       );
 
       const data = await backendRes.json();
@@ -195,7 +206,7 @@ const LoginContent = () => {
       // Xử lý các lỗi cụ thể với toast
       if (error.code === "auth/account-exists-with-different-credential") {
         toast.error(
-          "Email này đã được đăng ký với phương thức đăng nhập khác."
+          "Email này đã được đăng ký với phương thức đăng nhập khác.",
         );
       } else if (error.code === "auth/popup-blocked") {
         toast.error("Popup đăng nhập đã bị chặn. Vui lòng cho phép popup.");
@@ -225,102 +236,235 @@ const LoginContent = () => {
     <div className="login-page">
       <div className="floating-dots"></div>
 
+      <div className="medical-bg">
+        {[...Array(10)].map((_, i) => (
+          <div
+            key={`cross-${i}`}
+            className="cross"
+            style={{
+              top: `${Math.random() * 100}%`,
+              left: `${Math.random() * 100}%`,
+              animationDelay: `${Math.random() * 3}s`,
+            }}
+          >
+            <MdHealthAndSafety />
+          </div>
+        ))}
+        {[...Array(6)].map((_, i) => (
+          <div
+            key={`heart-${i}`}
+            className="heart"
+            style={{
+              top: `${Math.random() * 100}%`,
+              left: `${Math.random() * 100}%`,
+              animationDelay: `${Math.random() * 2}s`,
+            }}
+          >
+            <FaHeartbeat />
+          </div>
+        ))}
+        {[...Array(4)].map((_, i) => (
+          <div
+            key={`plus-${i}`}
+            className="plus"
+            style={{
+              top: `${Math.random() * 100}%`,
+              left: `${Math.random() * 100}%`,
+              animationDelay: `${Math.random() * 5}s`,
+            }}
+          >
+            <GiMedicines />
+          </div>
+        ))}
+      </div>
+
       <div className="login-container">
-        <div className="login-card">
-          <div className="card-content">
-            <div className="login-header slide-in">
-              <div className="avatar">
-                <i>
-                  <FaUserTie />
-                </i>
+        <div className="login-card slide-in">
+          {/* Phần sidebar bệnh viện */}
+          <div className="hospital-sidebar">
+            <div className="hospital-logo">
+              <i className="fas fa-hospital">
+                <FaHospital />
+              </i>
+            </div>
+            <h2 className="hospital-name">BỆNH VIỆN ĐA KHOA MEDICAL</h2>
+            <p className="hospital-tagline">
+              Chăm sóc sức khỏe toàn diện - Vì cộng đồng
+            </p>
+
+            <div className="hospital-features">
+              <div className="feature">
+                <div className="feature-icon">
+                  <FaStethoscope />
+                </div>
+                <div className="feature-text">
+                  <h4>Đội ngũ bác sĩ</h4>
+                  <p>Chuyên gia đầu ngành</p>
+                </div>
               </div>
-              <h1>Đăng Nhập</h1>
-              <p>Chào mừng bạn trở lại</p>
+              <div className="feature">
+                <div className="feature-icon">
+                  <FaCalendarCheck />
+                </div>
+                <div className="feature-text">
+                  <h4>Đặt lịch nhanh</h4>
+                  <p>24/7 trực tuyến</p>
+                </div>
+              </div>
+              <div className="feature">
+                <div className="feature-icon">
+                  <MdEmergency />
+                </div>
+                <div className="feature-text">
+                  <h4>Cấp cứu 24/7</h4>
+                  <p>Hỗ trợ khẩn cấp</p>
+                </div>
+              </div>
+              <div className="feature">
+                <div className="feature-icon">
+                  <FaFileMedical />
+                </div>
+                <div className="feature-text">
+                  <h4>Hồ sơ điện tử</h4>
+                  <p>Lưu trữ an toàn</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Phần form đăng nhập */}
+          <div className="form-section">
+            <div className="form-header">
+              <h2>
+                <i className="fas fa-sign-in-alt"></i>
+                Đăng nhập tài khoản
+              </h2>
+              <p>Chào mừng bạn quay trở lại</p>
             </div>
 
-            <form onSubmit={handleSubmit} className="login-form">
-              <div className="form-group slide-in delay-1">
-                <label htmlFor="username">Tên đăng nhập</label>
-                <div className="input-container">
-                  <div className="input-icon">
-                    <FaUserTie />
+            <form onSubmit={handleSubmit}>
+              <div className="form-grid">
+                {/* Tên đăng nhập */}
+                <div className="form-group full-width">
+                  <label className="label">
+                    <i className="fas fa-user">
+                      <FaUserTie />
+                    </i>
+                    Tên đăng nhập / Email
+                    <span className="required">*</span>
+                  </label>
+                  <div className="input-container">
+                    <input
+                      type="text"
+                      id="username"
+                      placeholder="Nhập tên đăng nhập hoặc email"
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
+                      required
+                      autoComplete="username"
+                      disabled={loading}
+                    />
                   </div>
-                  <input
-                    type="text"
-                    id="username"
-                    placeholder="Nhập tên đăng nhập"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    required
-                    autoComplete="username"
-                    disabled={loading}
-                  />
+                </div>
+
+                {/* Mật khẩu */}
+                <div className="form-group full-width">
+                  <label className="label">
+                    <i className="fas fa-lock">
+                      <FaLock />
+                    </i>
+                    Mật khẩu
+                    <span className="required">*</span>
+                  </label>
+                  <div className="input-container">
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      id="password"
+                      placeholder="Nhập mật khẩu"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                      autoComplete="current-password"
+                      disabled={loading}
+                    />
+                    <button
+                      type="button"
+                      className="password-toggle"
+                      onClick={() => setShowPassword(!showPassword)}
+                    >
+                      {showPassword ? (
+                        <i className="fas fa-eye-slash"></i>
+                      ) : (
+                        <i className="fas fa-eye"></i>
+                      )}
+                    </button>
+                  </div>
                 </div>
               </div>
 
-              <div className="form-group slide-in delay-2">
-                <label htmlFor="password">Mật khẩu</label>
-                <div className="input-container">
-                  <div className="input-icon">
-                    <IoIosLock />
-                  </div>
-                  <input
-                    type={showPassword ? "text" : "password"}
-                    id="password"
-                    placeholder="Nhập mật khẩu"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                    autoComplete="current-password"
-                    disabled={loading}
-                  />
-                  <div
-                    className="password-toggle"
-                    onClick={() => setShowPassword(!showPassword)}
-                  >
-                    {showPassword ? "🙈" : "👁️"}
-                  </div>
-                </div>
+              {/* Quên mật khẩu */}
+              <div className="forgot-password">
+                <Link to="/forgot-password">Quên mật khẩu?</Link>
               </div>
 
-              <button
-                type="submit"
-                className="login-button slide-in delay-3"
-                disabled={loading}
-              >
-                {loading ? "Đang đăng nhập..." : "Đăng Nhập"}
-              </button>
+              {/* Nút đăng nhập */}
+              <div className="submit-section">
+                <button
+                  type="submit"
+                  className="login-button"
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <>
+                      <div className="spinner"></div>
+                      Đang đăng nhập...
+                    </>
+                  ) : (
+                    <>
+                      Đăng nhập
+                      <i className="button-icon fas fa-arrow-right"></i>
+                    </>
+                  )}
+                </button>
+              </div>
             </form>
 
-            <div className="social-login slide-in delay-3">
+            {/* Đăng nhập bằng mạng xã hội */}
+            <div className="social-login-section">
               <div className="divider">
                 <span>Hoặc đăng nhập bằng</span>
               </div>
               <div className="social-buttons">
-                <GoogleLogin
-                  onSuccess={handleGoogleSuccess}
-                  onError={handleGoogleError}
-                  useOneTap={false}
-                  size="large"
-                  text="sign_in_with"
-                  theme="filled_blue"
-                  width="280"
-                  shape="rectangular"
-                  logo_alignment="left"
-                />
-                <LoginSocialFacebook
-                  appId={FACEBOOK_APP_ID}
-                  onResolve={handleFacebookSuccess}
-                  onReject={handleFacebookError}
-                >
-                  <button type="button" className="social-button facebook">
-                    <FaFacebookF />
-                  </button>
-                </LoginSocialFacebook>
+                <div className="google-button">
+                  <GoogleLogin
+                    onSuccess={handleGoogleSuccess}
+                    onError={handleGoogleError}
+                    useOneTap={false}
+                    size="large"
+                    text="signin_with"
+                    theme="outline"
+                    width="100%"
+                    shape="rectangular"
+                    logo_alignment="left"
+                  />
+                </div>
+                <div className="facebook-button">
+                  <LoginSocialFacebook
+                    appId={FACEBOOK_APP_ID}
+                    onResolve={handleFacebookSuccess}
+                    onReject={handleFacebookError}
+                  >
+                    <button type="button" className="facebook-btn">
+                      <FaFacebookF />
+                      <span>Đăng nhập với Facebook</span>
+                    </button>
+                  </LoginSocialFacebook>
+                </div>
               </div>
             </div>
 
-            <div className="register-link slide-in delay-3">
+            {/* Link đăng ký */}
+            <div className="register-link">
               <p>
                 Chưa có tài khoản? <Link to="/register">Đăng ký ngay</Link>
               </p>

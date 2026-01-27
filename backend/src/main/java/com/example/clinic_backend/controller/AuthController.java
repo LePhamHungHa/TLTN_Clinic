@@ -15,11 +15,16 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 @RestController
 @RequestMapping("/api/auth")
 @CrossOrigin(origins = "http://localhost:5173")
 public class AuthController {
 
+    private static final Logger log = LoggerFactory.getLogger(AuthController.class);
+    
     private final UserService userService;
     private final PatientService patientService;
     private final PasswordEncoder passwordEncoder;
@@ -41,13 +46,21 @@ public class AuthController {
             String usernameOrPhone = body.get("username");
             String password = body.get("password");
 
-            System.out.println("🔍 LOGIN: " + usernameOrPhone);
+            log.info("Đang thử đăng nhập: {}", usernameOrPhone);
+
+            // Kiểm tra dữ liệu đầu vào
+            if (usernameOrPhone == null || usernameOrPhone.trim().isEmpty()) {
+                return ResponseEntity.badRequest().body(createErrorResponse("Tên đăng nhập là bắt buộc"));
+            }
+            if (password == null || password.trim().isEmpty()) {
+                return ResponseEntity.badRequest().body(createErrorResponse("Mật khẩu là bắt buộc"));
+            }
 
             User user = userService.authenticate(usernameOrPhone, password);
-
             String token = jwtUtil.generateToken(user.getUsername(), user.getRole());
 
             Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
             response.put("id", user.getId());
             response.put("username", user.getUsername());
             response.put("role", user.getRole());
@@ -56,12 +69,15 @@ public class AuthController {
             response.put("phone", user.getPhone());
             response.put("token", token);
 
-            System.out.println("✅ LOGIN SUCCESS: " + usernameOrPhone + " | ROLE: " + user.getRole());
+            log.info("Đăng nhập thành công: {} | Vai trò: {}", usernameOrPhone, user.getRole());
             return ResponseEntity.ok(response);
 
         } catch (RuntimeException e) {
-            System.err.println("❌ LOGIN ERROR: " + e.getMessage());
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+            log.error("Đăng nhập thất bại: {}", e.getMessage());
+            return ResponseEntity.badRequest().body(createErrorResponse(e.getMessage()));
+        } catch (Exception e) {
+            log.error("Lỗi đăng nhập: {}", e.getMessage(), e);
+            return ResponseEntity.internalServerError().body(createErrorResponse("Lỗi server khi đăng nhập"));
         }
     }
 
@@ -69,9 +85,17 @@ public class AuthController {
     public ResponseEntity<?> phoneLogin(@RequestBody Map<String, String> body) {
         try {
             String phone = body.get("phone");
+            log.info("Đang thử đăng nhập bằng số điện thoại: {}", phone);
+
+            // Kiểm tra dữ liệu đầu vào
+            if (phone == null || phone.trim().isEmpty()) {
+                return ResponseEntity.badRequest().body(createErrorResponse("Số điện thoại là bắt buộc"));
+            }
+
             User user = userService.findByPhoneNumber(phone);
 
             if (user == null) {
+                log.info("Tạo user mới từ số điện thoại: {}", phone);
                 User newUser = new User();
                 newUser.setUsername(phone);
                 newUser.setPhone(phone);
@@ -79,33 +103,37 @@ public class AuthController {
                 newUser.setPassword("");
                 user = userService.save(newUser);
                 
-                // Tự động tạo patient
-                createPatientForUser(user, user.getFullName());
-                System.out.println("✅ NEW PHONE USER + PATIENT: " + phone);
+                // Tạo patient cho user mới
+                createPatientForUser(user, phone);
+                log.info("Đã tạo user và patient mới cho số điện thoại: {}", phone);
             } else if (user.getRole() == null || user.getRole().isEmpty()) {
+                log.info("Cập nhật role cho user: {}", phone);
                 user.setRole("PATIENT");
                 user = userService.save(user);
                 
                 // Kiểm tra và tạo patient nếu chưa có
                 createPatientIfNotExists(user);
-                System.out.println("✅ UPDATE PHONE ROLE + PATIENT: " + phone);
+                log.info("Đã cập nhật role cho user: {}", phone);
             }
 
             String token = jwtUtil.generateToken(user.getUsername(), user.getRole());
 
             Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
             response.put("id", user.getId());
             response.put("username", user.getUsername());
             response.put("role", user.getRole());
             response.put("phone", user.getPhone());
+            response.put("fullName", user.getFullName());
+            response.put("email", user.getEmail());
             response.put("token", token);
 
-            System.out.println("✅ PHONE LOGIN SUCCESS: " + phone + " | ROLE: " + user.getRole());
+            log.info("Đăng nhập bằng số điện thoại thành công: {}", phone);
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
-            System.err.println("❌ PHONE LOGIN ERROR: " + e.getMessage());
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+            log.error("Lỗi đăng nhập bằng số điện thoại: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest().body(createErrorResponse("Đăng nhập bằng số điện thoại thất bại"));
         }
     }
 
@@ -118,67 +146,75 @@ public class AuthController {
             String name = body.get("name");
             String picture = body.get("picture");
 
-            System.out.println("🔍 SOCIAL LOGIN: " + email + " | " + provider + " | " + name);
+            log.info("Đang thử đăng nhập mạng xã hội: {} | {} | {}", email, provider, name);
 
+            // Kiểm tra dữ liệu đầu vào cơ bản
             if (email == null || email.trim().isEmpty()) {
-                System.err.println("❌ EMAIL NULL");
-                return ResponseEntity.badRequest().body(Map.of("error", "Email bắt buộc"));
+                log.warn("Đăng nhập mạng xã hội: Email là bắt buộc");
+                return ResponseEntity.badRequest().body(createErrorResponse("Email là bắt buộc"));
+            }
+            
+            if (provider == null || (!"google".equalsIgnoreCase(provider) && !"facebook".equalsIgnoreCase(provider))) {
+                log.warn("Đăng nhập mạng xã hội: Nhà cung cấp không hợp lệ: {}", provider);
+                return ResponseEntity.badRequest().body(createErrorResponse("Nhà cung cấp không hợp lệ"));
             }
 
+            // Tạo hoặc cập nhật user
             User user;
-            try {
-                if ("google".equals(provider)) {
-                    System.out.println("📞 CALL GOOGLE SERVICE");
-                    user = userService.createOrUpdateUserFromGoogle(email, name, uid, picture);
-                } else {
-                    System.out.println("📞 CALL FACEBOOK SERVICE");
-                    user = userService.createOrUpdateUserFromFacebook(email, name, uid);
-                }
-                System.out.println("✅ SERVICE RETURN USER ID: " + user.getId());
-            } catch (Exception serviceError) {
-                System.err.println("❌ SERVICE ERROR: " + serviceError.getMessage());
-                serviceError.printStackTrace();
-                user = createFallbackUser(email, provider, uid, name);
-                System.out.println("✅ FALLBACK USER ID: " + user.getId());
+            
+            if ("google".equalsIgnoreCase(provider)) {
+                user = userService.createOrUpdateUserFromGoogle(email, name, uid, picture);
+                log.info("Đã xử lý user Google: {}", email);
+            } else {
+                user = userService.createOrUpdateUserFromFacebook(email, name, uid);
+                log.info("Đã xử lý user Facebook: {}", email);
             }
 
-            // 🔥 QUAN TRỌNG: Tự động tạo patient nếu chưa có
-            createPatientIfNotExists(user);
-
+            // Đảm bảo user có role
             if (user.getRole() == null || user.getRole().isEmpty()) {
                 user.setRole("PATIENT");
                 user = userService.save(user);
-                System.out.println("✅ AUTO SET PATIENT: " + email);
+                log.info("Tự động gán role PATIENT cho: {}", email);
             }
 
+            // Tạo patient nếu chưa có
+            createPatientIfNotExists(user);
+            log.info("Đã đảm bảo patient cho user: {}", user.getId());
+
+            // Tạo token
             String token = jwtUtil.generateToken(user.getUsername(), user.getRole());
 
-            Map<String, Object> response = Map.of(
-                "id", user.getId(),
-                "username", user.getUsername(),
-                "email", user.getEmail(),
-                "fullName", user.getFullName() != null ? user.getFullName() : name != null ? name : email,
-                "role", user.getRole(),
-                "avatar", user.getAvatar() != null ? user.getAvatar() : "",
-                "token", token
-            );
+            // Tạo response
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("id", user.getId());
+            response.put("username", user.getUsername());
+            response.put("email", user.getEmail());
+            response.put("fullName", user.getFullName() != null ? user.getFullName() : 
+                        name != null ? name : email);
+            response.put("role", user.getRole());
+            response.put("avatar", user.getAvatar() != null ? user.getAvatar() : "");
+            response.put("phone", user.getPhone() != null ? user.getPhone() : "");
+            response.put("token", token);
 
-            System.out.println("✅ SOCIAL LOGIN SUCCESS: " + email + " | ROLE: " + user.getRole());
+            log.info("Đăng nhập mạng xã hội thành công: {} | Vai trò: {}", email, user.getRole());
             return ResponseEntity.ok(response);
 
+        } catch (IllegalArgumentException e) {
+            log.error("Lỗi kiểm tra đăng nhập mạng xã hội: {}", e.getMessage());
+            return ResponseEntity.badRequest().body(createErrorResponse(e.getMessage()));
         } catch (Exception e) {
-            System.err.println("❌ SOCIAL LOGIN ERROR: " + e.getMessage());
-            e.printStackTrace();
-            return ResponseEntity.badRequest().body(Map.of("error", "Lỗi server: " + e.getMessage()));
+            log.error("Lỗi đăng nhập mạng xã hội: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest().body(createErrorResponse("Đăng nhập thất bại: " + e.getMessage()));
         }
     }
 
-    // 🔥 PHƯƠNG THỨC QUAN TRỌNG: Tạo patient nếu chưa tồn tại
+    // Phương thức quan trọng: Tạo patient nếu chưa tồn tại
     private void createPatientIfNotExists(User user) {
         try {
             Optional<Patient> existingPatient = patientService.getPatientByUserId(user.getId());
             if (existingPatient.isEmpty()) {
-                System.out.println("🆕 Tạo mới patient cho user: " + user.getId());
+                log.info("Tạo patient mới cho user: {}", user.getId());
                 
                 Patient newPatient = new Patient();
                 newPatient.setUser(user);
@@ -187,18 +223,20 @@ public class AuthController {
                 newPatient.setPhone(user.getPhone() != null ? user.getPhone() : "");
                 newPatient.setAddress("");
                 newPatient.setBhyt("");
+                newPatient.setDob(null);
+                // KHÔNG SET GENDER VÌ PATIENT CLASS KHÔNG CÓ FIELD GENDER
                 
                 patientService.save(newPatient);
-                System.out.println("✅ Đã tạo patient mới: " + newPatient.getId());
+                log.info("Đã tạo patient mới: {}", newPatient.getId());
             } else {
-                System.out.println("✅ Patient đã tồn tại: " + existingPatient.get().getId());
+                log.debug("Patient đã tồn tại: {}", existingPatient.get().getId());
             }
         } catch (Exception patientError) {
-            System.err.println("⚠️ Lỗi khi tạo patient: " + patientError.getMessage());
+            log.error("Lỗi khi tạo patient: {}", patientError.getMessage());
+            // KHÔNG THROW EXCEPTION - KHÔNG ẢNH HƯỞNG ĐẾN QUÁ TRÌNH LOGIN
         }
     }
 
-    // Tạo patient với thông tin cụ thể
     private void createPatientForUser(User user, String fullName) {
         try {
             Patient newPatient = new Patient();
@@ -208,35 +246,14 @@ public class AuthController {
             newPatient.setPhone(user.getPhone() != null ? user.getPhone() : "");
             newPatient.setAddress("");
             newPatient.setBhyt("");
+            newPatient.setDob(null);
+            // KHÔNG SET GENDER VÌ PATIENT CLASS KHÔNG CÓ FIELD GENDER
             
             patientService.save(newPatient);
-            System.out.println("Created patient for user: " + user.getId());
+            log.info("Đã tạo patient cho user: {}", user.getId());
         } catch (Exception e) {
-            System.err.println("❌ Error creating patient: " + e.getMessage());
+            log.error("Lỗi khi tạo patient: {}", e.getMessage());
         }
-    }
-
-    private User createFallbackUser(String email, String provider, String uid, String name) {
-        System.out.println("🔧 Creating FALLBACK user: " + email);
-        User fallbackUser = new User();
-        fallbackUser.setUsername(email);
-        fallbackUser.setEmail(email);
-        fallbackUser.setFullName(name != null ? name : email);
-        fallbackUser.setRole("PATIENT");
-        fallbackUser.setPassword("");
-        
-        if ("google".equals(provider) && uid != null && !uid.trim().isEmpty()) {
-            fallbackUser.setGoogleId(uid);
-        } else if ("facebook".equals(provider) && uid != null && !uid.trim().isEmpty()) {
-            fallbackUser.setFacebookId(uid);
-        }
-        
-        User savedUser = userService.save(fallbackUser);
-        
-        // Tạo patient cho fallback user
-        createPatientForUser(savedUser, name);
-        
-        return savedUser;
     }
 
     @PostMapping("/register")
@@ -246,10 +263,26 @@ public class AuthController {
                     ? payload.getEmail()
                     : payload.getPhone();
 
-            if (userService.findByUsernameOptional(username).isPresent()) {
-                return ResponseEntity.badRequest().body(Map.of("error", "Tài khoản đã tồn tại"));
+            log.info("Đang thử đăng ký: {}", username);
+
+            // Kiểm tra dữ liệu đầu vào
+            if (username == null || username.trim().isEmpty()) {
+                return ResponseEntity.badRequest().body(createErrorResponse("Email hoặc số điện thoại là bắt buộc"));
+            }
+            if (payload.getPassword() == null || payload.getPassword().trim().isEmpty()) {
+                return ResponseEntity.badRequest().body(createErrorResponse("Mật khẩu là bắt buộc"));
+            }
+            if (payload.getFullName() == null || payload.getFullName().trim().isEmpty()) {
+                return ResponseEntity.badRequest().body(createErrorResponse("Họ và tên là bắt buộc"));
             }
 
+            // Kiểm tra user đã tồn tại
+            if (userService.findByUsernameOptional(username).isPresent()) {
+                log.warn("Đăng ký: User đã tồn tại: {}", username);
+                return ResponseEntity.badRequest().body(createErrorResponse("Tài khoản đã tồn tại"));
+            }
+
+            // Tạo user
             User user = new User();
             user.setUsername(username);
             user.setPassword(passwordEncoder.encode(payload.getPassword()));
@@ -257,8 +290,9 @@ public class AuthController {
             user.setEmail(payload.getEmail());
             user.setPhone(payload.getPhone());
             user.setFullName(payload.getFullName());
-            user = userService.save(user); 
+            user = userService.save(user);
 
+            // Tạo patient
             Patient patient = new Patient();
             patient.setUser(user);
             patient.setFullName(payload.getFullName());
@@ -267,12 +301,15 @@ public class AuthController {
             patient.setAddress(payload.getAddress());
             patient.setEmail(payload.getEmail());
             patient.setBhyt(payload.getBhyt());
+            // KHÔNG SET GENDER VÌ PATIENT CLASS KHÔNG CÓ FIELD GENDER
             patientService.save(patient);
 
             String token = jwtUtil.generateToken(user.getUsername(), user.getRole());
 
             Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
             response.put("id", patient.getId());
+            response.put("userId", user.getId());
             response.put("username", user.getUsername());
             response.put("fullName", payload.getFullName());
             response.put("email", payload.getEmail());
@@ -281,21 +318,43 @@ public class AuthController {
             response.put("role", user.getRole());
             response.put("token", token);
 
-            System.out.println("✅ REGISTER SUCCESS: " + username + " | ROLE: PATIENT");
+            log.info("Đăng ký thành công: {}", username);
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
-            System.err.println("❌ REGISTER ERROR: " + e.getMessage());
-            return ResponseEntity.badRequest().body(Map.of("error", "Đăng ký thất bại: " + e.getMessage()));
+            log.error("Lỗi đăng ký: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest().body(createErrorResponse("Đăng ký thất bại: " + e.getMessage()));
         }
     }
 
     @PostMapping("/ensure-patient")
     public ResponseEntity<?> ensurePatientExists() {
         try {
-            return ResponseEntity.ok(Map.of("message", "Patient ensured"));
+            return ResponseEntity.ok(Map.of(
+                "success", true,
+                "message", "Patient đã được đảm bảo"
+            ));
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+            return ResponseEntity.badRequest().body(createErrorResponse(e.getMessage()));
         }
+    }
+
+    // API kiểm tra sức khỏe
+    @GetMapping("/health")
+    public ResponseEntity<?> healthCheck() {
+        return ResponseEntity.ok(Map.of(
+            "status", "UP",
+            "service", "Dịch vụ xác thực",
+            "timestamp", System.currentTimeMillis()
+        ));
+    }
+    
+    // Phương thức tạo error response thống nhất
+    private Map<String, Object> createErrorResponse(String message) {
+        Map<String, Object> errorResponse = new HashMap<>();
+        errorResponse.put("success", false);
+        errorResponse.put("error", message);
+        errorResponse.put("timestamp", System.currentTimeMillis());
+        return errorResponse;
     }
 }

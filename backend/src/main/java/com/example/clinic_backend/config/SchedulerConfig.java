@@ -17,7 +17,7 @@ public class SchedulerConfig {
         scheduler.setAwaitTerminationSeconds(60);
         scheduler.setWaitForTasksToCompleteOnShutdown(true);
         scheduler.setErrorHandler(throwable -> {
-            System.err.println("❌❌❌ SCHEDULING ERROR: " + throwable.getMessage());
+            System.err.println("SCHEDULING ERROR: " + throwable.getMessage());
             throwable.printStackTrace();
         });
         return scheduler;

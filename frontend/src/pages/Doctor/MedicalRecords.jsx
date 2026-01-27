@@ -53,7 +53,7 @@ const MedicalRecords = () => {
         `http://localhost:8080/api/doctor/appointments/${user.id}`,
         {
           method: "GET",
-        }
+        },
       );
 
       if (!response.ok) {
@@ -104,7 +104,7 @@ const MedicalRecords = () => {
       console.log("🔍 Fetching medical records for doctor ID:", doctorId);
 
       const response = await fetchWithAuth(
-        `http://localhost:8080/api/doctor/medical-records/doctor/${doctorId}?page=${currentPage}&size=10`
+        `http://localhost:8080/api/doctor/medical-records/doctor/${doctorId}?page=${currentPage}&size=10`,
       );
 
       console.log("📡 Medical records response status:", response.status);
@@ -117,24 +117,24 @@ const MedicalRecords = () => {
       console.log("📦 Medical records data:", data);
 
       if (data.success) {
-        console.log("✅ Medical records received:", data.medicalRecords);
+        console.log("Medical records received:", data.medicalRecords);
 
         // LỌC CHỈ LẤY CÁC RECORDS ĐÃ HOÀN THÀNH
         const completedRecords =
           data.medicalRecords?.filter(
-            (record) => record.examinationStatus === "COMPLETED"
+            (record) => record.examinationStatus === "COMPLETED",
           ) || [];
 
         setMedicalRecords(completedRecords);
         setTotalPages(data.totalPages || 0);
 
-        console.log("✅ Completed records:", completedRecords.length);
+        console.log("Completed records:", completedRecords.length);
       } else {
-        console.error("❌ API Error:", data.message);
+        console.error("API Error:", data.message);
         setError(data.message || "Có lỗi xảy ra khi tải dữ liệu");
       }
     } catch (err) {
-      console.error("🚨 Fetch medical records error:", err);
+      console.error("Fetch medical records error:", err);
       setError("Không thể kết nối đến server");
     }
   };
@@ -142,7 +142,7 @@ const MedicalRecords = () => {
   // HÀM: Lấy lịch sử đơn thuốc theo medicalRecordId
   const fetchPrescriptionHistory = async (medicalRecordId) => {
     if (!medicalRecordId) {
-      console.error("❌ No medical record ID provided");
+      console.error("No medical record ID provided");
       return;
     }
 
@@ -153,11 +153,11 @@ const MedicalRecords = () => {
 
       console.log(
         "💊 Fetching prescription history for medical record:",
-        medicalRecordId
+        medicalRecordId,
       );
 
       const response = await fetchWithAuth(
-        `http://localhost:8080/api/doctor/prescriptions/history/${medicalRecordId}`
+        `http://localhost:8080/api/doctor/prescriptions/history/${medicalRecordId}`,
       );
 
       if (!response.ok) {
@@ -169,15 +169,16 @@ const MedicalRecords = () => {
 
       if (data.success) {
         setPrescription(data.history || []);
-        
+
         // Tính tổng tiền
-        const total = (data.history || []).reduce((sum, item) => 
-          sum + parseFloat(item.totalPrice || 0), 0
+        const total = (data.history || []).reduce(
+          (sum, item) => sum + parseFloat(item.totalPrice || 0),
+          0,
         );
         setTotalAmount(total);
-        
+
         console.log(
-          `✅ Found ${data.history?.length || 0} prescription history items`
+          `✅ Found ${data.history?.length || 0} prescription history items`,
         );
       } else {
         console.error("❌ Prescription history API Error:", data.message);
@@ -197,15 +198,15 @@ const MedicalRecords = () => {
 
     const grouped = {};
 
-    medicationList.forEach(item => {
+    medicationList.forEach((item) => {
       if (!item.createdAt) return;
 
       const date = new Date(item.createdAt);
-      const dateKey = date.toISOString().split('T')[0];
-      const formattedDate = date.toLocaleDateString('vi-VN', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric'
+      const dateKey = date.toISOString().split("T")[0];
+      const formattedDate = date.toLocaleDateString("vi-VN", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
       });
 
       if (!grouped[dateKey]) {
@@ -214,7 +215,7 @@ const MedicalRecords = () => {
           fullDate: item.createdAt,
           items: [],
           totalCost: 0,
-          totalItems: 0
+          totalItems: 0,
         };
       }
 
@@ -234,10 +235,10 @@ const MedicalRecords = () => {
 
   // HÀM: Định dạng tiền tệ
   const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('vi-VN', {
-      style: 'currency',
-      currency: 'VND',
-      minimumFractionDigits: 0
+    return new Intl.NumberFormat("vi-VN", {
+      style: "currency",
+      currency: "VND",
+      minimumFractionDigits: 0,
     }).format(amount);
   };
 
@@ -261,7 +262,7 @@ const MedicalRecords = () => {
     (record) =>
       record.patientName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       record.finalDiagnosis?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      record.patientPhone?.includes(searchTerm)
+      record.patientPhone?.includes(searchTerm),
   );
 
   const formatDate = (dateString) => {
@@ -318,7 +319,10 @@ const MedicalRecords = () => {
         <div className="modal-content medication-history-modal">
           <div className="modal-header">
             <h3>📋 Lịch sử sử dụng thuốc</h3>
-            <button className="btn-close" onClick={handleClosePrescriptionModal}>
+            <button
+              className="btn-close"
+              onClick={handleClosePrescriptionModal}
+            >
               ✕
             </button>
           </div>
@@ -361,7 +365,9 @@ const MedicalRecords = () => {
                     <div key={dateKey} className="history-day">
                       <div className="history-day-header">
                         <span className="date-label">📅 {day.date}</span>
-                        <span className="item-count">({day.items.length} loại thuốc)</span>
+                        <span className="item-count">
+                          ({day.items.length} loại thuốc)
+                        </span>
                       </div>
 
                       <div className="history-items">
@@ -375,30 +381,44 @@ const MedicalRecords = () => {
                             <div className="medicine-details">
                               <div className="detail-row">
                                 <span className="detail-label">Liều dùng:</span>
-                                <span className="detail-value">{item.dosage}</span>
+                                <span className="detail-value">
+                                  {item.dosage}
+                                </span>
                               </div>
                               <div className="detail-row">
                                 <span className="detail-label">Tần suất:</span>
-                                <span className="detail-value">{item.frequency}</span>
+                                <span className="detail-value">
+                                  {item.frequency}
+                                </span>
                               </div>
                               <div className="detail-row">
                                 <span className="detail-label">Thời gian:</span>
-                                <span className="detail-value">{item.duration}</span>
+                                <span className="detail-value">
+                                  {item.duration}
+                                </span>
                               </div>
                               <div className="detail-row">
                                 <span className="detail-label">Số lượng:</span>
-                                <span className="detail-value">{item.quantity} {item.unit}</span>
+                                <span className="detail-value">
+                                  {item.quantity} {item.unit}
+                                </span>
                               </div>
                               <div className="detail-row">
                                 <span className="detail-label">Giá:</span>
                                 <span className="detail-value price">
-                                  {formatCurrency(parseFloat(item.totalPrice || 0))}
+                                  {formatCurrency(
+                                    parseFloat(item.totalPrice || 0),
+                                  )}
                                 </span>
                               </div>
                               {item.instructions && (
                                 <div className="detail-row">
-                                  <span className="detail-label">Hướng dẫn:</span>
-                                  <span className="detail-value instructions">{item.instructions}</span>
+                                  <span className="detail-label">
+                                    Hướng dẫn:
+                                  </span>
+                                  <span className="detail-value instructions">
+                                    {item.instructions}
+                                  </span>
                                 </div>
                               )}
                             </div>
@@ -413,8 +433,12 @@ const MedicalRecords = () => {
                 {prescription.length > 0 && (
                   <div className="history-summary">
                     <div className="summary-row">
-                      <span className="summary-label">Tổng số thuốc đã kê:</span>
-                      <span className="summary-value">{prescription.length} loại</span>
+                      <span className="summary-label">
+                        Tổng số thuốc đã kê:
+                      </span>
+                      <span className="summary-value">
+                        {prescription.length} loại
+                      </span>
                     </div>
                     <div className="summary-row">
                       <span className="summary-label">Tổng chi phí:</span>
@@ -429,7 +453,10 @@ const MedicalRecords = () => {
           </div>
 
           <div className="modal-footer">
-            <button className="btn-close-modal" onClick={handleClosePrescriptionModal}>
+            <button
+              className="btn-close-modal"
+              onClick={handleClosePrescriptionModal}
+            >
               Đóng
             </button>
           </div>

@@ -59,7 +59,7 @@ const AdminAppointments = () => {
         "http://localhost:8080/api/admin/registrations",
         {
           headers: { Authorization: `Bearer ${token}` },
-        }
+        },
       );
 
       const appointmentsWithPayment = await Promise.all(
@@ -67,7 +67,7 @@ const AdminAppointments = () => {
           try {
             const paymentResponse = await axios.get(
               `http://localhost:8080/api/admin/registrations/${appointment.id}/payment-status`,
-              { headers: { Authorization: `Bearer ${token}` } }
+              { headers: { Authorization: `Bearer ${token}` } },
             );
 
             let paymentStatus =
@@ -88,7 +88,7 @@ const AdminAppointments = () => {
               paymentDate: null,
             };
           }
-        })
+        }),
       );
 
       // Kiểm tra đơn mới cần xử lý
@@ -97,7 +97,7 @@ const AdminAppointments = () => {
           appointmentsWithPayment.slice(lastAppointmentCount);
         const newPending = newAppointments.filter(
           (app) =>
-            app.status === "NEEDS_MANUAL_REVIEW" || app.status === "PENDING"
+            app.status === "NEEDS_MANUAL_REVIEW" || app.status === "PENDING",
         );
 
         if (newPending.length > 0) {
@@ -128,8 +128,8 @@ const AdminAppointments = () => {
         error.response?.status === 403
           ? "Không có quyền truy cập"
           : error.response?.status === 401
-          ? "Phiên đăng nhập hết hạn"
-          : "Không thể tải danh sách lịch hẹn"
+            ? "Phiên đăng nhập hết hạn"
+            : "Không thể tải danh sách lịch hẹn",
       );
     } finally {
       setLoading(false);
@@ -156,7 +156,7 @@ const AdminAppointments = () => {
       filtered = filtered.filter((app) => app.status === filters.status);
     if (filters.paymentStatus !== "ALL")
       filtered = filtered.filter(
-        (app) => app.paymentStatus === filters.paymentStatus
+        (app) => app.paymentStatus === filters.paymentStatus,
       );
     if (filters.date)
       filtered = filtered.filter((app) => app.appointmentDate === filters.date);
@@ -167,7 +167,7 @@ const AdminAppointments = () => {
           app.fullName?.toLowerCase().includes(searchLower) ||
           app.phone?.includes(filters.search) ||
           app.email?.toLowerCase().includes(searchLower) ||
-          app.department?.toLowerCase().includes(searchLower)
+          app.department?.toLowerCase().includes(searchLower),
       );
     }
 
@@ -184,17 +184,17 @@ const AdminAppointments = () => {
   const statsData = useMemo(() => {
     const total = appointments.length;
     const approved = appointments.filter(
-      (app) => app.status === "APPROVED"
+      (app) => app.status === "APPROVED",
     ).length;
     const pending = appointments.filter(
-      (app) => app.status === "NEEDS_MANUAL_REVIEW" || app.status === "PENDING"
+      (app) => app.status === "NEEDS_MANUAL_REVIEW" || app.status === "PENDING",
     ).length;
     const paid = appointments.filter(
-      (app) => app.paymentStatus === "Đã thanh toán"
+      (app) => app.paymentStatus === "Đã thanh toán",
     ).length;
     const unpaid = appointments.filter(
       (app) =>
-        app.paymentStatus === "Chưa thanh toán" && app.status === "APPROVED"
+        app.paymentStatus === "Chưa thanh toán" && app.status === "APPROVED",
     ).length;
     return { total, approved, pending, paid, unpaid };
   }, [appointments]);
@@ -202,7 +202,7 @@ const AdminAppointments = () => {
   // Lấy danh sách đơn cần xử lý
   const pendingAppointments = useMemo(() => {
     return appointments.filter(
-      (app) => app.status === "NEEDS_MANUAL_REVIEW" || app.status === "PENDING"
+      (app) => app.status === "NEEDS_MANUAL_REVIEW" || app.status === "PENDING",
     );
   }, [appointments]);
 
@@ -254,7 +254,7 @@ const AdminAppointments = () => {
         {
           params: { department: appointment.department },
           headers: { Authorization: `Bearer ${token}` },
-        }
+        },
       );
 
       setAvailableDoctors(response.data);
@@ -267,7 +267,7 @@ const AdminAppointments = () => {
   const handleQuickApprove = async (appointment) => {
     if (
       !window.confirm(
-        `Duyệt đơn của ${appointment.fullName} với bác sĩ ngẫu nhiên?`
+        `Duyệt đơn của ${appointment.fullName} với bác sĩ ngẫu nhiên?`,
       )
     )
       return;
@@ -281,7 +281,7 @@ const AdminAppointments = () => {
         {},
         {
           headers: { Authorization: `Bearer ${token}` },
-        }
+        },
       );
 
       alert("Đã duyệt đơn thành công!");
@@ -300,7 +300,7 @@ const AdminAppointments = () => {
 
     if (
       !window.confirm(
-        `Bạn có chắc muốn duyệt nhanh tất cả ${pendingAppointments.length} đơn chờ xử lý?`
+        `Bạn có chắc muốn duyệt nhanh tất cả ${pendingAppointments.length} đơn chờ xử lý?`,
       )
     )
       return;
@@ -319,7 +319,7 @@ const AdminAppointments = () => {
             {},
             {
               headers: { Authorization: `Bearer ${token}` },
-            }
+            },
           );
           successCount++;
         } catch (error) {
@@ -331,7 +331,7 @@ const AdminAppointments = () => {
       alert(
         `Đã duyệt ${successCount} đơn thành công! ${
           failCount > 0 ? `(${failCount} đơn thất bại)` : ""
-        }`
+        }`,
       );
       fetchAppointments();
       setShowNotification(false);
@@ -356,7 +356,7 @@ const AdminAppointments = () => {
             Authorization: `Bearer ${token}`,
             "Content-Type": "text/plain",
           },
-        }
+        },
       );
 
       alert("Đã từ chối đơn!");
@@ -380,7 +380,7 @@ const AdminAppointments = () => {
         {
           params: { appointmentDate: selectedAppointment?.appointmentDate },
           headers: { Authorization: `Bearer ${token}` },
-        }
+        },
       );
 
       setAvailableTimeSlots(response.data);
@@ -405,7 +405,7 @@ const AdminAppointments = () => {
         {
           params: { doctorId: selectedDoctorId, timeSlot: selectedTimeSlot },
           headers: { Authorization: `Bearer ${token}` },
-        }
+        },
       );
 
       alert("Đã duyệt đơn thành công!");
@@ -717,7 +717,7 @@ const AdminAppointments = () => {
               <Pagination
                 currentPage={currentPage}
                 totalPages={Math.ceil(
-                  filteredAppointments.length / itemsPerPage
+                  filteredAppointments.length / itemsPerPage,
                 )}
                 totalItems={filteredAppointments.length}
                 itemsPerPage={itemsPerPage}
@@ -910,7 +910,7 @@ const AppointmentCard = React.memo(
         )}
       </div>
     );
-  }
+  },
 );
 
 const ExpandedDetails = React.memo(
@@ -930,7 +930,6 @@ const ExpandedDetails = React.memo(
               <h4 className="section-title">
                 <i className="bi-clipboard-pulse"></i> TRIỆU CHỨNG
               </h4>
-              <div className="section-divider"></div>
             </div>
             <div className="symptoms-content">
               <p>{appointment.symptoms}</p>
@@ -943,7 +942,6 @@ const ExpandedDetails = React.memo(
             <h4 className="section-title">
               <i className="bi-calendar-check"></i> THÔNG TIN BUỔI KHÁM
             </h4>
-            <div className="section-divider"></div>
           </div>
           <div className="appointment-info">
             <div>
@@ -979,7 +977,6 @@ const ExpandedDetails = React.memo(
                 <h4 className="section-title">
                   <i className="bi-credit-card"></i> THANH TOÁN
                 </h4>
-                <div className="section-divider"></div>
               </div>
               <div className="payment-info">
                 <div>
@@ -1001,7 +998,6 @@ const ExpandedDetails = React.memo(
             <h4 className="section-title">
               <i className="bi-info-circle"></i> TRẠNG THÁI
             </h4>
-            <div className="section-divider"></div>
           </div>
           <div className="status-content">
             {appointment.status === "APPROVED" && (
@@ -1060,7 +1056,7 @@ const ExpandedDetails = React.memo(
         </div>
       </div>
     );
-  }
+  },
 );
 
 const Pagination = React.memo(
@@ -1145,7 +1141,7 @@ const Pagination = React.memo(
         </div>
       </div>
     );
-  }
+  },
 );
 
 const ApproveModal = React.memo(
@@ -1255,7 +1251,7 @@ const ApproveModal = React.memo(
         </div>
       </div>
     );
-  }
+  },
 );
 
 const NotificationToast = React.memo(
@@ -1300,7 +1296,7 @@ const NotificationToast = React.memo(
         </div>
       </div>
     );
-  }
+  },
 );
 
 export default AdminAppointments;

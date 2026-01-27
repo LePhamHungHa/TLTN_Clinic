@@ -29,8 +29,8 @@ public class PrescriptionController {
             @PathVariable Long medicalRecordId,
             @RequestBody List<Map<String, Object>> prescriptionItems) {
         
-        logger.info("📞 POST /api/doctor/prescriptions/create/{} called", medicalRecordId);
-        logger.info("📦 Request body size: {}", prescriptionItems != null ? prescriptionItems.size() : 0);
+        logger.info("POST /api/doctor/prescriptions/create/{} called", medicalRecordId);
+        logger.info("Request body size: {}", prescriptionItems != null ? prescriptionItems.size() : 0);
         
         try {
             // Validate request
@@ -53,7 +53,7 @@ public class PrescriptionController {
             return ResponseEntity.ok(response);
             
         } catch (Exception e) {
-            logger.error("❌ Error creating prescription for medical record {}: {}", medicalRecordId, e.getMessage(), e);
+            logger.error("Error creating prescription for medical record {}: {}", medicalRecordId, e.getMessage(), e);
             
             Map<String, Object> errorResponse = Map.of(
                 "success", false,
@@ -70,13 +70,13 @@ public class PrescriptionController {
     public ResponseEntity<Map<String, Object>> getPrescription(
             @PathVariable Long medicalRecordId) {
         
-        logger.info("📞 GET /api/doctor/prescriptions/{} called", medicalRecordId);
+        logger.info("GET /api/doctor/prescriptions/{} called", medicalRecordId);
         
         try {
             Map<String, Object> response = prescriptionService.getPrescriptionByMedicalRecord(medicalRecordId);
             return ResponseEntity.ok(response);
         } catch (Exception e) {
-            logger.error("❌ Error getting prescription: {}", e.getMessage(), e);
+            logger.error("Error getting prescription: {}", e.getMessage(), e);
             return ResponseEntity.internalServerError().body(Map.of(
                 "success", false,
                 "message", "Internal server error: " + e.getMessage()
@@ -89,7 +89,7 @@ public class PrescriptionController {
     public ResponseEntity<Map<String, Object>> getMedicationHistoryByMedicalRecord(
         @PathVariable Long medicalRecordId) {
     
-        logger.info("📞 GET /api/doctor/prescriptions/history/{} called", medicalRecordId);
+        logger.info("GET /api/doctor/prescriptions/history/{} called", medicalRecordId);
         
         try {
             if (medicalRecordId == null || medicalRecordId <= 0) {
@@ -103,7 +103,7 @@ public class PrescriptionController {
             return ResponseEntity.ok(response);
             
         } catch (Exception e) {
-            logger.error("❌ Error getting medication history by medical record: {}", e.getMessage(), e);
+            logger.error("Error getting medication history by medical record: {}", e.getMessage(), e);
             return ResponseEntity.internalServerError().body(Map.of(
                 "success", false,
                 "message", "Internal server error: " + e.getMessage()
@@ -116,7 +116,7 @@ public class PrescriptionController {
     public ResponseEntity<Map<String, Object>> getPatientMedicationHistory(
             @PathVariable Long patientId) {
         
-        logger.info("📞 GET /api/doctor/prescriptions/patient/{}/history called", patientId);
+        logger.info("GET /api/doctor/prescriptions/patient/{}/history called", patientId);
         
         try {
             if (patientId == null || patientId <= 0) {
@@ -130,7 +130,7 @@ public class PrescriptionController {
             return ResponseEntity.ok(response);
             
         } catch (Exception e) {
-            logger.error("❌ Error getting patient medication history: {}", e.getMessage(), e);
+            logger.error("Error getting patient medication history: {}", e.getMessage(), e);
             return ResponseEntity.internalServerError().body(Map.of(
                 "success", false,
                 "message", "Internal server error: " + e.getMessage()
@@ -143,13 +143,13 @@ public class PrescriptionController {
     public ResponseEntity<Map<String, Object>> searchMedicines(
             @RequestParam(required = false) String keyword) {
         
-        logger.info("📞 GET /api/doctor/prescriptions/medicines/search called with keyword: {}", keyword);
+        logger.info("GET /api/doctor/prescriptions/medicines/search called with keyword: {}", keyword);
         
         try {
             Map<String, Object> response = prescriptionService.searchMedicines(keyword != null ? keyword : "");
             return ResponseEntity.ok(response);
         } catch (Exception e) {
-            logger.error("❌ Error searching medicines: {}", e.getMessage(), e);
+            logger.error("Error searching medicines: {}", e.getMessage(), e);
             return ResponseEntity.internalServerError().body(Map.of(
                 "success", false,
                 "message", "Internal server error: " + e.getMessage()
@@ -161,13 +161,13 @@ public class PrescriptionController {
     @PreAuthorize("hasRole('DOCTOR')")
     public ResponseEntity<Map<String, Object>> getActiveMedicines() {
         
-        logger.info("📞 GET /api/doctor/prescriptions/medicines/active called");
+        logger.info("GET /api/doctor/prescriptions/medicines/active called");
         
         try {
             Map<String, Object> response = prescriptionService.getActiveMedicines();
             return ResponseEntity.ok(response);
         } catch (Exception e) {
-            logger.error("❌ Error getting active medicines: {}", e.getMessage(), e);
+            logger.error("Error getting active medicines: {}", e.getMessage(), e);
             return ResponseEntity.internalServerError().body(Map.of(
                 "success", false,
                 "message", "Internal server error: " + e.getMessage()
@@ -180,13 +180,13 @@ public class PrescriptionController {
     public ResponseEntity<Map<String, Object>> getMedicinesByCategory(
             @PathVariable String category) {
         
-        logger.info("📞 GET /api/doctor/prescriptions/medicines/category/{} called", category);
+        logger.info("GET /api/doctor/prescriptions/medicines/category/{} called", category);
         
         try {
             Map<String, Object> response = prescriptionService.getMedicinesByCategory(category);
             return ResponseEntity.ok(response);
         } catch (Exception e) {
-            logger.error("❌ Error getting medicines by category: {}", e.getMessage(), e);
+            logger.error("Error getting medicines by category: {}", e.getMessage(), e);
             return ResponseEntity.internalServerError().body(Map.of(
                 "success", false,
                 "message", "Internal server error: " + e.getMessage()
@@ -198,13 +198,13 @@ public class PrescriptionController {
     @PreAuthorize("hasRole('DOCTOR')")
     public ResponseEntity<Map<String, Object>> getMedicineCategories() {
         
-        logger.info("📞 GET /api/doctor/prescriptions/medicines/categories called");
+        logger.info("GET /api/doctor/prescriptions/medicines/categories called");
         
         try {
             Map<String, Object> response = prescriptionService.getMedicineCategories();
             return ResponseEntity.ok(response);
         } catch (Exception e) {
-            logger.error("❌ Error getting medicine categories: {}", e.getMessage(), e);
+            logger.error("Error getting medicine categories: {}", e.getMessage(), e);
             return ResponseEntity.internalServerError().body(Map.of(
                 "success", false,
                 "message", "Internal server error: " + e.getMessage()
@@ -216,13 +216,13 @@ public class PrescriptionController {
     @PreAuthorize("hasRole('DOCTOR')")
     public ResponseEntity<Map<String, Object>> getAllMedicines() {
         
-        logger.info("📞 GET /api/doctor/prescriptions/medicines/all called");
+        logger.info("GET /api/doctor/prescriptions/medicines/all called");
         
         try {
             Map<String, Object> response = prescriptionService.getActiveMedicines();
             return ResponseEntity.ok(response);
         } catch (Exception e) {
-            logger.error("❌ Error getting all medicines: {}", e.getMessage(), e);
+            logger.error("Error getting all medicines: {}", e.getMessage(), e);
             return ResponseEntity.internalServerError().body(Map.of(
                 "success", false,
                 "message", "Internal server error: " + e.getMessage()

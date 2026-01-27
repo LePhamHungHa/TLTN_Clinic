@@ -23,14 +23,14 @@ public class InvoiceController {
     @GetMapping("/{invoiceNumber}")
     public ResponseEntity<?> getInvoiceByNumber(@PathVariable String invoiceNumber) {
         try {
-            System.out.println("🔍 Getting invoice: " + invoiceNumber);
+            System.out.println("Đang lấy hóa đơn: " + invoiceNumber);
             
             return invoiceService.getInvoiceByNumber(invoiceNumber)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
                 
         } catch (Exception e) {
-            System.err.println("❌ Error getting invoice: " + e.getMessage());
+            System.err.println("Lỗi khi lấy hóa đơn: " + e.getMessage());
             Map<String, String> error = new HashMap<>();
             error.put("error", "Không thể lấy thông tin hóa đơn");
             return ResponseEntity.badRequest().body(error);
@@ -41,14 +41,14 @@ public class InvoiceController {
     @GetMapping("/transaction/{transactionNo}")
     public ResponseEntity<?> getInvoiceByTransactionNo(@PathVariable String transactionNo) {
         try {
-            System.out.println("🔍 Getting invoice by transaction: " + transactionNo);
+            System.out.println("Đang lấy hóa đơn theo transaction: " + transactionNo);
             
             return invoiceService.getInvoiceByTransactionNo(transactionNo)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
                 
         } catch (Exception e) {
-            System.err.println("❌ Error getting invoice by transaction: " + e.getMessage());
+            System.err.println("Lỗi khi lấy hóa đơn theo transaction: " + e.getMessage());
             Map<String, String> error = new HashMap<>();
             error.put("error", "Không thể lấy thông tin hóa đơn");
             return ResponseEntity.badRequest().body(error);
@@ -59,13 +59,13 @@ public class InvoiceController {
     @GetMapping("/registration/{patientRegistrationId}")
     public ResponseEntity<?> getInvoicesByRegistrationId(@PathVariable Long patientRegistrationId) {
         try {
-            System.out.println("🔍 Getting invoices for registration: " + patientRegistrationId);
+            System.out.println("Đang lấy hóa đơn cho registration: " + patientRegistrationId);
             
             List<Invoice> invoices = invoiceService.getInvoicesByPatientRegistrationId(patientRegistrationId);
             return ResponseEntity.ok(invoices);
             
         } catch (Exception e) {
-            System.err.println("❌ Error getting invoices: " + e.getMessage());
+            System.err.println("Lỗi khi lấy hóa đơn: " + e.getMessage());
             Map<String, String> error = new HashMap<>();
             error.put("error", "Không thể lấy danh sách hóa đơn");
             return ResponseEntity.badRequest().body(error);
@@ -78,7 +78,7 @@ public class InvoiceController {
             @RequestParam(required = false) String email,
             @RequestParam(required = false) String phone) {
         try {
-            System.out.println("🔍 PUBLIC - Getting invoices for patient - Email: " + email + ", Phone: " + phone);
+            System.out.println("PUBLIC - Đang lấy hóa đơn cho bệnh nhân - Email: " + email + ", Phone: " + phone);
             
             if ((email == null || email.isEmpty()) && (phone == null || phone.isEmpty())) {
                 Map<String, Object> error = new HashMap<>();
@@ -97,7 +97,7 @@ public class InvoiceController {
             return ResponseEntity.ok(response);
             
         } catch (Exception e) {
-            System.err.println("❌ PUBLIC - Error getting patient invoices: " + e.getMessage());
+            System.err.println("PUBLIC - Lỗi khi lấy hóa đơn bệnh nhân: " + e.getMessage());
             Map<String, Object> error = new HashMap<>();
             error.put("success", false);
             error.put("error", "Không thể lấy danh sách hóa đơn: " + e.getMessage());
@@ -111,7 +111,7 @@ public class InvoiceController {
             @RequestParam(required = false) String email,
             @RequestParam(required = false) String phone) {
         try {
-            System.out.println("🔍 Getting invoices for patient - Email: " + email + ", Phone: " + phone);
+            System.out.println("Đang lấy hóa đơn cho bệnh nhân - Email: " + email + ", Phone: " + phone);
             
             if ((email == null || email.isEmpty()) && (phone == null || phone.isEmpty())) {
                 Map<String, String> error = new HashMap<>();
@@ -123,7 +123,7 @@ public class InvoiceController {
             return ResponseEntity.ok(invoices);
             
         } catch (Exception e) {
-            System.err.println("❌ Error getting patient invoices: " + e.getMessage());
+            System.err.println("Lỗi khi lấy hóa đơn bệnh nhân: " + e.getMessage());
             Map<String, String> error = new HashMap<>();
             error.put("error", "Không thể lấy danh sách hóa đơn");
             return ResponseEntity.badRequest().body(error);
@@ -134,15 +134,15 @@ public class InvoiceController {
     @GetMapping("/all")
     public ResponseEntity<?> getAllInvoices() {
         try {
-            System.out.println("📋 Getting all invoices");
+            System.out.println("Đang lấy tất cả hóa đơn");
             
             List<Invoice> invoices = invoiceService.getAllInvoices();
             
-            // Return as array for frontend compatibility
+            // Trả về dưới dạng array để tương thích với frontend
             return ResponseEntity.ok(invoices);
             
         } catch (Exception e) {
-            System.err.println("❌ Error getting all invoices: " + e.getMessage());
+            System.err.println("Lỗi khi lấy tất cả hóa đơn: " + e.getMessage());
             Map<String, String> error = new HashMap<>();
             error.put("error", "Không thể lấy danh sách hóa đơn");
             return ResponseEntity.badRequest().body(error);
@@ -154,7 +154,7 @@ public class InvoiceController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> getAllInvoicesForAdmin() {
         try {
-            System.out.println("📋 ADMIN - Getting all invoices");
+            System.out.println("ADMIN - Đang lấy tất cả hóa đơn");
             
             List<Invoice> invoices = invoiceService.getAllInvoices();
             
@@ -166,7 +166,7 @@ public class InvoiceController {
             return ResponseEntity.ok(response);
             
         } catch (Exception e) {
-            System.err.println("❌ ADMIN - Error getting invoices: " + e.getMessage());
+            System.err.println("ADMIN - Lỗi khi lấy hóa đơn: " + e.getMessage());
             Map<String, Object> error = new HashMap<>();
             error.put("success", false);
             error.put("error", "Không thể lấy danh sách hóa đơn");
@@ -178,13 +178,13 @@ public class InvoiceController {
     @GetMapping("/status/{status}")
     public ResponseEntity<?> getInvoicesByStatus(@PathVariable String status) {
         try {
-            System.out.println("📊 Getting invoices by status: " + status);
+            System.out.println("Đang lấy hóa đơn theo trạng thái: " + status);
             
             List<Invoice> invoices = invoiceService.getInvoicesByStatus(status);
             return ResponseEntity.ok(invoices);
             
         } catch (Exception e) {
-            System.err.println("❌ Error getting invoices by status: " + e.getMessage());
+            System.err.println("Lỗi khi lấy hóa đơn theo trạng thái: " + e.getMessage());
             Map<String, String> error = new HashMap<>();
             error.put("error", "Không thể lấy danh sách hóa đơn theo trạng thái");
             return ResponseEntity.badRequest().body(error);
@@ -198,7 +198,7 @@ public class InvoiceController {
             @PathVariable String invoiceNumber,
             @RequestBody Map<String, String> request) {
         try {
-            System.out.println("🔄 Updating invoice status: " + invoiceNumber);
+            System.out.println("Đang cập nhật trạng thái hóa đơn: " + invoiceNumber);
             
             String status = request.get("status");
             if (status == null || status.isEmpty()) {
@@ -217,7 +217,7 @@ public class InvoiceController {
             }
             
         } catch (Exception e) {
-            System.err.println("❌ Error updating invoice status: " + e.getMessage());
+            System.err.println("Lỗi khi cập nhật trạng thái hóa đơn: " + e.getMessage());
             Map<String, String> error = new HashMap<>();
             error.put("error", "Không thể cập nhật trạng thái hóa đơn");
             return ResponseEntity.badRequest().body(error);
@@ -229,7 +229,7 @@ public class InvoiceController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> deleteInvoice(@PathVariable Long id) {
         try {
-            System.out.println("🗑️ Deleting invoice: " + id);
+            System.out.println("Đang xóa hóa đơn: " + id);
             
             invoiceService.deleteInvoice(id);
             
@@ -240,7 +240,7 @@ public class InvoiceController {
             return ResponseEntity.ok(response);
             
         } catch (Exception e) {
-            System.err.println("❌ Error deleting invoice: " + e.getMessage());
+            System.err.println("Lỗi khi xóa hóa đơn: " + e.getMessage());
             Map<String, Object> error = new HashMap<>();
             error.put("success", false);
             error.put("error", "Không thể xóa hóa đơn");
@@ -254,7 +254,7 @@ public class InvoiceController {
             @RequestParam(required = false) String email,
             @RequestParam(required = false) String phone) {
         try {
-            System.out.println("🔍 PUBLIC (old) - Getting invoices for patient: " + email + " | " + phone);
+            System.out.println("PUBLIC (cũ) - Đang lấy hóa đơn cho bệnh nhân: " + email + " | " + phone);
             
             if ((email == null || email.isEmpty()) && (phone == null || phone.isEmpty())) {
                 Map<String, Object> error = new HashMap<>();
@@ -273,7 +273,7 @@ public class InvoiceController {
             return ResponseEntity.ok(response);
             
         } catch (Exception e) {
-            System.err.println("❌ PUBLIC (old) - Error getting patient invoices: " + e.getMessage());
+            System.err.println("PUBLIC (cũ) - Lỗi khi lấy hóa đơn bệnh nhân: " + e.getMessage());
             Map<String, Object> error = new HashMap<>();
             error.put("success", false);
             error.put("error", "Không thể lấy thông tin hóa đơn");
@@ -285,7 +285,7 @@ public class InvoiceController {
     @GetMapping("/public/by-email")
     public ResponseEntity<?> getInvoicesByEmailPublic(@RequestParam String email) {
         try {
-            System.out.println("🔍 PUBLIC - Getting invoices by email: " + email);
+            System.out.println("PUBLIC - Đang lấy hóa đơn theo email: " + email);
             
             if (email == null || email.isEmpty()) {
                 Map<String, Object> error = new HashMap<>();
@@ -305,7 +305,7 @@ public class InvoiceController {
             return ResponseEntity.ok(response);
             
         } catch (Exception e) {
-            System.err.println("❌ PUBLIC - Error getting invoices by email: " + e.getMessage());
+            System.err.println("PUBLIC - Lỗi khi lấy hóa đơn theo email: " + e.getMessage());
             Map<String, Object> error = new HashMap<>();
             error.put("success", false);
             error.put("error", "Không thể lấy thông tin hóa đơn: " + e.getMessage());
@@ -320,9 +320,9 @@ public class InvoiceController {
             @RequestParam(required = false) String startDate,
             @RequestParam(required = false) String endDate) {
         try {
-            System.out.println("📊 Getting invoice statistics from " + startDate + " to " + endDate);
+            System.out.println("Đang lấy thống kê hóa đơn từ " + startDate + " đến " + endDate);
             
-            // Implement statistics logic here
+            // Thực hiện logic thống kê ở đây
             Map<String, Object> statistics = new HashMap<>();
             statistics.put("success", true);
             statistics.put("message", "API thống kê đang được phát triển");
@@ -330,7 +330,7 @@ public class InvoiceController {
             return ResponseEntity.ok(statistics);
             
         } catch (Exception e) {
-            System.err.println("❌ Error getting statistics: " + e.getMessage());
+            System.err.println("Lỗi khi lấy thống kê: " + e.getMessage());
             Map<String, Object> error = new HashMap<>();
             error.put("success", false);
             error.put("error", "Không thể lấy thống kê hóa đơn");
