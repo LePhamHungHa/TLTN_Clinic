@@ -11,7 +11,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-@CrossOrigin(origins = {"http://localhost:5173", "http://localhost:3000"})
+@CrossOrigin(origins = {"http://localhost:5173"})
 @RestController
 @RequestMapping("/api/invoices")
 public class InvoiceController {
@@ -248,7 +248,7 @@ public class InvoiceController {
         }
     }
     
-    // API PUBLIC để bệnh nhân xem hóa đơn của mình (giữ lại cho tương thích)
+    // API PUBLIC để bệnh nhân xem hóa đơn của mình 
     @GetMapping("/public/patient-invoices")
     public ResponseEntity<?> getPatientInvoicesPublic(
             @RequestParam(required = false) String email,
@@ -281,7 +281,7 @@ public class InvoiceController {
         }
     }
     
-    // API PUBLIC mới: Lấy hóa đơn theo email (phone optional)
+    // API PUBLIC mới: Lấy hóa đơn theo email 
     @GetMapping("/public/by-email")
     public ResponseEntity<?> getInvoicesByEmailPublic(@RequestParam String email) {
         try {

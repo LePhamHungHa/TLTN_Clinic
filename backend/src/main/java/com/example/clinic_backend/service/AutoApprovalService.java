@@ -36,32 +36,36 @@ public class AutoApprovalService {
     @Autowired
     private EmailService emailService;
     
+    // cac khung gio co dinh
     private static final String[] TIME_SLOTS = {
         "07:00-08:00", "08:00-09:00", "09:00-10:00", "10:00-11:00", 
         "11:00-12:00", "13:00-14:00", "14:00-15:00", "15:00-16:00", "16:00-17:00"
     };
     
+    // kiem tra slot con trong khong
     public boolean checkAvailableSlots(Long doctorId, LocalDate appointmentDate, String timeSlot) {
         try {
-            System.out.println("🔍 Kiểm tra slot cho bác sĩ: " + doctorId + ", ngày: " + appointmentDate + ", khung giờ: " + timeSlot);
+            System.out.println("Kiem tra slot: bac si " + doctorId + ", ngay " + appointmentDate + ", gio " + timeSlot);
             
-            // Tìm slot từ database
+            // tim slot trong database
             Optional<DoctorSlot> slotOpt = doctorSlotRepository.findByDoctorIdAndAppointmentDateAndTimeSlot(doctorId, appointmentDate.toString(), timeSlot);
             
             int maxPatients;
             if (slotOpt.isPresent()) {
                 DoctorSlot slot = slotOpt.get();
+                // kiem tra slot co active khong
                 if (slot.getIsActive() != null && !slot.getIsActive()) {
-                    System.out.println("❌ Slot đã bị vô hiệu hóa");
+                    System.out.println("Slot da bi vo hieu hoa");
                     return false;
                 }
                 maxPatients = slot.getMaxPatients() != null ? slot.getMaxPatients() : 10;
-                System.out.println("📊 Slot từ DB - Max patients: " + maxPatients);
+                System.out.println("Slot tu DB - So benh nhan toi da: " + maxPatients);
             } else {
-                maxPatients = 10; // Mặc định
-                System.out.println("📊 Slot mặc định - Max patients: " + maxPatients);
+                maxPatients = 10; // mac dinh
+                System.out.println("Slot mac dinh - So benh nhan toi da: " + maxPatients);
             }
             
+            // dem so don da duyet
             Integer approvedCount = repository.countByDoctorIdAndAppointmentDateAndAssignedSessionAndStatus(
                 doctorId, appointmentDate, timeSlot, "APPROVED"
             );
@@ -70,32 +74,32 @@ public class AutoApprovalService {
                 approvedCount = 0;
             }
             
-            System.out.println("📊 Kiểm tra slot - " + timeSlot + ": " + approvedCount + "/" + maxPatients + " đơn được duyệt");
+            System.out.println("Kiem tra slot - " + timeSlot + ": " + approvedCount + "/" + maxPatients + " don da duyet");
             
+            // tra ve true neu con slot
             return approvedCount < maxPatients;
         } catch (Exception e) {
-            System.err.println("❌ Lỗi khi kiểm tra slot: " + e.getMessage());
-            e.printStackTrace();
+            System.out.println("Loi kiem tra slot: " + e.getMessage());
             return false;
         }
     }
     
     @Transactional
     public PatientRegistration processNewRegistration(PatientRegistration registration) {
-        System.out.println("🚀 AutoApprovalService - Xử lý đăng ký mới: " + registration.getFullName());
-        System.out.println("📋 Thông tin đăng ký:");
-        System.out.println("   - Doctor ID: " + registration.getDoctorId());
-        System.out.println("   - Assigned Session: " + registration.getAssignedSession());
+        System.out.println("AutoApprovalService - Xu ly dang ky moi: " + registration.getFullName());
+        System.out.println("Thong tin dang ky:");
+        System.out.println("Bac si ID: " + registration.getDoctorId());
+        System.out.println("Khung gio: " + registration.getAssignedSession());
         
-        // QUAN TRỌNG: Nếu KHÔNG có doctorId -> chuyển sang manual review
+        // neu khong co bac si -> chuyen sang manual review
         if (registration.getDoctorId() == null) {
-            System.out.println("⚠️ Không có bác sĩ được chọn, chuyển sang MANUAL REVIEW");
+            System.out.println("Khong co bac si, chuyen sang MANUAL REVIEW");
             registration.setStatus("NEEDS_MANUAL_REVIEW");
             registration.setRegistrationNumber(generateRegistrationNumber(registration));
             return repository.save(registration);
         }
         
-        // Nếu đã có assignedSession (từ frontend), kiểm tra slot
+        // neu da co assignedSession (tu frontend), kiem tra slot
         if (registration.getAssignedSession() != null) {
             boolean slotAvailable = checkAvailableSlots(
                 registration.getDoctorId(),
@@ -104,24 +108,24 @@ public class AutoApprovalService {
             );
             
             if (slotAvailable) {
-                System.out.println("✅ Còn slot, tiến hành auto-approve");
+                System.out.println("Con slot, tien hanh auto-approve");
                 return autoApproveRegistration(registration, registration.getAssignedSession());
             } else {
-                System.out.println("❌ Hết slot, chuyển sang manual review");
+                System.out.println("Het slot, chuyen sang manual review");
                 registration.setStatus("NEEDS_MANUAL_REVIEW");
                 registration.setRegistrationNumber(generateRegistrationNumber(registration));
                 return repository.save(registration);
             }
         } else {
-            // Nếu không có assignedSession, tìm slot tự động
+            // neu khong co assignedSession, tim slot tu dong
             String availableSlot = findAvailableSlot(registration.getDoctorId(), registration.getAppointmentDate());
             
             if (availableSlot != null) {
-                System.out.println("✅ Tìm thấy slot: " + availableSlot);
+                System.out.println("Tim thay slot: " + availableSlot);
                 registration.setAssignedSession(availableSlot);
                 return autoApproveRegistration(registration, availableSlot);
             } else {
-                System.out.println("❌ Không tìm thấy slot nào");
+                System.out.println("Khong tim thay slot nao");
                 registration.setStatus("NEEDS_MANUAL_REVIEW");
                 registration.setRegistrationNumber(generateRegistrationNumber(registration));
                 return repository.save(registration);
@@ -129,12 +133,13 @@ public class AutoApprovalService {
         }
     }
     
+    // tim slot con trong
     private String findAvailableSlot(Long doctorId, LocalDate appointmentDate) {
-        // Ưu tiên kiểm tra slot từ database
+        // kiem tra tung khung gio
         for (String timeSlot : TIME_SLOTS) {
             boolean available = checkAvailableSlots(doctorId, appointmentDate, timeSlot);
             if (available) {
-                System.out.println("🎯 Tìm thấy slot khả dụng: " + timeSlot);
+                System.out.println("Tim thay slot kha dung: " + timeSlot);
                 return timeSlot;
             }
         }
@@ -143,85 +148,87 @@ public class AutoApprovalService {
     
     @Transactional
     public PatientRegistration autoApproveRegistration(PatientRegistration registration, String timeSlot) {
-        System.out.println("🚀 Bắt đầu tự động duyệt đơn - Khung giờ: " + timeSlot);
+        System.out.println("Bat dau tu dong duyet don - Khung gio: " + timeSlot);
         
         try {
-            // QUAN TRỌNG: Sử dụng method có LOCK để lấy số thứ tự
+            // su dung lock de lay so thu tu
             assignQueueAndTimeSlotWithLock(registration, timeSlot);
             
-            // Generate các thông tin khác
+            // tao cac thong tin khac
             registration.setRegistrationNumber(generateRegistrationNumber(registration));
             registration.setTransactionNumber(generateTransactionNumber());
             registration.setPatientCode(generatePatientCode(registration));
             
-            // Lấy thông tin phòng từ bác sĩ
+            // lay thong tin phong tu bac si
             if (registration.getDoctorId() != null) {
                 doctorRepository.findById(registration.getDoctorId()).ifPresent(doctor -> {
                     registration.setRoomNumber(doctor.getRoomNumber());
-                    System.out.println("🏥 Set room number from doctor: " + doctor.getRoomNumber());
+                    System.out.println("Set so phong tu bac si: " + doctor.getRoomNumber());
                 });
             }
             
+            // set cac thong tin khac
             registration.setExaminationFee(calculateFee(registration));
             registration.setInsuranceType("Không BHYT");
             
-            // QUAN TRỌNG: Set status APPROVED SAU CÙNG
+            // set status APPROVED
             registration.setStatus("APPROVED");
             registration.setAutoApproved(true);
             registration.setApprovedAt(LocalDateTime.now());
             registration.setAssignedSession(timeSlot);
             
+            // luu vao database
             PatientRegistration saved = repository.save(registration);
 
-            // ✅ THÊM: GỬI EMAIL TỰ ĐỘNG KHI DUYỆT ĐƠN
+            // gui email khi duyet don
             try {
                 emailService.sendApprovalEmail(saved);
-                System.out.println("✅ Đã gửi email duyệt đơn cho: " + saved.getEmail());
+                System.out.println("Da gui email duyet don cho: " + saved.getEmail());
             } catch (Exception e) {
-                System.err.println("❌ Lỗi gửi email duyệt đơn: " + e.getMessage());
+                System.out.println("Loi gui email duyet don: " + e.getMessage());
             }
             
-            System.out.println("🎉 Đã tự động duyệt thành công!");
-            System.out.println("📋 Thông tin cuối cùng:");
-            System.out.println("   - Mã phiếu: " + saved.getRegistrationNumber());
-            System.out.println("   - Số thứ tự: " + saved.getQueueNumber());
-            System.out.println("   - Khung giờ: " + saved.getAssignedSession());
-            System.out.println("   - Trạng thái: " + saved.getStatus());
+            System.out.println("Da tu dong duyet thanh cong!");
+            System.out.println("Thong tin cuoi cung:");
+            System.out.println("Ma phieu: " + saved.getRegistrationNumber());
+            System.out.println("So thu tu: " + saved.getQueueNumber());
+            System.out.println("Khung gio: " + saved.getAssignedSession());
+            System.out.println("Trang thai: " + saved.getStatus());
             
             return saved;
         } catch (Exception e) {
-            System.err.println("❌ Lỗi khi tự động duyệt: " + e.getMessage());
-            e.printStackTrace();
+            System.out.println("Loi khi tu dong duyet: " + e.getMessage());
             registration.setStatus("NEEDS_MANUAL_REVIEW");
             return repository.save(registration);
         }
     }
     
-    // QUAN TRỌNG: METHOD MỚI SỬ DỤNG LOCK để tránh trùng số thứ tự
+    // su dung lock de tranh trung so thu tu
     private void assignQueueAndTimeSlotWithLock(PatientRegistration registration, String timeSlot) {
         LocalDate appointmentDate = registration.getAppointmentDate();
         Long doctorId = registration.getDoctorId();
         
-        System.out.println("🔒 Đang lấy số thứ tự với LOCK:");
-        System.out.println("   - Bác sĩ: " + doctorId);
-        System.out.println("   - Ngày: " + appointmentDate);
-        System.out.println("   - Khung giờ: " + timeSlot);
+        System.out.println("Dang lay so thu tu voi LOCK:");
+        System.out.println("Bac si: " + doctorId);
+        System.out.println("Ngay: " + appointmentDate);
+        System.out.println("Khung gio: " + timeSlot);
         
-        // QUAN TRỌNG: Sử dụng method có LOCK
+        // su dung method co LOCK
         int queueNumber = doctorSlotService.getNextQueueNumberWithLock(doctorId, appointmentDate, timeSlot);
         
         registration.setQueueNumber(queueNumber);
         registration.setExpectedTimeSlot(timeSlot);
         
-        System.out.println("🎯 Số thứ tự của đơn hiện tại: " + queueNumber);
+        System.out.println("So thu tu cua don hien tai: " + queueNumber);
         
-        // Kiểm tra lại sau khi có lock
+        // kiem tra lai sau khi co lock
         Integer finalCheck = repository.countByDoctorIdAndAppointmentDateAndAssignedSessionAndStatus(
             doctorId, appointmentDate, timeSlot, "APPROVED"
         );
-        System.out.println("✅ Final check - Số đơn approved: " + finalCheck);
+        System.out.println("Final check - So don approved: " + finalCheck);
     }
     
+    // tao ma phieu dang ky
     private String generateRegistrationNumber(PatientRegistration reg) {
         try {
             String datePart = new SimpleDateFormat("ddMMyy").format(new Date());
@@ -229,11 +236,12 @@ public class AutoApprovalService {
             if (dailyCount == null) dailyCount = 0L;
             return "U" + datePart + String.format("%04d", dailyCount + 1);
         } catch (Exception e) {
-            System.err.println("❌ Lỗi generate mã phiếu: " + e.getMessage());
+            System.out.println("Loi generate ma phieu: " + e.getMessage());
             return "U" + System.currentTimeMillis();
         }
     }
     
+    // tao ma giao dich
     private String generateTransactionNumber() {
         try {
             String timePart = new SimpleDateFormat("yyMMddHHmm").format(new Date());
@@ -241,11 +249,12 @@ public class AutoApprovalService {
             String randomPart = String.format("%03d", random.nextInt(1000));
             return timePart + randomPart;
         } catch (Exception e) {
-            System.err.println("❌ Lỗi generate mã giao dịch: " + e.getMessage());
+            System.out.println("Loi generate ma giao dich: " + e.getMessage());
             return "TXN" + System.currentTimeMillis();
         }
     }
     
+    // tao ma benh nhan
     private String generatePatientCode(PatientRegistration reg) {
         try {
             String yearPart = new SimpleDateFormat("yy").format(new Date());
@@ -253,11 +262,12 @@ public class AutoApprovalService {
             if (yearlyCount == null) yearlyCount = 0L;
             return "N" + yearPart + "-" + String.format("%06d", yearlyCount + 1);
         } catch (Exception e) {
-            System.err.println("❌ Lỗi generate mã bệnh nhân: " + e.getMessage());
+            System.out.println("Loi generate ma benh nhan: " + e.getMessage());
             return "N" + System.currentTimeMillis();
         }
     }
     
+    // tinh phi kham
     private BigDecimal calculateFee(PatientRegistration reg) {
         return new BigDecimal("250000");
     }

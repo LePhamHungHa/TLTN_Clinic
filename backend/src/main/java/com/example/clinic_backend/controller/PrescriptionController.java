@@ -1,9 +1,6 @@
 package com.example.clinic_backend.controller;
 
 import com.example.clinic_backend.service.PrescriptionService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -13,10 +10,9 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/doctor/prescriptions")
-@CrossOrigin(origins = {"http://localhost:5173", "http://localhost:3000"})
+@CrossOrigin(origins = "http://localhost:5173")
 public class PrescriptionController {
     
-    private static final Logger logger = LoggerFactory.getLogger(PrescriptionController.class);
     private final PrescriptionService prescriptionService;
     
     public PrescriptionController(PrescriptionService prescriptionService) {
@@ -25,26 +21,26 @@ public class PrescriptionController {
     
     @PostMapping("/create/{medicalRecordId}")
     @PreAuthorize("hasRole('DOCTOR')")
-    public ResponseEntity<Map<String, Object>> createPrescription(
+    public ResponseEntity<?> createPrescription(
             @PathVariable Long medicalRecordId,
             @RequestBody List<Map<String, Object>> prescriptionItems) {
         
-        logger.info("POST /api/doctor/prescriptions/create/{} called", medicalRecordId);
-        logger.info("Request body size: {}", prescriptionItems != null ? prescriptionItems.size() : 0);
+        System.out.println("Tao don thuoc cho medical record: " + medicalRecordId);
+        System.out.println("So luong thuoc: " + (prescriptionItems != null ? prescriptionItems.size() : 0));
         
         try {
-            // Validate request
+            // kiem tra du lieu
             if (medicalRecordId == null || medicalRecordId <= 0) {
                 return ResponseEntity.badRequest().body(Map.of(
                     "success", false,
-                    "message", "Medical Record ID không hợp lệ"
+                    "message", "Medical Record ID khong hop le"
                 ));
             }
             
             if (prescriptionItems == null || prescriptionItems.isEmpty()) {
                 return ResponseEntity.badRequest().body(Map.of(
                     "success", false,
-                    "message", "Danh sách thuốc không được rỗng"
+                    "message", "Danh sach thuoc khong duoc rong"
                 ));
             }
             
@@ -53,49 +49,48 @@ public class PrescriptionController {
             return ResponseEntity.ok(response);
             
         } catch (Exception e) {
-            logger.error("Error creating prescription for medical record {}: {}", medicalRecordId, e.getMessage(), e);
+            System.out.println("Loi tao don thuoc: " + e.getMessage());
             
             Map<String, Object> errorResponse = Map.of(
                 "success", false,
-                "message", "Lỗi khi tạo đơn thuốc: " + e.getMessage(),
-                "error", e.toString()
+                "message", "Loi khi tao don thuoc: " + e.getMessage()
             );
             
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+            return ResponseEntity.status(500).body(errorResponse);
         }
     }
     
     @GetMapping("/{medicalRecordId}")
     @PreAuthorize("hasRole('DOCTOR') or hasRole('ADMIN')")
-    public ResponseEntity<Map<String, Object>> getPrescription(
+    public ResponseEntity<?> getPrescription(
             @PathVariable Long medicalRecordId) {
         
-        logger.info("GET /api/doctor/prescriptions/{} called", medicalRecordId);
+        System.out.println("Lay don thuoc theo medical record: " + medicalRecordId);
         
         try {
             Map<String, Object> response = prescriptionService.getPrescriptionByMedicalRecord(medicalRecordId);
             return ResponseEntity.ok(response);
         } catch (Exception e) {
-            logger.error("Error getting prescription: {}", e.getMessage(), e);
-            return ResponseEntity.internalServerError().body(Map.of(
+            System.out.println("Loi lay don thuoc: " + e.getMessage());
+            return ResponseEntity.status(500).body(Map.of(
                 "success", false,
-                "message", "Internal server error: " + e.getMessage()
+                "message", "Loi server: " + e.getMessage()
             ));
         }
     }
     
     @GetMapping("/history/{medicalRecordId}")
     @PreAuthorize("hasRole('DOCTOR')")
-    public ResponseEntity<Map<String, Object>> getMedicationHistoryByMedicalRecord(
+    public ResponseEntity<?> getMedicationHistoryByMedicalRecord(
         @PathVariable Long medicalRecordId) {
     
-        logger.info("GET /api/doctor/prescriptions/history/{} called", medicalRecordId);
+        System.out.println("Lay lich su thuoc theo medical record: " + medicalRecordId);
         
         try {
             if (medicalRecordId == null || medicalRecordId <= 0) {
                 return ResponseEntity.badRequest().body(Map.of(
                     "success", false,
-                    "message", "Medical Record ID không hợp lệ"
+                    "message", "Medical Record ID khong hop le"
                 ));
             }
             
@@ -103,26 +98,26 @@ public class PrescriptionController {
             return ResponseEntity.ok(response);
             
         } catch (Exception e) {
-            logger.error("Error getting medication history by medical record: {}", e.getMessage(), e);
-            return ResponseEntity.internalServerError().body(Map.of(
+            System.out.println("Loi lay lich su thuoc: " + e.getMessage());
+            return ResponseEntity.status(500).body(Map.of(
                 "success", false,
-                "message", "Internal server error: " + e.getMessage()
+                "message", "Loi server: " + e.getMessage()
             ));
         }
     }
     
     @GetMapping("/patient/{patientId}/history")
     @PreAuthorize("hasRole('DOCTOR')")
-    public ResponseEntity<Map<String, Object>> getPatientMedicationHistory(
+    public ResponseEntity<?> getPatientMedicationHistory(
             @PathVariable Long patientId) {
         
-        logger.info("GET /api/doctor/prescriptions/patient/{}/history called", patientId);
+        System.out.println("Lay lich su thuoc cua benh nhan: " + patientId);
         
         try {
             if (patientId == null || patientId <= 0) {
                 return ResponseEntity.badRequest().body(Map.of(
                     "success", false,
-                    "message", "Patient ID không hợp lệ"
+                    "message", "Patient ID khong hop le"
                 ));
             }
             
@@ -130,102 +125,102 @@ public class PrescriptionController {
             return ResponseEntity.ok(response);
             
         } catch (Exception e) {
-            logger.error("Error getting patient medication history: {}", e.getMessage(), e);
-            return ResponseEntity.internalServerError().body(Map.of(
+            System.out.println("Loi lay lich su benh nhan: " + e.getMessage());
+            return ResponseEntity.status(500).body(Map.of(
                 "success", false,
-                "message", "Internal server error: " + e.getMessage()
+                "message", "Loi server: " + e.getMessage()
             ));
         }
     }
     
     @GetMapping("/medicines/search")
     @PreAuthorize("hasRole('DOCTOR')")
-    public ResponseEntity<Map<String, Object>> searchMedicines(
+    public ResponseEntity<?> searchMedicines(
             @RequestParam(required = false) String keyword) {
         
-        logger.info("GET /api/doctor/prescriptions/medicines/search called with keyword: {}", keyword);
+        System.out.println("Tim kiem thuoc: " + keyword);
         
         try {
             Map<String, Object> response = prescriptionService.searchMedicines(keyword != null ? keyword : "");
             return ResponseEntity.ok(response);
         } catch (Exception e) {
-            logger.error("Error searching medicines: {}", e.getMessage(), e);
-            return ResponseEntity.internalServerError().body(Map.of(
+            System.out.println("Loi tim kiem thuoc: " + e.getMessage());
+            return ResponseEntity.status(500).body(Map.of(
                 "success", false,
-                "message", "Internal server error: " + e.getMessage()
+                "message", "Loi server: " + e.getMessage()
             ));
         }
     }
     
     @GetMapping("/medicines/active")
     @PreAuthorize("hasRole('DOCTOR')")
-    public ResponseEntity<Map<String, Object>> getActiveMedicines() {
+    public ResponseEntity<?> getActiveMedicines() {
         
-        logger.info("GET /api/doctor/prescriptions/medicines/active called");
+        System.out.println("Lay thuoc dang hoat dong");
         
         try {
             Map<String, Object> response = prescriptionService.getActiveMedicines();
             return ResponseEntity.ok(response);
         } catch (Exception e) {
-            logger.error("Error getting active medicines: {}", e.getMessage(), e);
-            return ResponseEntity.internalServerError().body(Map.of(
+            System.out.println("Loi lay thuoc hoat dong: " + e.getMessage());
+            return ResponseEntity.status(500).body(Map.of(
                 "success", false,
-                "message", "Internal server error: " + e.getMessage()
+                "message", "Loi server: " + e.getMessage()
             ));
         }
     }
     
     @GetMapping("/medicines/category/{category}")
     @PreAuthorize("hasRole('DOCTOR')")
-    public ResponseEntity<Map<String, Object>> getMedicinesByCategory(
+    public ResponseEntity<?> getMedicinesByCategory(
             @PathVariable String category) {
         
-        logger.info("GET /api/doctor/prescriptions/medicines/category/{} called", category);
+        System.out.println("Lay thuoc theo danh muc: " + category);
         
         try {
             Map<String, Object> response = prescriptionService.getMedicinesByCategory(category);
             return ResponseEntity.ok(response);
         } catch (Exception e) {
-            logger.error("Error getting medicines by category: {}", e.getMessage(), e);
-            return ResponseEntity.internalServerError().body(Map.of(
+            System.out.println("Loi lay thuoc theo danh muc: " + e.getMessage());
+            return ResponseEntity.status(500).body(Map.of(
                 "success", false,
-                "message", "Internal server error: " + e.getMessage()
+                "message", "Loi server: " + e.getMessage()
             ));
         }
     }
     
     @GetMapping("/medicines/categories")
     @PreAuthorize("hasRole('DOCTOR')")
-    public ResponseEntity<Map<String, Object>> getMedicineCategories() {
+    public ResponseEntity<?> getMedicineCategories() {
         
-        logger.info("GET /api/doctor/prescriptions/medicines/categories called");
+        System.out.println("Lay danh muc thuoc");
         
         try {
             Map<String, Object> response = prescriptionService.getMedicineCategories();
             return ResponseEntity.ok(response);
         } catch (Exception e) {
-            logger.error("Error getting medicine categories: {}", e.getMessage(), e);
-            return ResponseEntity.internalServerError().body(Map.of(
+            System.out.println("Loi lay danh muc thuoc: " + e.getMessage());
+            return ResponseEntity.status(500).body(Map.of(
                 "success", false,
-                "message", "Internal server error: " + e.getMessage()
+                "message", "Loi server: " + e.getMessage()
             ));
         }
     }
     
     @GetMapping("/medicines/all")
     @PreAuthorize("hasRole('DOCTOR')")
-    public ResponseEntity<Map<String, Object>> getAllMedicines() {
+    public ResponseEntity<?> getAllMedicines() {
         
-        logger.info("GET /api/doctor/prescriptions/medicines/all called");
+        System.out.println("Lay tat ca thuoc");
         
         try {
             Map<String, Object> response = prescriptionService.getActiveMedicines();
             return ResponseEntity.ok(response);
         } catch (Exception e) {
-            logger.error("Error getting all medicines: {}", e.getMessage(), e);
-            return ResponseEntity.internalServerError().body(Map.of(
+            System.out.println("Loi lay tat ca thuoc: " + e.getMessage());
+            return ResponseEntity.status(500).body(Map.of(
                 "success", false,
-                "message", "Internal server error: " + e.getMessage()
+                "message", "Loi server: " + e.getMessage()
             ));
         }
     }

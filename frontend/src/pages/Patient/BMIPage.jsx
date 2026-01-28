@@ -3,76 +3,75 @@ import { useToast } from "../../hooks/useToast";
 import bmiService from "../../api/bmiService";
 import "../../css/BMIPage.css";
 
-const BMIPage = () => {
-  const [bmiData, setBmiData] = useState({
+function BMIPage() {
+  const [formData, setFormData] = useState({
     height: "",
     weight: "",
     gender: "",
     measurementDate: new Date().toISOString().split("T")[0],
   });
-  const [bmiResult, setBmiResult] = useState(null);
-  const [bmiHistory, setBmiHistory] = useState([]);
-  const [isCalculating, setIsCalculating] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
+  const [result, setResult] = useState(null);
+  const [history, setHistory] = useState([]);
+  const [calculating, setCalculating] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState("calculator");
   const toast = useToast();
 
-  // Load lịch sử từ database
   useEffect(() => {
-    loadBmiHistory();
+    getHistory();
   }, []);
 
-  const loadBmiHistory = async () => {
+  const getHistory = async () => {
     try {
       const response = await bmiService.getBmiHistory();
       if (response.success) {
-        setBmiHistory(response.data);
+        setHistory(response.data);
       } else {
         toast.error(response.error);
       }
     } catch (error) {
-      console.error("Lỗi khi load lịch sử BMI:", error);
+      console.error("Lỗi load lịch sử BMI:", error);
       toast.error("Lỗi khi tải lịch sử BMI!");
     }
   };
 
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setBmiData((prev) => ({
+  const handleChange = (e) => {
+    const name = e.target.name;
+    const value = e.target.value;
+    setFormData((prev) => ({
       ...prev,
       [name]: value,
     }));
   };
 
-  // Tính BMI
   const calculateBMI = async () => {
-    if (!bmiData.height || !bmiData.weight || !bmiData.gender) {
+    if (!formData.height || !formData.weight || !formData.gender) {
       toast.error("Vui lòng nhập đầy đủ thông tin!");
       return;
     }
 
-    const height = parseFloat(bmiData.height);
-    const weight = parseFloat(bmiData.weight);
+    const height = parseFloat(formData.height);
+    const weight = parseFloat(formData.weight);
 
     if (height <= 0 || weight <= 0) {
       toast.error("Chiều cao và cân nặng phải lớn hơn 0!");
       return;
     }
 
-    setIsCalculating(true);
+    setCalculating(true);
 
     try {
       const response = await bmiService.calculateBmi({
         height: height,
         weight: weight,
-        gender: bmiData.gender,
+        gender: formData.gender,
       });
 
       if (response.success) {
-        setBmiResult({
+        setResult({
           bmiValue: response.data.bmiValue,
           category: response.data.bmiCategory,
-          gender: bmiData.gender,
+          gender: formData.gender,
         });
         toast.success("Tính BMI thành công!");
       } else {
@@ -82,27 +81,26 @@ const BMIPage = () => {
       console.error("Lỗi khi tính BMI:", error);
       toast.error("Lỗi khi tính BMI!");
     } finally {
-      setIsCalculating(false);
+      setCalculating(false);
     }
   };
 
-  // Lưu vào database
-  const saveBMI = async () => {
-    if (!bmiResult) {
+  const saveResult = async () => {
+    if (!result) {
       toast.error("Vui lòng tính BMI trước khi lưu!");
       return;
     }
 
-    setIsSaving(true);
+    setSaving(true);
 
     try {
       const saveData = {
-        height: parseFloat(bmiData.height),
-        weight: parseFloat(bmiData.weight),
-        gender: bmiData.gender,
-        bmiValue: bmiResult.bmiValue,
-        bmiCategory: bmiResult.category,
-        measurementDate: bmiData.measurementDate,
+        height: parseFloat(formData.height),
+        weight: parseFloat(formData.weight),
+        gender: formData.gender,
+        bmiValue: result.bmiValue,
+        bmiCategory: result.category,
+        measurementDate: formData.measurementDate,
       };
 
       const response = await bmiService.saveBmi(saveData);
@@ -110,17 +108,15 @@ const BMIPage = () => {
       if (response.success) {
         toast.success("Lưu kết quả BMI thành công!");
 
-        // Reset form
-        setBmiData({
+        setFormData({
           height: "",
           weight: "",
           gender: "",
           measurementDate: new Date().toISOString().split("T")[0],
         });
-        setBmiResult(null);
+        setResult(null);
 
-        // Load lại lịch sử
-        await loadBmiHistory();
+        await getHistory();
       } else {
         toast.error(response.error);
       }
@@ -128,14 +124,12 @@ const BMIPage = () => {
       console.error("Lỗi khi lưu BMI:", error);
       toast.error("Lỗi khi lưu BMI!");
     } finally {
-      setIsSaving(false);
+      setSaving(false);
     }
   };
 
-  // 🎯 PHÂN LOẠI BMI THEO GIỚI TÍNH
-  const getBmiCategory = (bmi, gender) => {
+  const getCategory = (bmi, gender) => {
     if (gender === "MALE") {
-      // Tiêu chuẩn BMI cho Nam
       if (bmi < 18.5) return "Thiếu cân";
       if (bmi < 23) return "Bình thường";
       if (bmi < 25) return "Thừa cân";
@@ -144,7 +138,6 @@ const BMIPage = () => {
       if (bmi < 40) return "Béo phì độ II";
       return "Béo phì độ III";
     } else {
-      // Tiêu chuẩn BMI cho Nữ (thường có ngưỡng thấp hơn)
       if (bmi < 18) return "Thiếu cân";
       if (bmi < 22) return "Bình thường";
       if (bmi < 24) return "Thừa cân";
@@ -155,8 +148,8 @@ const BMIPage = () => {
     }
   };
 
-  const getBmiColor = (bmiValue, gender) => {
-    const category = getBmiCategory(bmiValue, gender);
+  const getColor = (bmiValue, gender) => {
+    const category = getCategory(bmiValue, gender);
     switch (category) {
       case "Thiếu cân":
         return "#3498db";
@@ -177,10 +170,6 @@ const BMIPage = () => {
     }
   };
 
-  const getGenderIcon = (gender) => {
-    return gender === "MALE" ? "👨" : gender === "FEMALE" ? "👩" : "❓";
-  };
-
   return (
     <div className="bmi-container">
       <div className="bmi-header">
@@ -190,13 +179,13 @@ const BMIPage = () => {
 
       <div className="bmi-tabs">
         <button
-          className={`tab-btn ${activeTab === "calculator" ? "active" : ""}`}
+          className={`tab-button ${activeTab === "calculator" ? "active" : ""}`}
           onClick={() => setActiveTab("calculator")}
         >
           Máy tính BMI
         </button>
         <button
-          className={`tab-btn ${activeTab === "history" ? "active" : ""}`}
+          className={`tab-button ${activeTab === "history" ? "active" : ""}`}
           onClick={() => setActiveTab("history")}
         >
           Lịch sử BMI
@@ -216,24 +205,20 @@ const BMIPage = () => {
                     type="radio"
                     name="gender"
                     value="MALE"
-                    checked={bmiData.gender === "MALE"}
-                    onChange={handleInputChange}
+                    checked={formData.gender === "MALE"}
+                    onChange={handleChange}
                   />
-                  <span className="gender-label">
-                    <span className="gender-icon">👨</span> Nam
-                  </span>
+                  <span className="gender-label">Nam</span>
                 </label>
                 <label className="gender-option">
                   <input
                     type="radio"
                     name="gender"
                     value="FEMALE"
-                    checked={bmiData.gender === "FEMALE"}
-                    onChange={handleInputChange}
+                    checked={formData.gender === "FEMALE"}
+                    onChange={handleChange}
                   />
-                  <span className="gender-label">
-                    <span className="gender-icon">👩</span> Nữ
-                  </span>
+                  <span className="gender-label">Nữ</span>
                 </label>
               </div>
             </div>
@@ -243,8 +228,8 @@ const BMIPage = () => {
               <input
                 type="number"
                 name="height"
-                value={bmiData.height}
-                onChange={handleInputChange}
+                value={formData.height}
+                onChange={handleChange}
                 placeholder="Nhập chiều cao"
                 min="50"
                 max="250"
@@ -257,8 +242,8 @@ const BMIPage = () => {
               <input
                 type="number"
                 name="weight"
-                value={bmiData.weight}
-                onChange={handleInputChange}
+                value={formData.weight}
+                onChange={handleChange}
                 placeholder="Nhập cân nặng"
                 min="20"
                 max="300"
@@ -271,58 +256,54 @@ const BMIPage = () => {
               <input
                 type="date"
                 name="measurementDate"
-                value={bmiData.measurementDate}
-                onChange={handleInputChange}
+                value={formData.measurementDate}
+                onChange={handleChange}
               />
             </div>
 
             <div className="action-buttons">
               <button
-                className="calculate-btn"
+                className="calculate-button"
                 onClick={calculateBMI}
                 disabled={
-                  isCalculating ||
-                  !bmiData.height ||
-                  !bmiData.weight ||
-                  !bmiData.gender
+                  calculating ||
+                  !formData.height ||
+                  !formData.weight ||
+                  !formData.gender
                 }
               >
-                {isCalculating ? "Đang tính..." : "Tính BMI"}
+                {calculating ? "Đang tính..." : "Tính BMI"}
               </button>
             </div>
 
-            {bmiResult && (
+            {result && (
               <div
                 className="bmi-result"
                 style={{
-                  borderColor: getBmiColor(
-                    bmiResult.bmiValue,
-                    bmiResult.gender
-                  ),
+                  borderColor: getColor(result.bmiValue, result.gender),
                 }}
               >
                 <h3>Kết quả BMI của bạn</h3>
                 <div className="bmi-gender">
-                  {getGenderIcon(bmiResult.gender)}{" "}
-                  {bmiResult.gender === "MALE" ? "Nam" : "Nữ"}
+                  {result.gender === "MALE" ? "Nam" : "Nữ"}
                 </div>
                 <div
                   className="bmi-value"
                   style={{
-                    color: getBmiColor(bmiResult.bmiValue, bmiResult.gender),
+                    color: getColor(result.bmiValue, result.gender),
                   }}
                 >
-                  {bmiResult.bmiValue}
+                  {result.bmiValue}
                 </div>
                 <div className="bmi-category">
-                  Phân loại: <strong>{bmiResult.category}</strong>
+                  Phân loại: <strong>{result.category}</strong>
                 </div>
                 <button
-                  className="save-btn"
-                  onClick={saveBMI}
-                  disabled={isSaving}
+                  className="save-button"
+                  onClick={saveResult}
+                  disabled={saving}
                 >
-                  {isSaving ? "Đang lưu..." : "Lưu kết quả"}
+                  {saving ? "Đang lưu..." : "Lưu kết quả"}
                 </button>
               </div>
             )}
@@ -332,7 +313,7 @@ const BMIPage = () => {
             <h3>Phân loại BMI theo WHO</h3>
 
             <div className="gender-tabs">
-              <div className="gender-tab active">👨 Tiêu chuẩn Nam</div>
+              <div className="gender-tab active">Tiêu chuẩn Nam</div>
               <div className="bmi-categories">
                 <div className="category-item">
                   <span
@@ -385,7 +366,7 @@ const BMIPage = () => {
                 </div>
               </div>
 
-              <div className="gender-tab">👩 Tiêu chuẩn Nữ</div>
+              <div className="gender-tab">Tiêu chuẩn Nữ</div>
               <div className="bmi-categories">
                 <div className="category-item">
                   <span
@@ -440,7 +421,7 @@ const BMIPage = () => {
             </div>
 
             <div className="gender-info">
-              <h4>💡 Lưu ý về giới tính</h4>
+              <h4>Lưu ý về giới tính</h4>
               <p>Tiêu chuẩn BMI khác nhau giữa nam và nữ do sự khác biệt về:</p>
               <ul>
                 <li>Tỷ lệ cơ bắp (nam thường có nhiều cơ hơn)</li>
@@ -455,30 +436,30 @@ const BMIPage = () => {
       {activeTab === "history" && (
         <div className="bmi-history">
           <h2>Lịch sử BMI</h2>
-          {bmiHistory.length === 0 ? (
+          {history.length === 0 ? (
             <div className="no-data">
               <p>Chưa có dữ liệu BMI</p>
             </div>
           ) : (
             <div className="history-list">
-              {bmiHistory.map((record) => (
+              {history.map((record) => (
                 <div key={record.id} className="history-item">
                   <div className="history-date">
                     {new Date(record.measurementDate).toLocaleDateString(
-                      "vi-VN"
+                      "vi-VN",
                     )}
                   </div>
                   <div className="history-details">
                     <span>Chiều cao: {record.height} cm</span>
                     <span>Cân nặng: {record.weight} kg</span>
                     <span>
-                      Giới tính: {record.gender === "MALE" ? "👨 Nam" : "👩 Nữ"}
+                      Giới tính: {record.gender === "MALE" ? "Nam" : "Nữ"}
                     </span>
                   </div>
                   <div
                     className="history-bmi"
                     style={{
-                      color: getBmiColor(record.bmiValue, record.gender),
+                      color: getColor(record.bmiValue, record.gender),
                     }}
                   >
                     BMI: {record.bmiValue}
@@ -492,6 +473,6 @@ const BMIPage = () => {
       )}
     </div>
   );
-};
+}
 
 export default BMIPage;

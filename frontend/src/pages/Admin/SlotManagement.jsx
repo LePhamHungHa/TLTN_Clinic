@@ -38,8 +38,9 @@ const SlotManagement = ({ slots, doctors, getDoctorName, onRefresh }) => {
     "16:00-17:00",
   ];
 
-  // Function to normalize search term
+  // Ham chuan hoa van ban tim kiem
   const normalizeText = (text) => {
+    if (!text) return "";
     return text
       .normalize("NFD")
       .replace(/[\u0300-\u036f]/g, "")
@@ -47,23 +48,24 @@ const SlotManagement = ({ slots, doctors, getDoctorName, onRefresh }) => {
       .trim();
   };
 
-  // Update filtered slots whenever searchTerm or slots change
+  // Loc du lieu tim kiem
   useEffect(() => {
     if (!searchTerm.trim()) {
       setFilteredSlots(slots);
       return;
     }
 
-    const normalizedSearch = normalizeText(searchTerm);
+    let searchTermNormalized = normalizeText(searchTerm);
 
-    const filtered = slots.filter((slot) => {
-      const doctorName = getDoctorName(slot.doctorId) || "";
-      const doctorMatch = normalizeText(doctorName).includes(normalizedSearch);
-      const dateMatch = slot.appointmentDate
-        ? normalizeText(slot.appointmentDate).includes(normalizedSearch)
+    let filtered = slots.filter((slot) => {
+      let doctorName = getDoctorName(slot.doctorId) || "";
+      let doctorMatch =
+        normalizeText(doctorName).includes(searchTermNormalized);
+      let dateMatch = slot.appointmentDate
+        ? normalizeText(slot.appointmentDate).includes(searchTermNormalized)
         : false;
-      const timeMatch = slot.timeSlot
-        ? normalizeText(slot.timeSlot).includes(normalizedSearch)
+      let timeMatch = slot.timeSlot
+        ? normalizeText(slot.timeSlot).includes(searchTermNormalized)
         : false;
 
       return doctorMatch || dateMatch || timeMatch;
@@ -81,9 +83,12 @@ const SlotManagement = ({ slots, doctors, getDoctorName, onRefresh }) => {
       maxPatients: slot.maxPatients || 5,
     });
     setShowForm(true);
-    setTimeout(() => {
-      formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-    }, 100);
+
+    if (formRef.current) {
+      setTimeout(() => {
+        formRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 100);
+    }
   };
 
   const handleAddSlot = async () => {
@@ -97,14 +102,19 @@ const SlotManagement = ({ slots, doctors, getDoctorName, onRefresh }) => {
       const user = JSON.parse(localStorage.getItem("user"));
       const token = user?.token;
 
-      const url = editingSlot
-        ? `http://localhost:8080/api/slots/${editingSlot.id}`
-        : "http://localhost:8080/api/slots";
+      let url = "";
+      let method = "";
 
-      const method = editingSlot ? "PUT" : "POST";
+      if (editingSlot) {
+        url = `http://localhost:8080/api/slots/${editingSlot.id}`;
+        method = "PUT";
+      } else {
+        url = "http://localhost:8080/api/slots";
+        method = "POST";
+      }
 
       const response = await fetch(url, {
-        method,
+        method: method,
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
@@ -116,16 +126,17 @@ const SlotManagement = ({ slots, doctors, getDoctorName, onRefresh }) => {
         onRefresh();
         setShowForm(false);
         resetForm();
-        alert(`✅ ${editingSlot ? "Cập nhật" : "Thêm"} slot thành công!`);
+        alert((editingSlot ? "Cập nhật" : "Thêm") + " slot thành công!");
       } else {
         const errorData = await response.json();
-        throw new Error(
-          errorData.message ||
-            `Lỗi khi ${editingSlot ? "cập nhật" : "thêm"} slot`
+        alert(
+          "Lỗi: " +
+            (errorData.message ||
+              (editingSlot ? "Lỗi khi cập nhật slot" : "Lỗi khi thêm slot")),
         );
       }
-    } catch (err) {
-      alert(`❌ Lỗi: ${err.message}`);
+    } catch (error) {
+      alert("Lỗi: " + error.message);
     } finally {
       setLoading(false);
     }
@@ -139,7 +150,9 @@ const SlotManagement = ({ slots, doctors, getDoctorName, onRefresh }) => {
 
     if (
       !window.confirm(
-        `Bạn có chắc chắn muốn cập nhật tất cả slots thành ${bulkData.maxPatients} bệnh nhân/slot?`
+        "Bạn có chắc chắn muốn cập nhật tất cả slots thành " +
+          bulkData.maxPatients +
+          " bệnh nhân/slot?",
       )
     ) {
       return;
@@ -159,19 +172,19 @@ const SlotManagement = ({ slots, doctors, getDoctorName, onRefresh }) => {
             "Content-Type": "application/json",
           },
           body: JSON.stringify(bulkData),
-        }
+        },
       );
 
       if (response.ok) {
         onRefresh();
         setShowBulkForm(false);
-        alert("✅ Cập nhật hàng loạt thành công!");
+        alert("Cập nhật hàng loạt thành công!");
       } else {
         const errorData = await response.json();
-        throw new Error(errorData.message || "Lỗi khi cập nhật hàng loạt");
+        alert("Lỗi: " + (errorData.message || "Lỗi khi cập nhật hàng loạt"));
       }
-    } catch (err) {
-      alert(`❌ Lỗi: ${err.message}`);
+    } catch (error) {
+      alert("Lỗi: " + error.message);
     } finally {
       setLoading(false);
     }
@@ -194,27 +207,28 @@ const SlotManagement = ({ slots, doctors, getDoctorName, onRefresh }) => {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
-        }
+        },
       );
 
       if (response.ok) {
         onRefresh();
-        alert("✅ Cập nhật trạng thái thành công!");
+        alert("Cập nhật trạng thái thành công!");
       } else {
         const errorData = await response.json();
-        throw new Error(errorData.message || "Lỗi khi cập nhật trạng thái");
+        alert("Lỗi: " + (errorData.message || "Lỗi khi cập nhật trạng thái"));
       }
-    } catch (err) {
-      alert(`❌ Lỗi: ${err.message}`);
+    } catch (error) {
+      alert("Lỗi: " + error.message);
     } finally {
       setLoading(false);
     }
   };
 
   const handleMaxPatientsChange = (slotId, value) => {
+    let newValue = parseInt(value) || 1;
     setEditingMaxPatients({
       ...editingMaxPatients,
-      [slotId]: parseInt(value) || 1,
+      [slotId]: newValue,
     });
   };
 
@@ -225,11 +239,13 @@ const SlotManagement = ({ slots, doctors, getDoctorName, onRefresh }) => {
       return;
     }
 
-    // Kiểm tra nếu số bệnh nhân hiện tại > maxPatients mới
+    // Kiem tra so benh nhan hien tai
     const slot = slots.find((s) => s.id === slotId);
     if (slot && (slot.currentPatients || 0) > maxPatients) {
       alert(
-        `Không thể đặt số bệnh nhân tối đa nhỏ hơn số bệnh nhân hiện tại (${slot.currentPatients})`
+        "Không thể đặt số bệnh nhân tối đa nhỏ hơn số bệnh nhân hiện tại (" +
+          slot.currentPatients +
+          ")",
       );
       return;
     }
@@ -247,8 +263,8 @@ const SlotManagement = ({ slots, doctors, getDoctorName, onRefresh }) => {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ maxPatients }),
-        }
+          body: JSON.stringify({ maxPatients: maxPatients }),
+        },
       );
 
       if (response.ok) {
@@ -257,13 +273,13 @@ const SlotManagement = ({ slots, doctors, getDoctorName, onRefresh }) => {
           ...editingMaxPatients,
           [slotId]: undefined,
         });
-        alert("✅ Cập nhật số bệnh nhân tối đa thành công!");
+        alert("Cập nhật số bệnh nhân tối đa thành công!");
       } else {
         const errorData = await response.json();
-        throw new Error(errorData.message || "Lỗi khi cập nhật");
+        alert("Lỗi: " + (errorData.message || "Lỗi khi cập nhật"));
       }
-    } catch (err) {
-      alert(`❌ Lỗi: ${err.message}`);
+    } catch (error) {
+      alert("Lỗi: " + error.message);
     } finally {
       setLoading(false);
     }
@@ -282,18 +298,18 @@ const SlotManagement = ({ slots, doctors, getDoctorName, onRefresh }) => {
         {
           method: "DELETE",
           headers: { Authorization: `Bearer ${token}` },
-        }
+        },
       );
 
       if (response.ok) {
         onRefresh();
-        alert("✅ Xóa slot thành công!");
+        alert("Xóa slot thành công!");
       } else {
         const errorData = await response.json();
-        throw new Error(errorData.message || "Lỗi khi xóa slot");
+        alert("Lỗi: " + (errorData.message || "Lỗi khi xóa slot"));
       }
-    } catch (err) {
-      alert(`❌ Lỗi: ${err.message}`);
+    } catch (error) {
+      alert("Lỗi: " + error.message);
     } finally {
       setLoading(false);
     }
@@ -311,24 +327,30 @@ const SlotManagement = ({ slots, doctors, getDoctorName, onRefresh }) => {
 
   const handleShowBulkForm = () => {
     setShowBulkForm(true);
-    setTimeout(() => {
-      bulkFormRef.current?.scrollIntoView({
-        behavior: "smooth",
-        block: "start",
-      });
-    }, 100);
+
+    if (bulkFormRef.current) {
+      setTimeout(() => {
+        bulkFormRef.current.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      }, 100);
+    }
   };
 
   const handleShowAddForm = () => {
     setEditingSlot(null);
     resetForm();
     setShowForm(true);
-    setTimeout(() => {
-      formRef.current?.scrollIntoView({
-        behavior: "smooth",
-        block: "start",
-      });
-    }, 100);
+
+    if (formRef.current) {
+      setTimeout(() => {
+        formRef.current.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      }, 100);
+    }
   };
 
   const handleCloseForm = () => {
@@ -343,12 +365,11 @@ const SlotManagement = ({ slots, doctors, getDoctorName, onRefresh }) => {
 
   return (
     <div className="slot-management">
-      {/* Modern Search and Action Bar */}
+      {/* Tim kiem va nut thao tac */}
       <div className="modern-search-bar mb-4">
         <div className="card border-0 shadow-sm">
           <div className="card-body p-4">
             <div className="row g-3 align-items-center">
-              {/* Search Box */}
               <div className="col-12 col-lg-6">
                 <div className="position-relative">
                   <span className="position-absolute top-50 start-0 translate-middle-y text-primary ms-3">
@@ -366,7 +387,6 @@ const SlotManagement = ({ slots, doctors, getDoctorName, onRefresh }) => {
                       className="btn btn-link position-absolute top-50 end-0 translate-middle-y me-3 text-muted p-0"
                       onClick={() => setSearchTerm("")}
                       style={{ zIndex: 10 }}
-                      title="Xóa tìm kiếm"
                     >
                       <i className="bi bi-x-circle fs-5"></i>
                     </button>
@@ -375,14 +395,12 @@ const SlotManagement = ({ slots, doctors, getDoctorName, onRefresh }) => {
                 {searchTerm && (
                   <div className="mt-2 small text-muted">
                     Tìm thấy <strong>{filteredSlots.length}</strong> slot
-                    {filteredSlots.length === 1 ? "" : ""}
                   </div>
                 )}
               </div>
 
-              {/* Action Buttons */}
               <div className="col-12 col-lg-6 text-lg-end">
-                <div className="d-flex gap-3 justify-content-lg-end justify-content-start flex-wrap">
+                <div className="d-flex gap-3 justify-content-lg-end">
                   <button
                     className="btn btn-warning btn-lg px-4 d-flex align-items-center gap-2 shadow-sm"
                     onClick={handleShowBulkForm}
@@ -407,7 +425,7 @@ const SlotManagement = ({ slots, doctors, getDoctorName, onRefresh }) => {
         </div>
       </div>
 
-      {/* Bulk Update Form */}
+      {/* Form cap nhat hang loat */}
       {showBulkForm && (
         <div className="bulk-form card mb-4" ref={bulkFormRef}>
           <div className="card-header bg-warning text-white d-flex align-items-center">
@@ -487,7 +505,7 @@ const SlotManagement = ({ slots, doctors, getDoctorName, onRefresh }) => {
         </div>
       )}
 
-      {/* Add/Edit Form */}
+      {/* Form them/sua */}
       {showForm && (
         <div className="add-form card mb-4" ref={formRef}>
           <div className="card-header bg-primary text-white d-flex align-items-center">
@@ -615,7 +633,7 @@ const SlotManagement = ({ slots, doctors, getDoctorName, onRefresh }) => {
         </div>
       )}
 
-      {/* Table */}
+      {/* Bang du lieu */}
       <div className="table-responsive slot-table">
         <table className="table table-hover align-middle">
           <thead className="table-primary">
@@ -719,7 +737,6 @@ const SlotManagement = ({ slots, doctors, getDoctorName, onRefresh }) => {
                       }`}
                       onClick={() => toggleSlotStatus(slot.id, slot.isActive)}
                       style={{ cursor: "pointer" }}
-                      title="Click để thay đổi trạng thái"
                     >
                       {slot.isActive ? "Hoạt động" : "Vô hiệu"}
                     </span>
@@ -730,7 +747,6 @@ const SlotManagement = ({ slots, doctors, getDoctorName, onRefresh }) => {
                         className="btn btn-sm btn-primary d-flex align-items-center px-3"
                         onClick={() => handleEditSlot(slot)}
                         disabled={loading}
-                        title="Sửa thông tin"
                       >
                         <i className="bi bi-pencil me-1"></i>
                       </button>
@@ -738,11 +754,6 @@ const SlotManagement = ({ slots, doctors, getDoctorName, onRefresh }) => {
                         className="btn btn-sm btn-danger d-flex align-items-center px-3"
                         onClick={() => deleteSlot(slot.id)}
                         disabled={loading || (slot.currentPatients || 0) > 0}
-                        title={
-                          (slot.currentPatients || 0) > 0
-                            ? "Không thể xóa slot đã có bệnh nhân"
-                            : "Xóa slot"
-                        }
                       >
                         <i className="bi bi-trash me-1"></i>
                       </button>

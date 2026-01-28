@@ -31,9 +31,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         
         String header = request.getHeader("Authorization");
         
-        // Chỉ debug cho API admin để tránh log nhiều
+        // debug cho admin thoi
         if (request.getRequestURI().contains("/api/admin/")) {
-            System.out.println("🔐 JWT Filter - Admin Request: " + request.getRequestURI());
+            System.out.println("JWT Filter - Admin Request: " + request.getRequestURI());
         }
         
         if (header != null && header.startsWith("Bearer ")) {
@@ -44,7 +44,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     String username = jwtUtil.extractUsername(token);
                     String role = jwtUtil.extractRole(token);
                     
-                    // Đảm bảo role có prefix ROLE_
+                    // dam bao role co prefix ROLE_
                     List<SimpleGrantedAuthority> authorities = Collections.singletonList(
                         new SimpleGrantedAuthority("ROLE_" + role)
                     );
@@ -54,13 +54,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
                     SecurityContextHolder.getContext().setAuthentication(auth);
                     
-                    // Chỉ log cho admin requests
+                    // log cho admin thoi
                     if (request.getRequestURI().contains("/api/admin/")) {
-                        System.out.println("✅ JWT Filter - Admin auth set for: " + username + " with role: " + role);
+                        System.out.println("JWT Filter - Admin auth set for: " + username + " with role: " + role);
                     }
                 }
             } catch (Exception e) {
-                System.err.println("❌ JWT Filter - Error processing token: " + e.getMessage());
+                System.out.println("JWT Filter - Loi xu ly token: " + e.getMessage());
                 SecurityContextHolder.clearContext();
             }
         }

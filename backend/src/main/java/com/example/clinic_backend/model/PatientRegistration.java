@@ -47,11 +47,9 @@ public class PatientRegistration {
     @Column(name = "doctor_id")
     private Long doctorId;
 
-    // 🔥 THÊM FIELD MỚI: user_id để lưu ID của bệnh nhân
     @Column(name = "user_id")
     private Long userId;
 
-    // 🔥 SỬA: Thay LAZY bằng EAGER và bỏ @JsonIgnore
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "doctor_id", referencedColumnName = "id", insertable = false, updatable = false)
     private Doctor doctor;
@@ -95,11 +93,9 @@ public class PatientRegistration {
     @Column(name = "assigned_session")
     private String assignedSession;
 
-    // THÊM TRƯỜNG MỚI - TRẠNG THÁI KHÁM BỆNH
     @Column(name = "examination_status")
     private String examinationStatus = "WAITING";
 
-    // THÊM CÁC TRƯỜNG MỚI CHO THANH TOÁN
     @Column(name = "payment_status")
     private String paymentStatus;
     
@@ -109,14 +105,13 @@ public class PatientRegistration {
     @Column(name = "paid_at")
     private LocalDateTime paidAt;
 
-    // 🔥 THÊM CÁC TRƯỜNG MỚI CHO THEO DÕI EMAIL REMINDER
     @Column(name = "reminder_sent")
     private Boolean reminderSent = false;
     
     @Column(name = "last_reminder_sent_at")
     private LocalDateTime lastReminderSentAt;
 
-    // Constructors
+    // constructors
     public PatientRegistration() {
         this.createdAt = LocalDateTime.now();
         this.status = "PENDING";
@@ -138,7 +133,7 @@ public class PatientRegistration {
         this.appointmentDate = appointmentDate;
     }
 
-    // Getters and Setters
+    // getters setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
@@ -175,11 +170,9 @@ public class PatientRegistration {
     public Long getDoctorId() { return doctorId; }
     public void setDoctorId(Long doctorId) { this.doctorId = doctorId; }
 
-    // 🔥 THÊM GETTER VÀ SETTER CHO USER_ID
     public Long getUserId() { return userId; }
     public void setUserId(Long userId) { this.userId = userId; }
 
-    // 🔥 THÊM METHOD GETPATIENTID ĐỂ TƯƠNG THÍCH VỚI SERVICE
     public Long getPatientId() { 
         return userId; 
     }
@@ -198,7 +191,9 @@ public class PatientRegistration {
     public void setTransactionNumber(String transactionNumber) { this.transactionNumber = transactionNumber; }
     
     public String getRoomNumber() { return roomNumber; }
-    public void setRoomNumber(String roomNumber) { this.roomNumber = roomNumber; }
+    public void setRoomNumber(String roomNumber) { 
+        this.roomNumber = roomNumber;
+    }
     
     public Integer getQueueNumber() { return queueNumber; }
     public void setQueueNumber(Integer queueNumber) { this.queueNumber = queueNumber; }
@@ -233,7 +228,6 @@ public class PatientRegistration {
     public String getExaminationStatus() { return examinationStatus; }
     public void setExaminationStatus(String examinationStatus) { this.examinationStatus = examinationStatus; }
 
-    // GETTERS AND SETTERS MỚI CHO THANH TOÁN
     public String getPaymentStatus() { return paymentStatus; }
     public void setPaymentStatus(String paymentStatus) { this.paymentStatus = paymentStatus; }
     

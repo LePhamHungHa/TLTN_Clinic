@@ -73,8 +73,9 @@ const DoctorManagement = ({
     "Chuyên viên",
   ];
 
-  // Function to normalize search term
+  // Ham chuan hoa van ban
   const normalizeText = (text) => {
+    if (!text) return "";
     return text
       .normalize("NFD")
       .replace(/[\u0300-\u036f]/g, "")
@@ -82,51 +83,54 @@ const DoctorManagement = ({
       .trim();
   };
 
-  // Update filtered doctors whenever searchTerm or doctors change
+  // Loc du lieu
   useEffect(() => {
     if (!searchTerm.trim()) {
       setFilteredDoctors(doctors);
-      return;
+    } else {
+      let searchTermNormalized = normalizeText(searchTerm);
+      let filtered = doctors.filter((doctor) => {
+        let nameMatch = normalizeText(doctor.fullName || "").includes(
+          searchTermNormalized,
+        );
+        let specialtyMatch = doctor.specialty
+          ? normalizeText(doctor.specialty).includes(searchTermNormalized)
+          : false;
+        let emailMatch = doctor.email
+          ? normalizeText(doctor.email).includes(searchTermNormalized)
+          : false;
+        let phoneMatch = doctor.phone
+          ? normalizeText(doctor.phone).includes(searchTermNormalized)
+          : false;
+        let departmentMatch = doctor.departmentId
+          ? normalizeText(getDepartmentName(doctor.departmentId)).includes(
+              searchTermNormalized,
+            )
+          : false;
+
+        return (
+          nameMatch ||
+          specialtyMatch ||
+          emailMatch ||
+          phoneMatch ||
+          departmentMatch
+        );
+      });
+      setFilteredDoctors(filtered);
     }
-
-    const normalizedSearch = normalizeText(searchTerm);
-
-    const filtered = doctors.filter((doctor) => {
-      const nameMatch = normalizeText(doctor.fullName || "").includes(
-        normalizedSearch
-      );
-      const specialtyMatch = doctor.specialty
-        ? normalizeText(doctor.specialty).includes(normalizedSearch)
-        : false;
-      const emailMatch = doctor.email
-        ? normalizeText(doctor.email).includes(normalizedSearch)
-        : false;
-      const phoneMatch = doctor.phone
-        ? normalizeText(doctor.phone).includes(normalizedSearch)
-        : false;
-      const departmentMatch = doctor.departmentId
-        ? normalizeText(getDepartmentName(doctor.departmentId)).includes(
-            normalizedSearch
-          )
-        : false;
-
-      return (
-        nameMatch ||
-        specialtyMatch ||
-        emailMatch ||
-        phoneMatch ||
-        departmentMatch
-      );
-    });
-
-    setFilteredDoctors(filtered);
   }, [searchTerm, doctors, getDepartmentName]);
 
   const handleEditDoctor = (doctor) => {
     setEditingDoctor(doctor);
+
+    let dateOfBirth = "";
+    if (doctor.dateOfBirth) {
+      dateOfBirth = doctor.dateOfBirth.split("T")[0];
+    }
+
     setFormData({
       fullName: doctor.fullName || "",
-      dateOfBirth: doctor.dateOfBirth ? doctor.dateOfBirth.split("T")[0] : "",
+      dateOfBirth: dateOfBirth,
       gender: doctor.gender || "MALE",
       citizenId: doctor.citizenId || "",
       address: doctor.address || "",
@@ -141,10 +145,14 @@ const DoctorManagement = ({
       roomNumber: doctor.roomNumber || "",
       floor: doctor.floor || "",
     });
+
     setShowForm(true);
-    setTimeout(() => {
-      formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-    }, 100);
+
+    if (formRef.current) {
+      setTimeout(() => {
+        formRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 100);
+    }
   };
 
   const handleAddDoctor = async () => {
@@ -163,21 +171,31 @@ const DoctorManagement = ({
       const user = JSON.parse(localStorage.getItem("user"));
       const token = user?.token;
 
-      const url = editingDoctor
-        ? `http://localhost:8080/api/doctors/${editingDoctor.id}`
-        : "http://localhost:8080/api/doctors/create";
+      let url = "";
+      let method = "";
 
-      const method = editingDoctor ? "PUT" : "POST";
+      if (editingDoctor) {
+        url = `http://localhost:8080/api/doctors/${editingDoctor.id}`;
+        method = "PUT";
+      } else {
+        url = "http://localhost:8080/api/doctors/create";
+        method = "POST";
+      }
+
+      let username = formData.username;
+      if (!username) {
+        username = formData.email.split("@")[0];
+      }
 
       const response = await fetch(url, {
-        method,
+        method: method,
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
           ...formData,
-          username: formData.username || formData.email.split("@")[0],
+          username: username,
         }),
       });
 
@@ -186,16 +204,19 @@ const DoctorManagement = ({
         setShowForm(false);
         resetForm();
         setEditingDoctor(null);
-        alert(`✅ ${editingDoctor ? "Cập nhật" : "Thêm"} bác sĩ thành công!`);
+        alert((editingDoctor ? "Cập nhật" : "Thêm") + " bác sĩ thành công!");
       } else {
         const errorData = await response.json();
-        throw new Error(
-          errorData.message ||
-            `Lỗi khi ${editingDoctor ? "cập nhật" : "thêm"} bác sĩ`
+        alert(
+          "Lỗi: " +
+            (errorData.message ||
+              (editingDoctor
+                ? "Lỗi khi cập nhật bác sĩ"
+                : "Lỗi khi thêm bác sĩ")),
         );
       }
-    } catch (err) {
-      alert(`❌ Lỗi: ${err.message}`);
+    } catch (error) {
+      alert("Lỗi: " + error.message);
     } finally {
       setLoading(false);
     }
@@ -208,8 +229,8 @@ const DoctorManagement = ({
     }
 
     setLoading(true);
-    const importFormData = new FormData();
-    importFormData.append("file", importFile);
+    let formData = new FormData();
+    formData.append("file", importFile);
 
     try {
       const user = JSON.parse(localStorage.getItem("user"));
@@ -218,7 +239,7 @@ const DoctorManagement = ({
       const response = await fetch("http://localhost:8080/api/doctors/import", {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
-        body: importFormData,
+        body: formData,
       });
 
       if (response.ok) {
@@ -226,13 +247,13 @@ const DoctorManagement = ({
         onRefresh();
         setShowImportForm(false);
         setImportFile(null);
-        alert(result.message || "✅ Import bác sĩ thành công!");
+        alert(result.message || "Import bác sĩ thành công!");
       } else {
         const errorData = await response.json();
-        throw new Error(errorData.message || "Lỗi khi import");
+        alert("Lỗi: " + (errorData.message || "Lỗi khi import"));
       }
-    } catch (err) {
-      alert(`❌ Lỗi: ${err.message}`);
+    } catch (error) {
+      alert("Lỗi: " + error.message);
     } finally {
       setLoading(false);
     }
@@ -251,18 +272,18 @@ const DoctorManagement = ({
         {
           method: "DELETE",
           headers: { Authorization: `Bearer ${token}` },
-        }
+        },
       );
 
       if (response.ok) {
         onRefresh();
-        alert("✅ Xóa bác sĩ thành công!");
+        alert("Xóa bác sĩ thành công!");
       } else {
         const errorData = await response.json();
-        throw new Error(errorData.message || "Lỗi khi xóa bác sĩ");
+        alert("Lỗi: " + (errorData.message || "Lỗi khi xóa bác sĩ"));
       }
-    } catch (err) {
-      alert(`❌ Lỗi: ${err.message}`);
+    } catch (error) {
+      alert("Lỗi: " + error.message);
     } finally {
       setLoading(false);
     }
@@ -291,24 +312,30 @@ const DoctorManagement = ({
 
   const handleShowImportForm = () => {
     setShowImportForm(true);
-    setTimeout(() => {
-      importFormRef.current?.scrollIntoView({
-        behavior: "smooth",
-        block: "start",
-      });
-    }, 100);
+
+    if (importFormRef.current) {
+      setTimeout(() => {
+        importFormRef.current.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      }, 100);
+    }
   };
 
   const handleShowAddForm = () => {
     setEditingDoctor(null);
     resetForm();
     setShowForm(true);
-    setTimeout(() => {
-      formRef.current?.scrollIntoView({
-        behavior: "smooth",
-        block: "start",
-      });
-    }, 100);
+
+    if (formRef.current) {
+      setTimeout(() => {
+        formRef.current.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      }, 100);
+    }
   };
 
   const handleCloseForm = () => {
@@ -323,12 +350,11 @@ const DoctorManagement = ({
 
   return (
     <div className="doctor-management">
-      {/* Modern Search and Action Bar */}
+      {/* Thanh tim kiem */}
       <div className="modern-search-bar mb-4">
         <div className="card border-0 shadow-sm">
           <div className="card-body p-4">
             <div className="row g-3 align-items-center">
-              {/* Search Box */}
               <div className="col-12 col-lg-6">
                 <div className="position-relative">
                   <span className="position-absolute top-50 start-0 translate-middle-y text-primary ms-3">
@@ -346,7 +372,6 @@ const DoctorManagement = ({
                       className="btn btn-link position-absolute top-50 end-0 translate-middle-y me-3 text-muted p-0"
                       onClick={() => setSearchTerm("")}
                       style={{ zIndex: 10 }}
-                      title="Xóa tìm kiếm"
                     >
                       <i className="bi bi-x-circle fs-5"></i>
                     </button>
@@ -355,14 +380,12 @@ const DoctorManagement = ({
                 {searchTerm && (
                   <div className="mt-2 small text-muted">
                     Tìm thấy <strong>{filteredDoctors.length}</strong> bác sĩ
-                    {filteredDoctors.length === 1 ? "" : ""}
                   </div>
                 )}
               </div>
 
-              {/* Action Buttons */}
               <div className="col-12 col-lg-6 text-lg-end">
-                <div className="d-flex gap-3 justify-content-lg-end justify-content-start flex-wrap">
+                <div className="d-flex gap-3 justify-content-lg-end">
                   <button
                     className="btn btn-success btn-lg px-4 d-flex align-items-center gap-2 shadow-sm"
                     onClick={handleShowImportForm}
@@ -387,7 +410,7 @@ const DoctorManagement = ({
         </div>
       </div>
 
-      {/* Import Form */}
+      {/* Form import */}
       {showImportForm && (
         <div className="import-form card mb-4" ref={importFormRef}>
           <div className="card-header bg-success text-white d-flex align-items-center">
@@ -452,7 +475,7 @@ const DoctorManagement = ({
         </div>
       )}
 
-      {/* Add/Edit Form */}
+      {/* Form them/sua */}
       {showForm && (
         <div className="add-form card mb-4" ref={formRef}>
           <div className="card-header bg-primary text-white d-flex align-items-center">
@@ -717,7 +740,7 @@ const DoctorManagement = ({
         </div>
       )}
 
-      {/* Table */}
+      {/* Bang du lieu */}
       <div className="table-responsive doctor-table">
         <table className="table table-hover align-middle">
           <thead className="table-primary">
@@ -800,7 +823,6 @@ const DoctorManagement = ({
                         className="btn btn-sm btn-primary d-flex align-items-center px-3"
                         onClick={() => handleEditDoctor(doctor)}
                         disabled={loading}
-                        title="Sửa bác sĩ"
                       >
                         <i className="bi bi-pencil me-1"></i>
                       </button>
@@ -808,7 +830,6 @@ const DoctorManagement = ({
                         className="btn btn-sm btn-danger d-flex align-items-center px-3"
                         onClick={() => deleteDoctor(doctor.id)}
                         disabled={loading}
-                        title="Xóa bác sĩ"
                       >
                         <i className="bi bi-trash me-1"></i>
                       </button>

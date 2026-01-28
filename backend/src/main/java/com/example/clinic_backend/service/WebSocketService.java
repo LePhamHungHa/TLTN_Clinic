@@ -13,10 +13,10 @@ public class WebSocketService {
 
     public void notifyNewAppointment(PatientRegistration appointment) {
         try {
-            System.out.println("🎯 WebSocketService: Sending notification for appointment " + appointment.getId());
+            System.out.println("WebSocketService: Gửi thông báo về cuộc hẹn " + appointment.getId());
             webSocketController.sendNewAppointmentNotification(appointment);
         } catch (Exception e) {
-            System.err.println("❌ Error in WebSocketService: " + e.getMessage());
+            System.err.println("Lỗi: " + e.getMessage());
             e.printStackTrace();
         }
     }

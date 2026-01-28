@@ -277,7 +277,7 @@ public class DoctorService {
                     doctor.setGender("OTHER");
                 }
             } else {
-                doctor.setGender("MALE"); // Mặc định
+                doctor.setGender("MALE"); 
             }
             
             // Cột D: Email

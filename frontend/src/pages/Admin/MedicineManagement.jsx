@@ -71,7 +71,7 @@ const MedicineManagement = ({
     { value: "LOW_STOCK", label: "Sắp hết hàng" },
   ];
 
-  // Lấy danh sách danh mục
+  // Lay danh sach danh muc
   useEffect(() => {
     fetchCategories();
   }, []);
@@ -85,20 +85,21 @@ const MedicineManagement = ({
         "http://localhost:8080/api/admin/structure/medicines/categories",
         {
           headers: { Authorization: `Bearer ${token}` },
-        }
+        },
       );
 
       if (response.ok) {
         const data = await response.json();
         setCategories(data);
       }
-    } catch (err) {
-      console.error("Lỗi khi lấy danh mục:", err);
+    } catch (error) {
+      console.error("Lỗi khi lấy danh mục:", error);
     }
   };
 
-  // Function to normalize search term
+  // Ham chuan hoa van ban de tim kiem
   const normalizeText = (text) => {
+    if (!text) return "";
     return text
       .normalize("NFD")
       .replace(/[\u0300-\u036f]/g, "")
@@ -106,30 +107,32 @@ const MedicineManagement = ({
       .trim();
   };
 
-  // Update filtered medicines whenever searchTerm or medicines change
+  // Loc du lieu khi co tim kiem
   useEffect(() => {
     if (!searchTerm.trim()) {
       setFilteredMedicines(medicines);
       return;
     }
 
-    const normalizedSearch = normalizeText(searchTerm);
+    let searchTermNormalized = normalizeText(searchTerm);
 
-    const filtered = medicines.filter((medicine) => {
-      const nameMatch = normalizeText(medicine.medicineName || "").includes(
-        normalizedSearch
+    let filtered = medicines.filter((medicine) => {
+      let nameMatch = normalizeText(medicine.medicineName || "").includes(
+        searchTermNormalized,
       );
-      const codeMatch = medicine.medicineCode
-        ? normalizeText(medicine.medicineCode).includes(normalizedSearch)
+      let codeMatch = medicine.medicineCode
+        ? normalizeText(medicine.medicineCode).includes(searchTermNormalized)
         : false;
-      const ingredientMatch = medicine.activeIngredient
-        ? normalizeText(medicine.activeIngredient).includes(normalizedSearch)
+      let ingredientMatch = medicine.activeIngredient
+        ? normalizeText(medicine.activeIngredient).includes(
+            searchTermNormalized,
+          )
         : false;
-      const categoryMatch = medicine.category
-        ? normalizeText(medicine.category).includes(normalizedSearch)
+      let categoryMatch = medicine.category
+        ? normalizeText(medicine.category).includes(searchTermNormalized)
         : false;
-      const manufacturerMatch = medicine.manufacturer
-        ? normalizeText(medicine.manufacturer).includes(normalizedSearch)
+      let manufacturerMatch = medicine.manufacturer
+        ? normalizeText(medicine.manufacturer).includes(searchTermNormalized)
         : false;
 
       return (
@@ -146,6 +149,12 @@ const MedicineManagement = ({
 
   const handleEditMedicine = (medicine) => {
     setEditingMedicine(medicine);
+
+    let expiryDateValue = "";
+    if (medicine.expiryDate) {
+      expiryDateValue = medicine.expiryDate.split("T")[0];
+    }
+
     setFormData({
       medicineCode: medicine.medicineCode || "",
       medicineName: medicine.medicineName || "",
@@ -158,7 +167,7 @@ const MedicineManagement = ({
       manufacturer: medicine.manufacturer || "",
       countryOrigin: medicine.countryOrigin || "Việt Nam",
       lotNumber: medicine.lotNumber || "",
-      expiryDate: medicine.expiryDate ? medicine.expiryDate.split("T")[0] : "",
+      expiryDate: expiryDateValue,
       unitPrice: medicine.unitPrice || "",
       stockQuantity: medicine.stockQuantity || 0,
       minStockLevel: medicine.minStockLevel || 10,
@@ -172,10 +181,14 @@ const MedicineManagement = ({
       category: medicine.category || "",
       status: medicine.status || "ACTIVE",
     });
+
     setShowForm(true);
-    setTimeout(() => {
-      formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-    }, 100);
+
+    if (formRef.current) {
+      setTimeout(() => {
+        formRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 100);
+    }
   };
 
   const handleAddMedicine = async () => {
@@ -193,13 +206,18 @@ const MedicineManagement = ({
       const user = JSON.parse(localStorage.getItem("user"));
       const token = user?.token;
 
-      const url = editingMedicine
-        ? `http://localhost:8080/api/admin/structure/medicines/${editingMedicine.id}`
-        : "http://localhost:8080/api/admin/structure/medicines";
+      let url = "";
+      let method = "";
 
-      const method = editingMedicine ? "PUT" : "POST";
+      if (editingMedicine) {
+        url = `http://localhost:8080/api/admin/structure/medicines/${editingMedicine.id}`;
+        method = "PUT";
+      } else {
+        url = "http://localhost:8080/api/admin/structure/medicines";
+        method = "POST";
+      }
 
-      const medicineData = {
+      let medicineData = {
         ...formData,
         unitPrice: parseFloat(formData.unitPrice) || 0,
         stockQuantity: parseInt(formData.stockQuantity) || 0,
@@ -210,7 +228,7 @@ const MedicineManagement = ({
       };
 
       const response = await fetch(url, {
-        method,
+        method: method,
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
@@ -223,16 +241,19 @@ const MedicineManagement = ({
         fetchCategories();
         setShowForm(false);
         resetForm();
-        alert(`✅ ${editingMedicine ? "Cập nhật" : "Thêm"} thuốc thành công!`);
+        alert((editingMedicine ? "Cập nhật" : "Thêm") + " thuốc thành công!");
       } else {
         const errorData = await response.json();
-        throw new Error(
-          errorData.message ||
-            `Lỗi khi ${editingMedicine ? "cập nhật" : "thêm"} thuốc`
+        alert(
+          "Lỗi: " +
+            (errorData.message ||
+              (editingMedicine
+                ? "Lỗi khi cập nhật thuốc"
+                : "Lỗi khi thêm thuốc")),
         );
       }
-    } catch (err) {
-      alert(`❌ Lỗi: ${err.message}`);
+    } catch (error) {
+      alert("Lỗi: " + error.message);
     } finally {
       setLoading(false);
     }
@@ -245,8 +266,8 @@ const MedicineManagement = ({
     }
 
     setLoading(true);
-    const importFormData = new FormData();
-    importFormData.append("file", importFile);
+    let formData = new FormData();
+    formData.append("file", importFile);
 
     try {
       const user = JSON.parse(localStorage.getItem("user"));
@@ -257,8 +278,8 @@ const MedicineManagement = ({
         {
           method: "POST",
           headers: { Authorization: `Bearer ${token}` },
-          body: importFormData,
-        }
+          body: formData,
+        },
       );
 
       if (response.ok) {
@@ -267,13 +288,13 @@ const MedicineManagement = ({
         fetchCategories();
         setShowImportForm(false);
         setImportFile(null);
-        alert(result.message || "✅ Import thuốc thành công!");
+        alert(result.message || "Import thuốc thành công!");
       } else {
         const errorData = await response.json();
-        throw new Error(errorData.message || "Lỗi khi import");
+        alert("Lỗi: " + (errorData.message || "Lỗi khi import"));
       }
-    } catch (err) {
-      alert(`❌ Lỗi: ${err.message}`);
+    } catch (error) {
+      alert("Lỗi: " + error.message);
     } finally {
       setLoading(false);
     }
@@ -296,18 +317,18 @@ const MedicineManagement = ({
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
-        }
+        },
       );
 
       if (response.ok) {
         onRefresh();
-        alert("✅ Cập nhật trạng thái thành công!");
+        alert("Cập nhật trạng thái thành công!");
       } else {
         const errorData = await response.json();
-        throw new Error(errorData.message || "Lỗi khi cập nhật");
+        alert("Lỗi: " + (errorData.message || "Lỗi khi cập nhật"));
       }
-    } catch (err) {
-      alert(`❌ Lỗi: ${err.message}`);
+    } catch (error) {
+      alert("Lỗi: " + error.message);
     } finally {
       setLoading(false);
     }
@@ -326,18 +347,18 @@ const MedicineManagement = ({
         {
           method: "DELETE",
           headers: { Authorization: `Bearer ${token}` },
-        }
+        },
       );
 
       if (response.ok) {
         onRefresh();
-        alert("✅ Xóa thuốc thành công!");
+        alert("Xóa thuốc thành công!");
       } else {
         const errorData = await response.json();
-        throw new Error(errorData.message || "Lỗi khi xóa");
+        alert("Lỗi: " + (errorData.message || "Lỗi khi xóa"));
       }
-    } catch (err) {
-      alert(`❌ Lỗi: ${err.message}`);
+    } catch (error) {
+      alert("Lỗi: " + error.message);
     } finally {
       setLoading(false);
     }
@@ -375,24 +396,30 @@ const MedicineManagement = ({
 
   const handleShowImportForm = () => {
     setShowImportForm(true);
-    setTimeout(() => {
-      importFormRef.current?.scrollIntoView({
-        behavior: "smooth",
-        block: "start",
-      });
-    }, 100);
+
+    if (importFormRef.current) {
+      setTimeout(() => {
+        importFormRef.current.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      }, 100);
+    }
   };
 
   const handleShowAddForm = () => {
     setEditingMedicine(null);
     resetForm();
     setShowForm(true);
-    setTimeout(() => {
-      formRef.current?.scrollIntoView({
-        behavior: "smooth",
-        block: "start",
-      });
-    }, 100);
+
+    if (formRef.current) {
+      setTimeout(() => {
+        formRef.current.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      }, 100);
+    }
   };
 
   const handleCloseForm = () => {
@@ -415,12 +442,11 @@ const MedicineManagement = ({
 
   return (
     <div className="medicine-management">
-      {/* Modern Search and Action Bar */}
+      {/* Tim kiem va nut thao tac */}
       <div className="modern-search-bar mb-4">
         <div className="card border-0 shadow-sm">
           <div className="card-body p-4">
             <div className="row g-3 align-items-center">
-              {/* Search Box */}
               <div className="col-12 col-lg-6">
                 <div className="position-relative">
                   <span className="position-absolute top-50 start-0 translate-middle-y text-primary ms-3">
@@ -438,7 +464,6 @@ const MedicineManagement = ({
                       className="btn btn-link position-absolute top-50 end-0 translate-middle-y me-3 text-muted p-0"
                       onClick={() => setSearchTerm("")}
                       style={{ zIndex: 10 }}
-                      title="Xóa tìm kiếm"
                     >
                       <i className="bi bi-x-circle fs-5"></i>
                     </button>
@@ -447,14 +472,12 @@ const MedicineManagement = ({
                 {searchTerm && (
                   <div className="mt-2 small text-muted">
                     Tìm thấy <strong>{filteredMedicines.length}</strong> thuốc
-                    {filteredMedicines.length === 1 ? "" : ""}
                   </div>
                 )}
               </div>
 
-              {/* Action Buttons */}
               <div className="col-12 col-lg-6 text-lg-end">
-                <div className="d-flex gap-3 justify-content-lg-end justify-content-start flex-wrap">
+                <div className="d-flex gap-3 justify-content-lg-end">
                   <button
                     className="btn btn-success btn-lg px-4 d-flex align-items-center gap-2 shadow-sm"
                     onClick={handleShowImportForm}
@@ -479,7 +502,7 @@ const MedicineManagement = ({
         </div>
       </div>
 
-      {/* Import Form */}
+      {/* Form import */}
       {showImportForm && (
         <div className="import-form card mb-4" ref={importFormRef}>
           <div className="card-header bg-success text-white d-flex align-items-center">
@@ -543,7 +566,7 @@ const MedicineManagement = ({
         </div>
       )}
 
-      {/* Add/Edit Form */}
+      {/* Form them/sua */}
       {showForm && (
         <div className="add-form card mb-4" ref={formRef}>
           <div className="card-header bg-primary text-white d-flex align-items-center">
@@ -942,7 +965,7 @@ const MedicineManagement = ({
         </div>
       )}
 
-      {/* Table */}
+      {/* Bang du lieu */}
       <div className="table-responsive medicine-table">
         <table className="table table-hover align-middle">
           <thead className="table-primary">
@@ -988,7 +1011,7 @@ const MedicineManagement = ({
               filteredMedicines.map((medicine, index) => {
                 const stockStatus = getStockStatus(
                   medicine.stockQuantity,
-                  medicine.minStockLevel
+                  medicine.minStockLevel,
                 );
 
                 return (
@@ -1044,7 +1067,6 @@ const MedicineManagement = ({
                         className={`status-badge ${medicine.status.toLowerCase()}`}
                         onClick={() => toggleMedicineStatus(medicine.id)}
                         style={{ cursor: "pointer" }}
-                        title="Click để thay đổi trạng thái"
                       >
                         {getStatusLabel(medicine.status)}
                       </span>
@@ -1055,7 +1077,6 @@ const MedicineManagement = ({
                           className="btn btn-sm btn-primary d-flex align-items-center px-3"
                           onClick={() => handleEditMedicine(medicine)}
                           disabled={loading}
-                          title="Sửa thông tin"
                         >
                           <i className="bi bi-pencil me-1"></i>
                         </button>
@@ -1063,7 +1084,6 @@ const MedicineManagement = ({
                           className="btn btn-sm btn-danger d-flex align-items-center px-3"
                           onClick={() => deleteMedicine(medicine.id)}
                           disabled={loading}
-                          title="Xóa thuốc"
                         >
                           <i className="bi bi-trash me-1"></i>
                         </button>

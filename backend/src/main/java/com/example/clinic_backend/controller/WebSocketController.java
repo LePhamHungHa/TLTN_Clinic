@@ -14,12 +14,12 @@ public class WebSocketController {
     @Autowired
     private SimpMessagingTemplate messagingTemplate;
 
-    // Gửi thông báo khi có đơn mới
+    // gui thong bao khi co don moi
     public void sendNewAppointmentNotification(PatientRegistration appointment) {
         try {
-            System.out.println("🔔 Đang gửi thông báo WebSocket cho đơn đăng ký mới: " + appointment.getId());
+            System.out.println("Dang gui thong bao WebSocket cho don dang ky moi: " + appointment.getId());
             
-            // Tạo đối tượng thông báo
+            // tao doi tuong thong bao
             AppointmentNotification notification = new AppointmentNotification(
                 appointment.getId(),
                 appointment.getFullName(),
@@ -31,17 +31,16 @@ public class WebSocketController {
                 appointment.getCreatedAt()
             );
 
-            // Gửi đến tất cả client đang subscribe
+            // gui den tat ca client dang subscribe
             messagingTemplate.convertAndSend("/topic/new-appointments", notification);
             
-            System.out.println("✅ Đã gửi thông báo WebSocket thành công");
+            System.out.println("Da gui thong bao WebSocket thanh cong");
         } catch (Exception e) {
-            System.err.println("❌ Lỗi khi gửi thông báo WebSocket: " + e.getMessage());
-            e.printStackTrace();
+            System.out.println("Loi khi gui thong bao WebSocket: " + e.getMessage());
         }
     }
 
-    // Class inner cho thông báo
+    // class inner cho thong bao
     public static class AppointmentNotification {
         private Long id;
         private String fullName;
@@ -67,7 +66,7 @@ public class WebSocketController {
             this.createdAt = createdAt;
         }
 
-        // Getters and Setters
+        // getters and setters
         public Long getId() { return id; }
         public void setId(Long id) { this.id = id; }
 

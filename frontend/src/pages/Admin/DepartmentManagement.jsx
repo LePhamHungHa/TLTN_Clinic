@@ -19,8 +19,9 @@ const DepartmentManagement = ({ departments, doctors, onRefresh }) => {
   const formRef = useRef(null);
   const importFormRef = useRef(null);
 
-  // Function to normalize search term (remove accents, lowercase, trim)
+  // Chuan hoa chuoi tim kiem
   const normalizeText = (text) => {
+    if (!text) return "";
     return text
       .normalize("NFD")
       .replace(/[\u0300-\u036f]/g, "")
@@ -28,27 +29,23 @@ const DepartmentManagement = ({ departments, doctors, onRefresh }) => {
       .trim();
   };
 
-  // Update filtered departments whenever searchTerm or departments change
+  // Loc du lieu khi tim kiem
   useEffect(() => {
     if (!searchTerm.trim()) {
       setFilteredDepartments(departments);
-      return;
+    } else {
+      const searchTermNormalized = normalizeText(searchTerm);
+      const filtered = departments.filter((dept) => {
+        const nameMatch = normalizeText(dept.departmentName).includes(
+          searchTermNormalized,
+        );
+        const descriptionMatch = dept.description
+          ? normalizeText(dept.description).includes(searchTermNormalized)
+          : false;
+        return nameMatch || descriptionMatch;
+      });
+      setFilteredDepartments(filtered);
     }
-
-    const normalizedSearch = normalizeText(searchTerm);
-
-    const filtered = departments.filter((dept) => {
-      const nameMatch = normalizeText(dept.departmentName || "").includes(
-        normalizedSearch
-      );
-      const descriptionMatch = dept.description
-        ? normalizeText(dept.description).includes(normalizedSearch)
-        : false;
-
-      return nameMatch || descriptionMatch;
-    });
-
-    setFilteredDepartments(filtered);
   }, [searchTerm, departments]);
 
   const handleEditDepartment = (department) => {
@@ -59,7 +56,9 @@ const DepartmentManagement = ({ departments, doctors, onRefresh }) => {
     });
     setShowForm(true);
     setTimeout(() => {
-      formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      if (formRef.current) {
+        formRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
     }, 100);
   };
 
@@ -74,14 +73,19 @@ const DepartmentManagement = ({ departments, doctors, onRefresh }) => {
       const user = JSON.parse(localStorage.getItem("user"));
       const token = user?.token;
 
-      const url = editingDepartment
-        ? `http://localhost:8080/api/departments/${editingDepartment.id}`
-        : "http://localhost:8080/api/departments";
+      let url = "";
+      let method = "";
 
-      const method = editingDepartment ? "PUT" : "POST";
+      if (editingDepartment) {
+        url = `http://localhost:8080/api/departments/${editingDepartment.id}`;
+        method = "PUT";
+      } else {
+        url = "http://localhost:8080/api/departments";
+        method = "POST";
+      }
 
       const response = await fetch(url, {
-        method,
+        method: method,
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
@@ -94,13 +98,13 @@ const DepartmentManagement = ({ departments, doctors, onRefresh }) => {
         setShowForm(false);
         setFormData({ departmentName: "", description: "" });
         setEditingDepartment(null);
-        alert(`✅ ${editingDepartment ? "Cập nhật" : "Thêm"} khoa thành công!`);
+        alert((editingDepartment ? "Cập nhật" : "Thêm") + " khoa thành công!");
       } else {
         const errorData = await response.json();
-        throw new Error(errorData.message || "Lỗi khi xử lý yêu cầu");
+        alert("Lỗi: " + (errorData.message || "Lỗi khi xử lý yêu cầu"));
       }
-    } catch (err) {
-      alert(`❌ Lỗi: ${err.message}`);
+    } catch (error) {
+      alert("Lỗi: " + error.message);
     } finally {
       setLoading(false);
     }
@@ -113,8 +117,8 @@ const DepartmentManagement = ({ departments, doctors, onRefresh }) => {
     }
 
     setLoading(true);
-    const importFormData = new FormData();
-    importFormData.append("file", importFile);
+    const formData = new FormData();
+    formData.append("file", importFile);
 
     try {
       const user = JSON.parse(localStorage.getItem("user"));
@@ -125,8 +129,8 @@ const DepartmentManagement = ({ departments, doctors, onRefresh }) => {
         {
           method: "POST",
           headers: { Authorization: `Bearer ${token}` },
-          body: importFormData,
-        }
+          body: formData,
+        },
       );
 
       if (response.ok) {
@@ -134,13 +138,13 @@ const DepartmentManagement = ({ departments, doctors, onRefresh }) => {
         onRefresh();
         setShowImportForm(false);
         setImportFile(null);
-        alert(result.message || "✅ Import khoa thành công!");
+        alert(result.message || "Import khoa thành công!");
       } else {
         const errorData = await response.json();
-        throw new Error(errorData.message || "Lỗi khi import");
+        alert("Lỗi: " + (errorData.message || "Lỗi khi import"));
       }
-    } catch (err) {
-      alert(`❌ Lỗi: ${err.message}`);
+    } catch (error) {
+      alert("Lỗi: " + error.message);
     } finally {
       setLoading(false);
     }
@@ -159,18 +163,18 @@ const DepartmentManagement = ({ departments, doctors, onRefresh }) => {
         {
           method: "DELETE",
           headers: { Authorization: `Bearer ${token}` },
-        }
+        },
       );
 
       if (response.ok) {
         onRefresh();
-        alert("✅ Xóa khoa thành công!");
+        alert("Xóa khoa thành công!");
       } else {
         const errorData = await response.json();
-        throw new Error(errorData.message || "Lỗi khi xóa khoa");
+        alert("Lỗi: " + (errorData.message || "Lỗi khi xóa khoa"));
       }
-    } catch (err) {
-      alert(`❌ Lỗi: ${err.message}`);
+    } catch (error) {
+      alert("Lỗi: " + error.message);
     } finally {
       setLoading(false);
     }
@@ -179,10 +183,12 @@ const DepartmentManagement = ({ departments, doctors, onRefresh }) => {
   const handleShowImportForm = () => {
     setShowImportForm(true);
     setTimeout(() => {
-      importFormRef.current?.scrollIntoView({
-        behavior: "smooth",
-        block: "start",
-      });
+      if (importFormRef.current) {
+        importFormRef.current.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      }
     }, 100);
   };
 
@@ -191,7 +197,9 @@ const DepartmentManagement = ({ departments, doctors, onRefresh }) => {
     setFormData({ departmentName: "", description: "" });
     setShowForm(true);
     setTimeout(() => {
-      formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      if (formRef.current) {
+        formRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
     }, 100);
   };
 
@@ -213,12 +221,12 @@ const DepartmentManagement = ({ departments, doctors, onRefresh }) => {
 
   return (
     <div className="department-management">
-      {/* Modern Search and Action Bar - ĐÃ CẬP NHẬT */}
+      {/* Tim kiem va nut thao tac */}
       <div className="modern-search-bar mb-4">
         <div className="card border-0 shadow-sm">
           <div className="card-body p-4">
             <div className="row g-3 align-items-center">
-              {/* Search Box */}
+              {/* O tim kiem */}
               <div className="col-12 col-lg-6">
                 <div className="position-relative">
                   <span className="position-absolute top-50 start-0 translate-middle-y text-primary ms-3">
@@ -236,7 +244,6 @@ const DepartmentManagement = ({ departments, doctors, onRefresh }) => {
                       className="btn btn-link position-absolute top-50 end-0 translate-middle-y me-3 text-muted p-0"
                       onClick={() => setSearchTerm("")}
                       style={{ zIndex: 10 }}
-                      title="Xóa tìm kiếm"
                     >
                       <i className="bi bi-x-circle fs-5"></i>
                     </button>
@@ -245,14 +252,13 @@ const DepartmentManagement = ({ departments, doctors, onRefresh }) => {
                 {searchTerm && (
                   <div className="mt-2 small text-muted">
                     Tìm thấy <strong>{filteredDepartments.length}</strong> khoa
-                    {filteredDepartments.length === 1 ? "" : ""}
                   </div>
                 )}
               </div>
 
-              {/* Action Buttons */}
+              {/* Cac nut thao tac */}
               <div className="col-12 col-lg-6 text-lg-end">
-                <div className="d-flex gap-3 justify-content-lg-end justify-content-start flex-wrap">
+                <div className="d-flex gap-3 justify-content-lg-end">
                   <button
                     className="btn btn-success btn-lg px-4 d-flex align-items-center gap-2 shadow-sm"
                     onClick={handleShowImportForm}
@@ -277,7 +283,7 @@ const DepartmentManagement = ({ departments, doctors, onRefresh }) => {
         </div>
       </div>
 
-      {/* Import Form */}
+      {/* Form import */}
       {showImportForm && (
         <div className="import-form card mb-4" ref={importFormRef}>
           <div className="card-header bg-success text-white d-flex align-items-center">
@@ -341,7 +347,7 @@ const DepartmentManagement = ({ departments, doctors, onRefresh }) => {
         </div>
       )}
 
-      {/* Add/Edit Form */}
+      {/* Form them/sua */}
       {showForm && (
         <div className="add-form card mb-4" ref={formRef}>
           <div className="card-header bg-primary text-white d-flex align-items-center">
@@ -416,7 +422,7 @@ const DepartmentManagement = ({ departments, doctors, onRefresh }) => {
         </div>
       )}
 
-      {/* Table */}
+      {/* Bang du lieu */}
       <div className="table-responsive department-table">
         <table className="table table-hover align-middle">
           <thead className="table-primary">
@@ -503,7 +509,6 @@ const DepartmentManagement = ({ departments, doctors, onRefresh }) => {
                           className="btn btn-sm btn-primary d-flex align-items-center px-3"
                           onClick={() => handleEditDepartment(dept)}
                           disabled={loading}
-                          title="Sửa khoa"
                         >
                           <i className="bi bi-pencil me-1"></i>
                         </button>
@@ -511,7 +516,6 @@ const DepartmentManagement = ({ departments, doctors, onRefresh }) => {
                           className="btn btn-sm btn-danger d-flex align-items-center px-3"
                           onClick={() => deleteDepartment(dept.id)}
                           disabled={loading}
-                          title="Xóa khoa"
                         >
                           <i className="bi bi-trash me-1"></i>
                         </button>

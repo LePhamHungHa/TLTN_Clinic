@@ -15,7 +15,7 @@ import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/departments")
-@CrossOrigin(origins = {"http://localhost:5173", "http://localhost:3000"}, 
+@CrossOrigin(origins = {"http://localhost:5173"}, 
              allowedHeaders = "*", 
              methods = {RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, 
                        RequestMethod.PATCH, RequestMethod.DELETE, RequestMethod.OPTIONS},

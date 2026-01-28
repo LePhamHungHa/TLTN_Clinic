@@ -30,37 +30,29 @@ public class DoctorStatisticsService {
     @Autowired
     private DoctorRepository doctorRepository;
     
-    // Cập nhật thống kê hàng ngày
+    // cap nhat thong ke hang ngay
     @Transactional
     public void updateDailyStatistics(Long doctorId) {
         LocalDate today = LocalDate.now();
         updateStatisticsForDate(doctorId, today);
     }
     
-    // Cập nhật thống kê cho một ngày cụ thể
+    // cap nhat thong ke cho mot ngay cu the
     @Transactional
     public void updateStatisticsForDate(Long doctorId, LocalDate date) {
-        System.out.println("🔄 [Service] Updating stats for doctorId: " + doctorId + ", date: " + date);
+        System.out.println("Cap nhat thong ke cho bac si " + doctorId + ", ngay " + date);
         
         DoctorStatistics stats = statisticsRepository
                 .findByDoctorIdAndStatDateAndStatType(doctorId, date, "DAY")
                 .orElse(new DoctorStatistics(doctorId, date, "DAY"));
         
-        // Lấy tất cả lịch hẹn của bác sĩ trong ngày (tất cả status)
+        // lay tat ca lich hen cua bac si trong ngay
         List<PatientRegistration> todayAppointments = patientRegistrationRepository
                 .findByDoctorAndDateAndSession(doctorId, date, null);
         
-        System.out.println("📅 [Service] Found " + todayAppointments.size() + " appointments for date: " + date);
+        System.out.println("Tim thay " + todayAppointments.size() + " lich hen cho ngay " + date);
         
-        // Log chi tiết từng appointment
-        todayAppointments.forEach(apt -> {
-            System.out.println("   - Appointment ID: " + apt.getId() + 
-                             ", Status: " + apt.getStatus() + 
-                             ", Exam Status: " + apt.getExaminationStatus() +
-                             ", Session: " + apt.getAssignedSession());
-        });
-        
-        // Tính toán thống kê
+        // tinh toan thong ke
         int total = todayAppointments.size();
         int completed = (int) todayAppointments.stream()
                 .filter(apt -> "COMPLETED".equals(apt.getStatus()))
@@ -72,12 +64,10 @@ public class DoctorStatisticsService {
                 .filter(apt -> "MISSED".equals(apt.getExaminationStatus()))
                 .count();
         
-        System.out.println("📊 [Service] Calculated stats - Total: " + total + 
-                          ", Completed: " + completed + 
-                          ", Cancelled: " + cancelled + 
-                          ", NoShow: " + noShow);
+        System.out.println("Thong ke: Total=" + total + ", Completed=" + completed + 
+                          ", Cancelled=" + cancelled + ", NoShow=" + noShow);
         
-        // Cập nhật giá trị
+        // cap nhat gia tri
         stats.setTotalAppointments(total);
         stats.setCompletedAppointments(completed);
         stats.setCancelledAppointments(cancelled);
@@ -85,46 +75,45 @@ public class DoctorStatisticsService {
         stats.calculateSuccessRate();
         
         statisticsRepository.save(stats);
-        System.out.println("✅ [Service] Daily stats saved for doctorId: " + doctorId);
+        System.out.println("Da luu thong ke ngay cho bac si " + doctorId);
     }
     
-    // Lấy thống kê chi tiết
+    // lay thong ke chi tiet
     public Map<String, Object> getDoctorStatistics(Long doctorId, String period) {
-        System.out.println("📊 [Service] Getting statistics for doctorId: " + doctorId + ", period: " + period);
+        System.out.println("Lay thong ke cho bac si " + doctorId + ", period " + period);
         
         Map<String, Object> response = new HashMap<>();
         
         try {
             Doctor doctor = doctorRepository.findById(doctorId)
-                    .orElseThrow(() -> new RuntimeException("Không tìm thấy bác sĩ với ID: " + doctorId));
+                    .orElseThrow(() -> new RuntimeException("Khong tim thay bac si voi ID: " + doctorId));
             
-            System.out.println("✅ [Service] Found doctor: " + doctor.getFullName() + 
-                             " (userId=" + doctor.getUserId() + ")");
+            System.out.println("Tim thay bac si: " + doctor.getFullName());
             
             LocalDate today = LocalDate.now();
             LocalDate startDate = today;
             LocalDate endDate = today;
             Map<String, Object> chartData = new HashMap<>();
             
-            // Xác định khoảng thời gian dựa trên period
+            // xac dinh khoang thoi gian
             switch (period.toUpperCase()) {
                 case "TODAY":
                     startDate = today;
                     endDate = today;
                     chartData = prepareHourlyChartData(doctorId, today);
-                    System.out.println("📅 [Service] TODAY range: " + startDate);
+                    System.out.println("Khoang thoi gian: TODAY");
                     break;
                 case "WEEK":
                     startDate = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
                     endDate = today;
                     chartData = prepareChartData(doctorId, startDate, endDate, "WEEK");
-                    System.out.println("📅 [Service] WEEK range: " + startDate + " to " + endDate);
+                    System.out.println("Khoang thoi gian: TUAN");
                     break;
                 case "MONTH":
                     startDate = today.withDayOfMonth(1);
                     endDate = today;
                     chartData = prepareChartData(doctorId, startDate, endDate, "MONTH");
-                    System.out.println("📅 [Service] MONTH range: " + startDate + " to " + endDate);
+                    System.out.println("Khoang thoi gian: THANG");
                     break;
                 default:
                     startDate = today;
@@ -132,11 +121,11 @@ public class DoctorStatisticsService {
                     chartData = prepareChartData(doctorId, startDate, endDate, "DAY");
             }
             
-            // Lấy tất cả lịch hẹn trong khoảng thời gian
+            // lay tat ca lich hen trong khoang thoi gian
             List<PatientRegistration> appointments = getAppointmentsByDateRange(doctorId, startDate, endDate);
-            System.out.println("📋 [Service] Total appointments in range: " + appointments.size());
+            System.out.println("Tong lich hen trong khoang: " + appointments.size());
             
-            // Tính toán thống kê
+            // tinh toan thong ke
             Map<String, Object> statsMap = calculateStatisticsFromAppointments(appointments);
             
             response.put("success", true);
@@ -151,39 +140,37 @@ public class DoctorStatisticsService {
             response.put("chartData", chartData);
             response.put("lastUpdated", LocalDateTime.now().toString());
             
-            System.out.println("✅ [Service] Statistics prepared successfully for doctorId: " + doctorId);
-            System.out.println("📈 [Service] Stats: " + statsMap);
+            System.out.println("Da chuan bi thong ke thanh cong cho bac si " + doctorId);
             
         } catch (Exception e) {
-            System.out.println("💥 [Service] Error getting statistics: " + e.getMessage());
-            e.printStackTrace();
+            System.out.println("Loi khi lay thong ke: " + e.getMessage());
             
             response.put("success", false);
-            response.put("message", "Lỗi khi lấy thống kê: " + e.getMessage());
+            response.put("message", "Loi khi lay thong ke: " + e.getMessage());
         }
         
         return response;
     }
     
-    // Lấy dữ liệu thống kê theo khoảng thời gian tùy chỉnh
+    // lay du lieu thong ke theo khoang thoi gian tuy chinh
     public Map<String, Object> getCustomStatistics(Long doctorId, LocalDate startDate, LocalDate endDate) {
-        System.out.println("📊 [Service] Getting custom statistics for doctorId: " + doctorId + 
-                          ", from " + startDate + " to " + endDate);
+        System.out.println("Lay thong ke tuy chinh cho bac si " + doctorId + 
+                          ", tu " + startDate + " den " + endDate);
         
         Map<String, Object> response = new HashMap<>();
         
         try {
             Doctor doctor = doctorRepository.findById(doctorId)
-                    .orElseThrow(() -> new RuntimeException("Không tìm thấy bác sĩ với ID: " + doctorId));
+                    .orElseThrow(() -> new RuntimeException("Khong tim thay bac si voi ID: " + doctorId));
             
-            // Lấy tất cả lịch hẹn trong khoảng thời gian
+            // lay tat ca lich hen trong khoang thoi gian
             List<PatientRegistration> appointments = getAppointmentsByDateRange(doctorId, startDate, endDate);
-            System.out.println("📋 [Service] Custom range appointments: " + appointments.size());
+            System.out.println("Lich hen trong khoang tuy chinh: " + appointments.size());
             
-            // Tính toán thống kê
+            // tinh toan thong ke
             Map<String, Object> statsMap = calculateStatisticsFromAppointments(appointments);
             
-            // Chuẩn bị dữ liệu biểu đồ
+            // chuan bi du lieu bieu do
             Map<String, Object> chartData = prepareChartData(doctorId, startDate, endDate, "CUSTOM");
             
             response.put("success", true);
@@ -198,69 +185,66 @@ public class DoctorStatisticsService {
             response.put("chartData", chartData);
             response.put("lastUpdated", LocalDateTime.now().toString());
             
-            System.out.println("✅ [Service] Custom statistics prepared successfully");
+            System.out.println("Da chuan bi thong ke tuy chinh thanh cong");
             
         } catch (Exception e) {
-            System.out.println("💥 [Service] Error getting custom statistics: " + e.getMessage());
+            System.out.println("Loi khi lay thong ke tuy chinh: " + e.getMessage());
             
             response.put("success", false);
-            response.put("message", "Lỗi khi lấy thống kê: " + e.getMessage());
+            response.put("message", "Loi khi lay thong ke: " + e.getMessage());
         }
         
         return response;
     }
     
-    // Helper methods
+    // helper methods
     private List<PatientRegistration> getAppointmentsByDateRange(Long doctorId, LocalDate startDate, LocalDate endDate) {
-    System.out.println("🔍 [Service] Getting appointments for doctorId: " + doctorId + 
-                      ", from " + startDate + " to " + endDate);
+    System.out.println("Lay lich hen cho bac si " + doctorId + 
+                      ", tu " + startDate + " den " + endDate);
     
-    // Sử dụng phương thức mới từ repository - Lấy TẤT CẢ appointments trong khoảng thời gian
+    // su dung phuong thuc tu repository
     List<PatientRegistration> appointments = patientRegistrationRepository
             .findByDoctorIdAndDateRange(doctorId, startDate, endDate);
     
-    System.out.println("📅 [Service] Found " + appointments.size() + " appointments in range");
+    System.out.println("Tim thay " + appointments.size() + " lich hen trong khoang");
     
-    // Log chi tiết từng appointment
+    // debug neu khong co lich hen
     if (appointments.isEmpty()) {
-        System.out.println("⚠️ [Service] No appointments found for doctorId: " + doctorId);
+        System.out.println("Khong tim thay lich hen nao cho bac si " + doctorId);
         
-        // Kiểm tra xem có appointments nào trong database không
+        // kiem tra tong lich hen trong database
         List<PatientRegistration> allAppointments = patientRegistrationRepository.findAll();
         long totalForDoctor = allAppointments.stream()
                 .filter(apt -> doctorId.equals(apt.getDoctorId()))
                 .count();
-        System.out.println("📊 [Service] Total appointments for this doctor in entire DB: " + totalForDoctor);
+        System.out.println("Tong lich hen cho bac si nay trong database: " + totalForDoctor);
         
-        // Hiển thị một vài appointments mẫu để debug
+        // hien thi mot vai lich hen de debug
         if (totalForDoctor > 0) {
-            System.out.println("🔍 Sample appointments for doctor " + doctorId + ":");
+            System.out.println("Mau lich hen cho bac si " + doctorId + ":");
             allAppointments.stream()
                 .filter(apt -> doctorId.equals(apt.getDoctorId()))
                 .limit(5)
                 .forEach(apt -> {
                     try {
-                        System.out.println("   - ID: " + apt.getId() + 
-                                         ", Date: " + apt.getAppointmentDate() + 
-                                         ", Status: " + apt.getStatus() +
-                                         ", Exam Status: " + (apt.getExaminationStatus() != null ? apt.getExaminationStatus() : "null"));
+                        System.out.println("ID: " + apt.getId() + 
+                                         ", Ngay: " + apt.getAppointmentDate() + 
+                                         ", Trang thai: " + apt.getStatus());
                     } catch (Exception e) {
-                        System.out.println("   - ID: " + apt.getId() + " (error getting details)");
+                        System.out.println("ID: " + apt.getId() + " (loi lay chi tiet)");
                     }
                 });
         }
     } else {
-        // Log chi tiết các appointments tìm thấy
+        // hien thi chi tiet cac lich hen tim thay
         appointments.forEach(apt -> {
             try {
-                System.out.println("📅 Found appointment: " + 
+                System.out.println("Tim thay lich hen: " + 
                                  "ID=" + apt.getId() + 
-                                 ", Date=" + apt.getAppointmentDate() + 
-                                 ", Status=" + apt.getStatus() + 
-                                 ", Session=" + apt.getAssignedSession() +
-                                 ", ExamStatus=" + (apt.getExaminationStatus() != null ? apt.getExaminationStatus() : "null"));
+                                 ", Ngay=" + apt.getAppointmentDate() + 
+                                 ", Trang thai=" + apt.getStatus());
             } catch (Exception e) {
-                System.out.println("📅 Found appointment ID=" + apt.getId() + " (some fields unavailable)");
+                System.out.println("Tim thay lich hen ID=" + apt.getId());
             }
         });
     }
@@ -292,7 +276,7 @@ public class DoctorStatisticsService {
         stats.put("successRate", Math.round(successRate * 100.0) / 100.0);
         stats.put("failureRate", Math.round(failureRate * 100.0) / 100.0);
         
-        // Thêm các stat khác để debug
+        // them cac stat khac de debug
         stats.put("approvedAppointments", (int) appointments.stream()
                 .filter(apt -> "APPROVED".equals(apt.getStatus()))
                 .count());
@@ -300,11 +284,11 @@ public class DoctorStatisticsService {
                 .filter(apt -> "PENDING".equals(apt.getStatus()))
                 .count());
         
-        System.out.println("🧮 [Service] Calculated stats - Total: " + total + 
-                          ", Completed: " + completed + 
-                          ", Cancelled: " + cancelled + 
-                          ", NoShow: " + noShow +
-                          ", Success Rate: " + successRate + "%");
+        System.out.println("Tinh toan thong ke: Total=" + total + 
+                          ", Completed=" + completed + 
+                          ", Cancelled=" + cancelled + 
+                          ", NoShow=" + noShow +
+                          ", Success Rate=" + successRate + "%");
         
         return stats;
     }
@@ -318,11 +302,11 @@ public class DoctorStatisticsService {
         
         LocalDate currentDate = startDate;
         
-        System.out.println("📈 [Service] Preparing chart data for period: " + period + 
-                          ", from " + startDate + " to " + endDate);
+        System.out.println("Chuan bi du lieu bieu do cho period: " + period + 
+                          ", tu " + startDate + " den " + endDate);
         
         while (!currentDate.isAfter(endDate)) {
-            // Lấy appointments của ngày hiện tại
+            // lay appointments cua ngay hien tai
             List<PatientRegistration> dailyAppointments = patientRegistrationRepository
                     .findByDoctorAndDateAndSession(doctorId, currentDate, null);
             
@@ -332,7 +316,7 @@ public class DoctorStatisticsService {
                     .count();
             double dailySuccessRate = dailyTotal > 0 ? ((double) dailyCompleted / dailyTotal) * 100 : 0.0;
             
-            // Format label dựa trên period
+            // format label dua tren period
             String label;
             switch (period.toUpperCase()) {
                 case "WEEK":
@@ -355,8 +339,8 @@ public class DoctorStatisticsService {
             successRates.add(Math.round(dailySuccessRate * 100.0) / 100.0);
             
             if (dailyTotal > 0) {
-                System.out.println("   📅 " + currentDate + ": " + dailyTotal + " appointments, " + 
-                                 dailyCompleted + " completed (" + dailySuccessRate + "%)");
+                System.out.println("Ngay " + currentDate + ": " + dailyTotal + " lich hen, " + 
+                                 dailyCompleted + " da hoan thanh (" + dailySuccessRate + "%)");
             }
             
             currentDate = currentDate.plusDays(1);
@@ -367,9 +351,7 @@ public class DoctorStatisticsService {
         chartData.put("completeds", completeds);
         chartData.put("successRates", successRates);
         
-        System.out.println("📊 [Service] Chart data prepared: " + labels.size() + " data points");
-        System.out.println("📊 Labels: " + labels);
-        System.out.println("📊 Totals: " + totals);
+        System.out.println("Da chuan bi du lieu bieu do: " + labels.size() + " diem du lieu");
         
         return chartData;
     }
@@ -381,22 +363,22 @@ public class DoctorStatisticsService {
         List<Integer> completeds = new ArrayList<>();
         List<Double> successRates = new ArrayList<>();
         
-        System.out.println("⏰ [Service] Preparing hourly chart data for date: " + date);
+        System.out.println("Chuan bi du lieu bieu do theo gio cho ngay: " + date);
         
-        // Danh sách các khung giờ trong ngày
+        // danh sach cac khung gio trong ngay
         String[] timeSlots = {
             "07:00-08:00", "08:00-09:00", "09:00-10:00", "10:00-11:00", 
             "11:00-12:00", "13:00-14:00", "14:00-15:00", "15:00-16:00", "16:00-17:00"
         };
         
-        // Lấy tất cả appointments của ngày
+        // lay tat ca appointments cua ngay
         List<PatientRegistration> dailyAppointments = patientRegistrationRepository
                 .findByDoctorAndDateAndSession(doctorId, date, null);
         
-        System.out.println("📅 [Service] Daily appointments for hourly chart: " + dailyAppointments.size());
+        System.out.println("Lich hen trong ngay cho bieu do theo gio: " + dailyAppointments.size());
         
         for (String timeSlot : timeSlots) {
-            // Lọc appointments theo khung giờ
+            // loc appointments theo khung gio
             List<PatientRegistration> slotAppointments = dailyAppointments.stream()
                     .filter(apt -> timeSlot.equals(apt.getAssignedSession()))
                     .collect(Collectors.toList());
@@ -413,8 +395,8 @@ public class DoctorStatisticsService {
             successRates.add(Math.round(slotSuccessRate * 100.0) / 100.0);
             
             if (slotTotal > 0) {
-                System.out.println("⏰ [Service] TimeSlot " + timeSlot + ": " + slotTotal + " appointments, " + 
-                                 slotCompleted + " completed");
+                System.out.println("Khung gio " + timeSlot + ": " + slotTotal + " lich hen, " + 
+                                 slotCompleted + " da hoan thanh");
             }
         }
         
@@ -423,9 +405,7 @@ public class DoctorStatisticsService {
         chartData.put("completeds", completeds);
         chartData.put("successRates", successRates);
         
-        System.out.println("✅ [Service] Hourly chart data prepared");
-        System.out.println("📊 Labels: " + labels);
-        System.out.println("📊 Totals: " + totals);
+        System.out.println("Da chuan bi du lieu bieu do theo gio");
         
         return chartData;
     }

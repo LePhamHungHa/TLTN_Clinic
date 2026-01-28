@@ -5,7 +5,7 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.annotation.JsonIgnore; 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -24,7 +24,7 @@ public class MedicalRecord {
     @Column(name = "doctor_id", nullable = false)
     private Long doctorId;
 
-    // Thông tin khám
+    // thong tin kham
     @Column(name = "chief_complaint", columnDefinition = "TEXT")
     private String chiefComplaint;
 
@@ -37,14 +37,14 @@ public class MedicalRecord {
     @Column(columnDefinition = "JSON")
     private String vitalSigns;
 
-    // Chẩn đoán
+    // chan doan
     @Column(name = "preliminary_diagnosis", columnDefinition = "TEXT")
     private String preliminaryDiagnosis;
 
     @Column(name = "final_diagnosis", columnDefinition = "TEXT")
     private String finalDiagnosis;
 
-    // Điều trị
+    // dieu tri
     @Column(name = "treatment_plan", columnDefinition = "TEXT")
     private String treatmentPlan;
 
@@ -54,7 +54,7 @@ public class MedicalRecord {
     @Column(name = "lab_tests", columnDefinition = "JSON")
     private String labTests;
 
-    // Theo dõi
+    // theo doi
     @Column(name = "follow_up_date")
     private LocalDate followUpDate;
 
@@ -64,7 +64,7 @@ public class MedicalRecord {
     @Column(columnDefinition = "TEXT")
     private String advice;
 
-    // Trạng thái
+    // trang thai
     @Column(name = "examination_date", nullable = false)
     private LocalDate examinationDate;
 
@@ -79,7 +79,7 @@ public class MedicalRecord {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
-    // Relationships
+    // relationships
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "appointment_id", insertable = false, updatable = false)
     private PatientRegistration appointment;
@@ -89,7 +89,7 @@ public class MedicalRecord {
     @JsonIgnore
     private Doctor doctor;
 
-    // Helper methods for JSON fields
+    // helper cho json fields
     public Map<String, Object> getVitalSignsMap() {
         try {
             ObjectMapper mapper = new ObjectMapper();
@@ -144,7 +144,7 @@ public class MedicalRecord {
         }
     }
 
-    // Constructors
+    // constructors
     public MedicalRecord() {
         this.examinationDate = LocalDate.now();
     }
@@ -155,7 +155,7 @@ public class MedicalRecord {
         this.doctorId = doctorId;
     }
 
-    // Getters and Setters
+    // getters setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 

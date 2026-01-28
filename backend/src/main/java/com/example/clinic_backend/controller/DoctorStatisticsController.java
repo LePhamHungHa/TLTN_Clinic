@@ -55,7 +55,7 @@ public class DoctorStatisticsController {
             System.out.println("[Controller] Mapping: userId=" + userId + " -> doctorId=" + doctorId + 
                              ", doctorName=" + doctor.getFullName());
             
-            // Gọi service với doctorId\
+            // Gọi service với doctorId
             Map<String, Object> statistics = statisticsService.getDoctorStatistics(doctorId, period);
             
             return ResponseEntity.ok(statistics);
@@ -324,7 +324,7 @@ public class DoctorStatisticsController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
         
-        System.out.println("📋 [Controller] Getting all appointments for doctorId: " + doctorId);
+        System.out.println("[Controller] Getting all appointments for doctorId: " + doctorId);
         
         Map<String, Object> response = new HashMap<>();
         

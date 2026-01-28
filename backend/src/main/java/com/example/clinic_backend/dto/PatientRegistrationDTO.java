@@ -36,10 +36,10 @@ public class PatientRegistrationDTO {
 
     private String symptoms;
     
-    // QUAN TRỌNG: doctorId có thể là null
+    //doctorId có thể là null
     private Long doctorId;
     
-    // QUAN TRỌNG: timeSlot có thể là null
+    //timeSlot có thể là null
     private String timeSlot;
 
     // Getters and Setters

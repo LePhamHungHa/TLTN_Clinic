@@ -11,14 +11,9 @@ public class User {
 
     @Column(unique = true, nullable = false)
     private String username;
-
     private String password;
-
     private String role;
-
     private String phone;
-
-    // Thêm các trường mới
     private String email;
     private String googleId;
     private String facebookId;

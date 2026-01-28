@@ -8,7 +8,7 @@ import {
   FaFacebook,
   FaYoutube,
   FaTiktok,
-  FaComments, // Thay cho Zalo
+  FaComments, // Biểu tượng chat cho Zalo
   FaHospital,
   FaUserMd,
   FaAmbulance,
@@ -21,15 +21,16 @@ import {
   FaCheckCircle,
   FaGooglePlay,
   FaApple,
-  FaWhatsapp, // Có thể dùng thay cho Zalo
+  FaWhatsapp, // Dự phòng thay cho Zalo
 } from "react-icons/fa";
 
 const Footer = () => {
+  // Lấy năm hiện tại để hiển thị trong copyright
   const currentYear = new Date().getFullYear();
 
   return (
     <footer className="medical-footer">
-      {/* Top Section: Emergency & Quick Links */}
+      {/* Phần trên: Thông tin cấp cứu và nút nhanh */}
       <div className="footer-top">
         <div className="container">
           <div className="emergency-banner">
@@ -61,11 +62,11 @@ const Footer = () => {
         </div>
       </div>
 
-      {/* Main Footer Content */}
+      {/* Phần chính của footer */}
       <div className="footer-main">
         <div className="container">
           <div className="footer-grid">
-            {/* Column 1: Hospital Info */}
+            {/* Cột 1: Thông tin bệnh viện */}
             <div className="footer-column">
               <div className="footer-logo">
                 <FaHospital size={40} />
@@ -113,7 +114,7 @@ const Footer = () => {
               </div>
             </div>
 
-            {/* Column 2: Quick Links */}
+            {/* Cột 2: Các liên kết nhanh */}
             <div className="footer-column">
               <h3 className="column-title">DỊCH VỤ KHÁM BỆNH</h3>
               <ul className="footer-links">
@@ -160,7 +161,7 @@ const Footer = () => {
               </ul>
             </div>
 
-            {/* Column 3: Working Hours & Map */}
+            {/* Cột 3: Giờ làm việc */}
             <div className="footer-column">
               <h3 className="column-title">THỜI GIAN LÀM VIỆC</h3>
               <div className="working-hours">
@@ -200,7 +201,7 @@ const Footer = () => {
               </div>
             </div>
 
-            {/* Column 4: Newsletter & Social */}
+            {/* Cột 4: Đăng ký nhận tin và mạng xã hội */}
             <div className="footer-column">
               <h3 className="column-title">ĐĂNG KÝ NHẬN TIN</h3>
               <div className="newsletter">
@@ -269,7 +270,7 @@ const Footer = () => {
         </div>
       </div>
 
-      {/* Map Section */}
+      {/* Phần bản đồ */}
       <div className="footer-map">
         <div className="container">
           <div className="map-header">
@@ -284,7 +285,7 @@ const Footer = () => {
           </div>
           <div className="map-container">
             <div className="map-wrapper">
-              {/* Google Map Embed */}
+              {/* Nhúng Google Maps */}
               <iframe
                 title="Địa chỉ"
                 src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3918.214525515988!2d106.78918677590661!3d10.871281657435143!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3175276398969f7b%3A0x9672b7efd0893fc4!2zVHLGsOG7nW5nIMSQ4bqhaSBo4buNYyBOw7RuZyBMw6JtIFRQLiBI4buTIENow60gTWluaA!5e0!3m2!1svi!2s!4v1765540655461!5m2!1svi!2s"
@@ -322,7 +323,7 @@ const Footer = () => {
         </div>
       </div>
 
-      {/* Bottom Footer */}
+      {/* Phần dưới cùng */}
       <div className="footer-bottom">
         <div className="container">
           <div className="bottom-content">

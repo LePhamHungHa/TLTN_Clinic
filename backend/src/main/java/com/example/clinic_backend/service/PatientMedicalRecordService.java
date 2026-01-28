@@ -47,7 +47,7 @@ public class PatientMedicalRecordService {
         Map<String, Object> response = new HashMap<>();
         
         try {
-            logger.info("🔍 Getting medical records for patient ID: {}", patientId);
+            logger.info("Getting medical records for patient ID: {}", patientId);
             
             // Kiểm tra patient tồn tại (nếu dùng UserRepository thay vì PatientRepository)
             if (!userRepository.existsById(patientId)) {
@@ -67,7 +67,7 @@ public class PatientMedicalRecordService {
             User user = userOpt.get();
             String userEmail = user.getEmail();
             
-            logger.info("🔍 Using user email: {} for patientId: {}", userEmail, patientId);
+            logger.info("Using user email: {} for patientId: {}", userEmail, patientId);
             
             // Lấy tất cả appointment IDs của patient dựa trên email
             List<PatientRegistration> appointments = patientRegistrationRepository.findByEmail(userEmail);
@@ -81,7 +81,7 @@ public class PatientMedicalRecordService {
                     .map(PatientRegistration::getId)
                     .collect(Collectors.toList());
             
-            logger.info("🔍 Found {} appointments for patient", appointmentIds.size());
+            logger.info("Found {} appointments for patient", appointmentIds.size());
             
             if (appointmentIds.isEmpty()) {
                 response.put("success", true);
@@ -108,10 +108,10 @@ public class PatientMedicalRecordService {
             response.put("totalItems", medicalRecordsPage.getTotalElements());
             response.put("totalAppointments", appointments.size());
             
-            logger.info("✅ Found {} medical records for patient {}", medicalRecordsDTO.size(), patientId);
+            logger.info("Found {} medical records for patient {}", medicalRecordsDTO.size(), patientId);
             
         } catch (Exception e) {
-            logger.error("💥 Error getting patient medical records: {}", e.getMessage(), e);
+            logger.error("Error getting patient medical records: {}", e.getMessage(), e);
             response.put("success", false);
             response.put("message", "Lỗi khi lấy danh sách kết quả khám: " + e.getMessage());
         }
@@ -123,7 +123,7 @@ public class PatientMedicalRecordService {
         Map<String, Object> response = new HashMap<>();
         
         try {
-            logger.info("🔍 Getting medical record detail: {} for patient: {}", recordId, patientId);
+            logger.info("Getting medical record detail: {} for patient: {}", recordId, patientId);
             
             Optional<MedicalRecord> medicalRecordOpt = medicalRecordRepository.findById(recordId);
             if (medicalRecordOpt.isEmpty()) {
@@ -147,10 +147,10 @@ public class PatientMedicalRecordService {
             response.put("success", true);
             response.put("medicalRecord", medicalRecordDTO);
             
-            logger.info("✅ Found medical record detail for patient {}", patientId);
+            logger.info("Found medical record detail for patient {}", patientId);
             
         } catch (Exception e) {
-            logger.error("💥 Error getting medical record detail: {}", e.getMessage(), e);
+            logger.error("Error getting medical record detail: {}", e.getMessage(), e);
             response.put("success", false);
             response.put("message", "Lỗi khi lấy chi tiết kết quả khám: " + e.getMessage());
         }
@@ -163,7 +163,7 @@ public class PatientMedicalRecordService {
         Map<String, Object> response = new HashMap<>();
         
         try {
-            logger.info("🔍 Searching medical records for patient: {}", patientId);
+            logger.info("Searching medical records for patient: {}", patientId);
             
             // Kiểm tra patient tồn tại
             if (!userRepository.existsById(patientId)) {
@@ -228,10 +228,10 @@ public class PatientMedicalRecordService {
             response.put("totalPages", medicalRecordsPage.getTotalPages());
             response.put("totalItems", medicalRecordsPage.getTotalElements());
             
-            logger.info("✅ Found {} medical records in search", medicalRecordsDTO.size());
+            logger.info("Found {} medical records in search", medicalRecordsDTO.size());
             
         } catch (Exception e) {
-            logger.error("💥 Error searching medical records: {}", e.getMessage(), e);
+            logger.error("Error searching medical records: {}", e.getMessage(), e);
             response.put("success", false);
             response.put("message", "Lỗi khi tìm kiếm kết quả khám: " + e.getMessage());
         }
@@ -338,7 +338,7 @@ public class PatientMedicalRecordService {
                     appointment.getDoctor().getSpecialty() : "Không xác định");
             }
         } catch (Exception e) {
-            logger.warn("⚠️ Could not load appointment info for medical record: {}", e.getMessage());
+            logger.warn("Could not load appointment info for medical record: {}", e.getMessage());
         }
         
         return dto;

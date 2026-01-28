@@ -49,7 +49,7 @@ const CreateCard = () => {
           headers: {
             Authorization: `Bearer ${token}`,
           },
-        }
+        },
       );
 
       if (response.data) {
@@ -61,7 +61,7 @@ const CreateCard = () => {
     } catch (error) {
       console.warn(
         "Không thể lấy thông tin patient từ API, thử phương án khác...",
-        error
+        error,
       );
 
       // Phương án dự phòng: lấy thông tin từ token hoặc tạo tạm
@@ -147,7 +147,7 @@ const CreateCard = () => {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
-        }
+        },
       );
 
       console.log("Tạo ví thành công:", response.data);
@@ -164,12 +164,12 @@ const CreateCard = () => {
         alert(
           "Dữ liệu không hợp lệ: " +
             (error.response.data?.message ||
-              "Vui lòng kiểm tra lại thông tin thẻ")
+              "Vui lòng kiểm tra lại thông tin thẻ"),
         );
       } else if (error.response?.data) {
         alert(
           "Tạo ví thất bại: " +
-            (error.response.data.message || error.response.data)
+            (error.response.data.message || error.response.data),
         );
       } else {
         alert("Tạo ví thất bại! Vui lòng thử lại.");

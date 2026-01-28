@@ -21,73 +21,75 @@ public class PaymentService {
         this.patientRegistrationRepository = patientRegistrationRepository;
     }
 
+    // Lưu payment vào database
     public Payment savePayment(Payment payment) {
         return paymentRepository.save(payment);
     }
 
+    // Tìm payment theo mã giao dịch
     public Optional<Payment> findByTransactionNo(String transactionNo) {
         return paymentRepository.findByTransactionNo(transactionNo);
     }
 
+    // Tìm payment theo id của đơn đăng ký
     public Optional<Payment> findByPatientRegistrationId(Long patientRegistrationId) {
         return paymentRepository.findByPatientRegistrationId(patientRegistrationId);
     }
 
-    /**
-     * Cập nhật trạng thái payment - CHỈ CẬP NHẬT PAYMENT, KHÔNG CẬP NHẬT PATIENTREGISTRATION
-     */
+    // Cập nhật trạng thái thanh toán
+ 
     @Transactional
     public Payment updatePaymentStatus(String transactionNo, String status, String vnpResponseCode) {
         try {
-            System.out.println("=== 🧾 PAYMENT SERVICE - CẬP NHẬT TRẠNG THÁI ===");
-            System.out.println("🔑 Transaction No: " + transactionNo);
-            System.out.println("📊 New Status: " + status);
-            System.out.println("📋 VNP Response Code: " + vnpResponseCode);
+            System.out.println("=== Bắt đầu cập nhật trạng thái payment ===");
+            System.out.println("Mã giao dịch: " + transactionNo);
+            System.out.println("Trạng thái mới: " + status);
+            System.out.println("Mã phản hồi VNPay: " + vnpResponseCode);
             
+            // Tìm payment theo mã giao dịch
             Optional<Payment> paymentOpt = paymentRepository.findByTransactionNo(transactionNo);
             
             if (!paymentOpt.isPresent()) {
-                System.err.println("❌ [PaymentService] Payment not found: " + transactionNo);
+                System.out.println("Không tìm thấy payment với mã: " + transactionNo);
                 return null;
             }
             
             Payment payment = paymentOpt.get();
-            System.out.println("✅ [PaymentService] Found payment:");
-            System.out.println("   🆔 ID: " + payment.getId());
-            System.out.println("   🆔 Patient Registration ID: " + payment.getPatientRegistrationId());
-            System.out.println("   📊 Current Status: " + payment.getStatus());
-            System.out.println("   💰 Amount: " + payment.getAmount());
+            System.out.println("Đã tìm thấy payment:");
+            System.out.println("   ID payment: " + payment.getId());
+            System.out.println("   ID đơn đăng ký: " + payment.getPatientRegistrationId());
+            System.out.println("   Trạng thái cũ: " + payment.getStatus());
+            System.out.println("   Số tiền: " + payment.getAmount());
             
             // Cập nhật thông tin payment
             payment.setStatus(status);
             payment.setVnpResponseCode(vnpResponseCode);
             payment.setUpdatedAt(LocalDateTime.now());
             
-            // Lưu transactionNo từ VNPay nếu có
+            // Nếu thanh toán thành công thì lưu thêm mã giao dịch từ VNPay
             if ("Thành công".equals(status) && vnpResponseCode != null) {
                 payment.setVnpTransactionNo(vnpResponseCode);
-                System.out.println("💾 Lưu VNP Transaction No: " + vnpResponseCode);
+                System.out.println("Đã lưu mã giao dịch VNPay: " + vnpResponseCode);
             }
             
+            // Lưu vào database
             Payment savedPayment = paymentRepository.save(payment);
-            System.out.println("✅ [PaymentService] Payment updated successfully!");
-            System.out.println("📊 New status: " + savedPayment.getStatus());
-            System.out.println("📅 Updated at: " + savedPayment.getUpdatedAt());
-            
-            // ❌ BỎ LOGIC UPDATE PATIENTREGISTRATION TẠI ĐÂY
-            // Để VnPayController làm việc này để tránh trùng lặp và transaction conflict
-            System.out.println("ℹ️ [PaymentService] Skipping PatientRegistration update - Let VnPayController handle it");
-            System.out.println("=== 🧾 PAYMENT SERVICE - HOÀN TẤT ===\n");
+            System.out.println("Cập nhật payment thành công!");
+            System.out.println("Trạng thái mới: " + savedPayment.getStatus());
+            System.out.println("Thời gian cập nhật: " + savedPayment.getUpdatedAt());
+            System.out.println("Không cập nhật PatientRegistration - VnPayController sẽ làm");
+            System.out.println("=== Kết thúc cập nhật payment ===\n");
             
             return savedPayment;
             
         } catch (Exception e) {
-            System.err.println("❌ [PaymentService] Error in updatePaymentStatus: " + e.getMessage());
+            System.out.println("Lỗi khi cập nhật payment: " + e.getMessage());
             e.printStackTrace();
             throw e;
         }
     }
 
+    // Phương thức cũ, gọi lại phương thức mới
     @Transactional
     public void updatePaymentStatusOld(String transactionNo, String status, String vnpResponseCode) {
         updatePaymentStatus(transactionNo, status, vnpResponseCode);

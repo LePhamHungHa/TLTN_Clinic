@@ -4,8 +4,6 @@ import com.example.clinic_backend.model.PatientRegistration;
 import com.example.clinic_backend.model.Doctor;
 import com.example.clinic_backend.repository.DoctorAppointmentRepository;
 import com.example.clinic_backend.repository.DoctorRepository;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.HashMap;
@@ -16,7 +14,6 @@ import java.util.Collections;
 @Service
 public class DoctorAppointmentService {
     
-    private static final Logger logger = LoggerFactory.getLogger(DoctorAppointmentService.class);
     private final DoctorAppointmentRepository doctorAppointmentRepository;
     private final DoctorRepository doctorRepository;
     
@@ -26,50 +23,49 @@ public class DoctorAppointmentService {
         this.doctorRepository = doctorRepository;
     }
     
+    // lay tat ca lich hen cua bac si
     public Map<String, Object> getDoctorAppointments(Long userId) {
         Map<String, Object> response = new HashMap<>();
         
         try {
-            logger.info("🔍 Finding doctor with user ID: {}", userId);
+            System.out.println("Tim bac si voi user ID: " + userId);
             
-            // TÌM BÁC SĨ TỪ USER_ID
+            // tim bac si tu user_id
             Doctor doctor = doctorRepository.findByUserId(userId)
                     .orElseThrow(() -> {
-                        logger.warn("❌ Doctor not found with user ID: {}", userId);
-                        return new RuntimeException("Không tìm thấy bác sĩ với user ID: " + userId);
+                        System.out.println("Khong tim thay bac si voi user ID: " + userId);
+                        return new RuntimeException("Khong tim thay bac si voi user ID: " + userId);
                     });
             
-            Long doctorId = doctor.getId(); // Lấy ID thực của bác sĩ (48)
-            logger.info("✅ Found doctor: {} (doctor ID: {}, user ID: {})", 
-                    doctor.getFullName(), doctorId, userId);
+            Long doctorId = doctor.getId(); // lay ID thuc cua bac si
+            System.out.println("Tim thay bac si: " + doctor.getFullName() + " (bac si ID: " + doctorId + ")");
             
-            // Bây giờ lấy lịch hẹn với DOCTOR_ID = 48
+            // lay lich hen voi doctor_id
             List<PatientRegistration> appointments = doctorAppointmentRepository
                     .findByDoctorIdOrderByAppointmentDateDescCreatedAtDesc(doctorId);
             
-            logger.info("📅 Found {} total appointments for doctor ID: {}", 
-                    appointments != null ? appointments.size() : 0, doctorId);
+            System.out.println("Tim thay " + (appointments != null ? appointments.size() : 0) + " lich hen");
             
-            // Lấy lịch hẹn hôm nay
+            // lich hen hom nay
             List<PatientRegistration> todayAppointments = doctorAppointmentRepository
                     .findByDoctorIdAndAppointmentDateOrderByQueueNumberAsc(doctorId, LocalDate.now());
             
-            logger.info("📅 Found {} today appointments", todayAppointments != null ? todayAppointments.size() : 0);
+            System.out.println("Lich hen hom nay: " + (todayAppointments != null ? todayAppointments.size() : 0));
             
-            // Thống kê với null safety
+            // thong ke
             Long pendingCount = safeCount(doctorAppointmentRepository.countByDoctorIdAndStatus(doctorId, "PENDING"));
             Long confirmedCount = safeCount(doctorAppointmentRepository.countByDoctorIdAndStatus(doctorId, "CONFIRMED"));
             Long completedCount = safeCount(doctorAppointmentRepository.countByDoctorIdAndStatus(doctorId, "COMPLETED"));
             Long cancelledCount = safeCount(doctorAppointmentRepository.countByDoctorIdAndStatus(doctorId, "CANCELLED"));
             
-            logger.info("📊 Statistics - Pending: {}, Confirmed: {}, Completed: {}, Cancelled: {}", 
-                    pendingCount, confirmedCount, completedCount, cancelledCount);
+            System.out.println("Thong ke: Pending=" + pendingCount + ", Confirmed=" + confirmedCount + 
+                             ", Completed=" + completedCount + ", Cancelled=" + cancelledCount);
             
-            // Build response
+            // tao response
             response.put("success", true);
-            response.put("message", "Lấy dữ liệu thành công");
+            response.put("message", "Lay du lieu thanh cong");
             response.put("userId", userId);
-            response.put("doctorId", doctorId); // Trả về doctorId thực
+            response.put("doctorId", doctorId);
             response.put("doctorName", doctor.getFullName());
             response.put("appointments", appointments != null ? appointments : Collections.emptyList());
             response.put("todayAppointments", todayAppointments != null ? todayAppointments : Collections.emptyList());
@@ -81,12 +77,12 @@ public class DoctorAppointmentService {
                 "total", appointments != null ? appointments.size() : 0
             ));
             
-            logger.info("✅ Successfully built response for doctor {} (user {})", doctorId, userId);
+            System.out.println("Da tao response thanh cong cho bac si " + doctorId);
             
         } catch (Exception e) {
-            logger.error("💥 Error in getDoctorAppointments for user {}: {}", userId, e.getMessage(), e);
+            System.out.println("Loi trong getDoctorAppointments: " + e.getMessage());
             response.put("success", false);
-            response.put("message", "Lỗi hệ thống: " + e.getMessage());
+            response.put("message", "Loi he thong: " + e.getMessage());
             response.put("appointments", Collections.emptyList());
             response.put("todayAppointments", Collections.emptyList());
             response.put("statistics", Map.of(
@@ -101,29 +97,30 @@ public class DoctorAppointmentService {
         return response;
     }
     
+    // lay lich hen theo trang thai
     public Map<String, Object> getAppointmentsByStatus(Long userId, String status) {
         Map<String, Object> response = new HashMap<>();
         
         try {
-            logger.info("🔍 Getting appointments for user {} with status: {}", userId, status);
+            System.out.println("Lay lich hen voi trang thai: " + status + ", user: " + userId);
             
-            // Tìm doctorId từ userId
+            // tim bac si tu user_id
             Doctor doctor = doctorRepository.findByUserId(userId)
-                    .orElseThrow(() -> new RuntimeException("Không tìm thấy bác sĩ"));
+                    .orElseThrow(() -> new RuntimeException("Khong tim thay bac si"));
             
             Long doctorId = doctor.getId();
             List<PatientRegistration> appointments = doctorAppointmentRepository
                     .findByDoctorIdAndStatusOrderByAppointmentDateDesc(doctorId, status);
             
             response.put("success", true);
-            response.put("message", "Lấy dữ liệu thành công");
+            response.put("message", "Lay du lieu thanh cong");
             response.put("appointments", appointments != null ? appointments : Collections.emptyList());
             response.put("count", appointments != null ? appointments.size() : 0);
             
         } catch (Exception e) {
-            logger.error("💥 Error in getAppointmentsByStatus: {}", e.getMessage(), e);
+            System.out.println("Loi trong getAppointmentsByStatus: " + e.getMessage());
             response.put("success", false);
-            response.put("message", "Lỗi: " + e.getMessage());
+            response.put("message", "Loi: " + e.getMessage());
             response.put("appointments", Collections.emptyList());
             response.put("count", 0);
         }
@@ -131,29 +128,30 @@ public class DoctorAppointmentService {
         return response;
     }
     
+    // lay lich hen hom nay
     public Map<String, Object> getTodayAppointments(Long userId) {
         Map<String, Object> response = new HashMap<>();
         
         try {
-            logger.info("🔍 Getting today appointments for user {}", userId);
+            System.out.println("Lay lich hen hom nay cho user: " + userId);
             
-            // Tìm doctorId từ userId
+            // tim bac si tu user_id
             Doctor doctor = doctorRepository.findByUserId(userId)
-                    .orElseThrow(() -> new RuntimeException("Không tìm thấy bác sĩ"));
+                    .orElseThrow(() -> new RuntimeException("Khong tim thay bac si"));
             
             Long doctorId = doctor.getId();
             List<PatientRegistration> appointments = doctorAppointmentRepository
                     .findByDoctorIdAndAppointmentDateOrderByQueueNumberAsc(doctorId, LocalDate.now());
             
             response.put("success", true);
-            response.put("message", "Lấy dữ liệu hôm nay thành công");
+            response.put("message", "Lay lich hen hom nay thanh cong");
             response.put("appointments", appointments != null ? appointments : Collections.emptyList());
             response.put("count", appointments != null ? appointments.size() : 0);
             
         } catch (Exception e) {
-            logger.error("💥 Error in getTodayAppointments: {}", e.getMessage(), e);
+            System.out.println("Loi trong getTodayAppointments: " + e.getMessage());
             response.put("success", false);
-            response.put("message", "Lỗi: " + e.getMessage());
+            response.put("message", "Loi: " + e.getMessage());
             response.put("appointments", Collections.emptyList());
             response.put("count", 0);
         }
@@ -161,123 +159,123 @@ public class DoctorAppointmentService {
         return response;
     }
 
-    // Xác nhận lịch hẹn
+    // xac nhan lich hen
     public Map<String, Object> confirmAppointment(Long appointmentId) {
         Map<String, Object> response = new HashMap<>();
         
         try {
-            logger.info("🔍 Confirming appointment ID: {}", appointmentId);
+            System.out.println("Xac nhan lich hen ID: " + appointmentId);
             
             PatientRegistration appointment = doctorAppointmentRepository.findById(appointmentId)
-                    .orElseThrow(() -> new RuntimeException("Không tìm thấy lịch hẹn với ID: " + appointmentId));
+                    .orElseThrow(() -> new RuntimeException("Khong tim thay lich hen"));
             
-            // Cập nhật trạng thái
+            // cap nhat trang thai
             appointment.setStatus("CONFIRMED");
             doctorAppointmentRepository.save(appointment);
             
-            logger.info("✅ Appointment {} confirmed successfully", appointmentId);
+            System.out.println("Da xac nhan lich hen " + appointmentId);
             
             response.put("success", true);
-            response.put("message", "Đã xác nhận lịch hẹn thành công");
+            response.put("message", "Da xac nhan lich hen thanh cong");
             response.put("appointment", appointment);
             
         } catch (Exception e) {
-            logger.error("💥 Error confirming appointment {}: {}", appointmentId, e.getMessage(), e);
+            System.out.println("Loi khi xac nhan lich hen: " + e.getMessage());
             response.put("success", false);
-            response.put("message", "Lỗi khi xác nhận lịch hẹn: " + e.getMessage());
+            response.put("message", "Loi khi xac nhan lich hen: " + e.getMessage());
         }
         
         return response;
     }
 
-    // Đánh dấu đã khám
+    // danh dau da kham
     public Map<String, Object> completeAppointment(Long appointmentId) {
         Map<String, Object> response = new HashMap<>();
         
         try {
-            logger.info("🔍 Completing appointment ID: {}", appointmentId);
+            System.out.println("Danh dau da kham ID: " + appointmentId);
             
             PatientRegistration appointment = doctorAppointmentRepository.findById(appointmentId)
-                    .orElseThrow(() -> new RuntimeException("Không tìm thấy lịch hẹn với ID: " + appointmentId));
+                    .orElseThrow(() -> new RuntimeException("Khong tim thay lich hen"));
             
-            // Cập nhật trạng thái
+            // cap nhat trang thai
             appointment.setStatus("COMPLETED");
             doctorAppointmentRepository.save(appointment);
             
-            logger.info("✅ Appointment {} marked as completed", appointmentId);
+            System.out.println("Da danh dau da kham " + appointmentId);
             
             response.put("success", true);
-            response.put("message", "Đã đánh dấu đã khám thành công");
+            response.put("message", "Da danh dau da kham thanh cong");
             response.put("appointment", appointment);
             
         } catch (Exception e) {
-            logger.error("💥 Error completing appointment {}: {}", appointmentId, e.getMessage(), e);
+            System.out.println("Loi khi danh dau da kham: " + e.getMessage());
             response.put("success", false);
-            response.put("message", "Lỗi khi đánh dấu đã khám: " + e.getMessage());
+            response.put("message", "Loi khi danh dau da kham: " + e.getMessage());
         }
         
         return response;
     }
 
-    // Hủy lịch hẹn
+    // huy lich hen
     public Map<String, Object> cancelAppointment(Long appointmentId) {
         Map<String, Object> response = new HashMap<>();
         
         try {
-            logger.info("🔍 Cancelling appointment ID: {}", appointmentId);
+            System.out.println("Huy lich hen ID: " + appointmentId);
             
             PatientRegistration appointment = doctorAppointmentRepository.findById(appointmentId)
-                    .orElseThrow(() -> new RuntimeException("Không tìm thấy lịch hẹn với ID: " + appointmentId));
+                    .orElseThrow(() -> new RuntimeException("Khong tim thay lich hen"));
             
-            // Cập nhật trạng thái
+            // cap nhat trang thai
             appointment.setStatus("CANCELLED");
             doctorAppointmentRepository.save(appointment);
             
-            logger.info("✅ Appointment {} cancelled successfully", appointmentId);
+            System.out.println("Da huy lich hen " + appointmentId);
             
             response.put("success", true);
-            response.put("message", "Đã hủy lịch hẹn thành công");
+            response.put("message", "Da huy lich hen thanh cong");
             response.put("appointment", appointment);
             
         } catch (Exception e) {
-            logger.error("💥 Error cancelling appointment {}: {}", appointmentId, e.getMessage(), e);
+            System.out.println("Loi khi huy lich hen: " + e.getMessage());
             response.put("success", false);
-            response.put("message", "Lỗi khi hủy lịch hẹn: " + e.getMessage());
+            response.put("message", "Loi khi huy lich hen: " + e.getMessage());
         }
         
         return response;
     }
 
-    // Lưu ghi chú nội bộ
+    // luu ghi chu noi bo
     public Map<String, Object> saveInternalNotes(Long appointmentId, String notes) {
         Map<String, Object> response = new HashMap<>();
         
         try {
-            logger.info("🔍 Saving internal notes for appointment ID: {}", appointmentId);
+            System.out.println("Luu ghi chu noi bo cho lich hen: " + appointmentId);
             
             PatientRegistration appointment = doctorAppointmentRepository.findById(appointmentId)
-                    .orElseThrow(() -> new RuntimeException("Không tìm thấy lịch hẹn với ID: " + appointmentId));
+                    .orElseThrow(() -> new RuntimeException("Khong tim thay lich hen"));
             
-            // Lưu ghi chú (cần thêm trường internalNotes trong PatientRegistration)
+            // luu ghi chu (can them truong internalNotes trong PatientRegistration)
             // appointment.setInternalNotes(notes);
             doctorAppointmentRepository.save(appointment);
             
-            logger.info("✅ Internal notes saved for appointment {}", appointmentId);
+            System.out.println("Da luu ghi chu cho " + appointmentId);
             
             response.put("success", true);
-            response.put("message", "Đã lưu ghi chú thành công");
+            response.put("message", "Da luu ghi chu thanh cong");
             response.put("appointment", appointment);
             
         } catch (Exception e) {
-            logger.error("💥 Error saving notes for appointment {}: {}", appointmentId, e.getMessage(), e);
+            System.out.println("Loi khi luu ghi chu: " + e.getMessage());
             response.put("success", false);
-            response.put("message", "Lỗi khi lưu ghi chú: " + e.getMessage());
+            response.put("message", "Loi khi luu ghi chu: " + e.getMessage());
         }
         
         return response;
     }
     
-    // Helper method for null-safe counting
+    // helper de tranh null
     private Long safeCount(Long count) {
         return count != null ? count : 0L;
     }

@@ -34,57 +34,54 @@ public class InvoiceService {
     public Invoice createInvoiceFromPayment(Long patientRegistrationId, String transactionNo, 
                                            String bankCode, String paymentMethod) {
         try {
-            System.out.println("=== 🧾 BẮT ĐẦU TẠO HÓA ĐƠN ===");
-            System.out.println("📋 Registration ID: " + patientRegistrationId);
-            System.out.println("💰 Transaction No (của chúng ta): " + transactionNo);
-            System.out.println("🏦 Bank Code: " + bankCode);
+            System.out.println("Bắt đầu tạo hóa đơn");
+            System.out.println("Registration ID: " + patientRegistrationId);
+            System.out.println("Transaction No: " + transactionNo);
+            System.out.println("Bank Code: " + bankCode);
             
-            // 1. KIỂM TRA ĐÃ CÓ HÓA ĐƠN CHƯA (bằng registrationId)
+            // Kiểm tra xem đã có hóa đơn chưa (bằng registrationId)
             List<Invoice> existingInvoices = invoiceRepository.findByPatientRegistrationId(patientRegistrationId);
-            System.out.println("🔍 Tìm thấy " + existingInvoices.size() + " hóa đơn hiện có cho registration này");
+            System.out.println("Tìm thấy " + existingInvoices.size() + " hóa đơn hiện có");
             
             if (!existingInvoices.isEmpty()) {
                 Invoice existingInvoice = existingInvoices.get(0);
-                System.out.println("⚠️ ĐÃ CÓ HÓA ĐƠN: " + existingInvoice.getInvoiceNumber());
-                System.out.println("📅 Ngày tạo: " + existingInvoice.getInvoiceDate());
-                System.out.println("💵 Số tiền: " + existingInvoice.getAmount());
-                System.out.println("🔑 Transaction No: " + existingInvoice.getTransactionNo());
-                System.out.println("=== KẾT THÚC (không tạo mới) ===");
+                System.out.println("Đã có hóa đơn: " + existingInvoice.getInvoiceNumber());
+                System.out.println("Ngày tạo: " + existingInvoice.getInvoiceDate());
+                System.out.println("Số tiền: " + existingInvoice.getAmount());
+                System.out.println("Transaction No: " + existingInvoice.getTransactionNo());
                 return existingInvoice;
             }
             
-            // 2. KIỂM TRA BẰNG TRANSACTION NO (transactionNo của chúng ta)
+            // Kiểm tra bằng transaction no
             if (transactionNo != null && !transactionNo.isEmpty()) {
                 Optional<Invoice> invoiceByTransaction = invoiceRepository.findByTransactionNo(transactionNo);
                 if (invoiceByTransaction.isPresent()) {
                     Invoice existingInvoice = invoiceByTransaction.get();
-                    System.out.println("⚠️ ĐÃ CÓ HÓA ĐƠN với transaction (của chúng ta): " + transactionNo);
-                    System.out.println("📜 Số hóa đơn: " + existingInvoice.getInvoiceNumber());
-                    System.out.println("=== KẾT THÚC (không tạo mới) ===");
+                    System.out.println("Đã có hóa đơn với transaction: " + transactionNo);
+                    System.out.println("Số hóa đơn: " + existingInvoice.getInvoiceNumber());
                     return existingInvoice;
                 }
             }
             
-            // 3. TÌM THÔNG TIN REGISTRATION
-            System.out.println("🔍 Đang tìm PatientRegistration với ID: " + patientRegistrationId);
+            // Tìm thông tin registration
+            System.out.println("Đang tìm PatientRegistration với ID: " + patientRegistrationId);
             Optional<PatientRegistration> registrationOpt = patientRegistrationRepository.findById(patientRegistrationId);
             
             if (!registrationOpt.isPresent()) {
-                System.err.println("❌ KHÔNG TÌM THẤY PatientRegistration với ID: " + patientRegistrationId);
-                System.out.println("=== KẾT THÚC (lỗi) ===");
+                System.out.println("Không tìm thấy PatientRegistration với ID: " + patientRegistrationId);
                 return null;
             }
             
             PatientRegistration registration = registrationOpt.get();
-            System.out.println("✅ Tìm thấy PatientRegistration:");
-            System.out.println("   👤 Tên: " + registration.getFullName());
-            System.out.println("   📧 Email: " + registration.getEmail());
-            System.out.println("   💰 Examination Fee: " + registration.getExaminationFee());
-            System.out.println("   💵 Paid Amount: " + registration.getPaidAmount());
-            System.out.println("   📊 Payment Status: " + registration.getPaymentStatus());
+            System.out.println("Tìm thấy PatientRegistration:");
+            System.out.println("Tên: " + registration.getFullName());
+            System.out.println("Email: " + registration.getEmail());
+            System.out.println("Examination Fee: " + registration.getExaminationFee());
+            System.out.println("Paid Amount: " + registration.getPaidAmount());
+            System.out.println("Payment Status: " + registration.getPaymentStatus());
             
-            // 4. TẠO HÓA ĐƠN MỚI
-            System.out.println("🔄 Bắt đầu tạo hóa đơn mới...");
+            // Tạo hóa đơn mới
+            System.out.println("Bắt đầu tạo hóa đơn mới...");
             
             Invoice invoice = new Invoice();
             
@@ -99,19 +96,19 @@ public class InvoiceService {
             
             // Số điện thoại
             String phone = extractPhoneFromRegistration(registration);
-            System.out.println("📱 Số điện thoại lấy được: " + phone);
+            System.out.println("Số điện thoại lấy được: " + phone);
             invoice.setPatientPhone(phone);
             
             // Dịch vụ
             invoice.setServiceName("Phí khám bệnh");
             
-            // Số tiền - QUAN TRỌNG: Kiểm tra kỹ
+            // Số tiền
             BigDecimal amount = determineInvoiceAmount(registration);
             invoice.setAmount(amount);
             
-            // Thông tin thanh toán - LƯU transactionNo CỦA CHÚNG TA
+            // Thông tin thanh toán
             invoice.setPaymentMethod(paymentMethod);
-            invoice.setTransactionNo(transactionNo); // Lưu transactionNo của chúng ta
+            invoice.setTransactionNo(transactionNo);
             invoice.setBankCode(bankCode);
             invoice.setStatus("PAID");
             
@@ -120,61 +117,59 @@ public class InvoiceService {
             invoice.setInvoiceDate(now);
             invoice.setPaymentDate(now);
             
-            System.out.println("📦 Thông tin hóa đơn đã tạo:");
-            System.out.println("   📜 Số hóa đơn: " + invoiceNumber);
-            System.out.println("   👤 Tên: " + registration.getFullName());
-            System.out.println("   💵 Số tiền: " + amount);
-            System.out.println("   🔄 Phương thức: " + paymentMethod);
-            System.out.println("   🔑 Transaction No (của chúng ta): " + transactionNo);
-            System.out.println("   🏦 Bank Code: " + bankCode);
+            System.out.println("Thông tin hóa đơn đã tạo:");
+            System.out.println("Số hóa đơn: " + invoiceNumber);
+            System.out.println("Tên: " + registration.getFullName());
+            System.out.println("Số tiền: " + amount);
+            System.out.println("Phương thức: " + paymentMethod);
+            System.out.println("Transaction No: " + transactionNo);
+            System.out.println("Bank Code: " + bankCode);
             
-            // 5. LƯU VÀO DATABASE
+            // Lưu vào database
             try {
                 Invoice savedInvoice = invoiceRepository.save(invoice);
-                System.out.println("✅ ĐÃ LƯU HÓA ĐƠN THÀNH CÔNG!");
-                System.out.println("📊 ID hóa đơn: " + savedInvoice.getId());
-                System.out.println("📜 Số hóa đơn: " + savedInvoice.getInvoiceNumber());
-                System.out.println("📅 Ngày tạo: " + savedInvoice.getInvoiceDate());
-                System.out.println("=== KẾT THÚC (thành công) ===");
+                System.out.println("Đã lưu hóa đơn thành công!");
+                System.out.println("ID hóa đơn: " + savedInvoice.getId());
+                System.out.println("Số hóa đơn: " + savedInvoice.getInvoiceNumber());
+                System.out.println("Ngày tạo: " + savedInvoice.getInvoiceDate());
                 return savedInvoice;
             } catch (Exception saveException) {
-                System.err.println("❌ LỖI KHI LƯU HÓA ĐƠN: " + saveException.getMessage());
+                System.out.println("Lỗi khi lưu hóa đơn: " + saveException.getMessage());
                 saveException.printStackTrace();
                 throw saveException;
             }
             
         } catch (Exception e) {
-            System.err.println("❌ LỖI TỔNG HỢP KHI TẠO HÓA ĐƠN: " + e.getMessage());
+            System.out.println("Lỗi khi tạo hóa đơn: " + e.getMessage());
             e.printStackTrace();
-            System.out.println("=== KẾT THÚC (lỗi) ===");
             throw new RuntimeException("Failed to create invoice: " + e.getMessage(), e);
         }
     }
     
-    // Helper method để xác định số tiền
+    // Xác định số tiền cho hóa đơn
     private BigDecimal determineInvoiceAmount(PatientRegistration registration) {
         if (registration.getExaminationFee() != null) {
-            System.out.println("💰 Lấy số tiền từ Examination Fee: " + registration.getExaminationFee());
+            System.out.println("Lấy số tiền từ Examination Fee: " + registration.getExaminationFee());
             return registration.getExaminationFee();
         } else if (registration.getPaidAmount() != null) {
-            System.out.println("💰 Lấy số tiền từ Paid Amount: " + registration.getPaidAmount());
+            System.out.println("Lấy số tiền từ Paid Amount: " + registration.getPaidAmount());
             return registration.getPaidAmount();
         } else {
             BigDecimal defaultAmount = new BigDecimal("250000");
-            System.out.println("💰 Dùng số tiền mặc định: " + defaultAmount);
+            System.out.println("Dùng số tiền mặc định: " + defaultAmount);
             return defaultAmount;
         }
     }
     
-    // Helper method để lấy số điện thoại từ registration
+    // Lấy số điện thoại từ registration
     private String extractPhoneFromRegistration(PatientRegistration registration) {
         try {
-            System.out.println("📱 Đang tìm số điện thoại từ PatientRegistration...");
+            System.out.println("Đang tìm số điện thoại từ PatientRegistration...");
             
             // Thử getPhone() trước
             if (registration.getPhone() != null && !registration.getPhone().isEmpty()) {
                 String phone = registration.getPhone();
-                System.out.println("   ✅ Tìm thấy qua getPhone(): " + phone);
+                System.out.println("Tìm thấy qua getPhone(): " + phone);
                 return phone;
             }
             
@@ -187,7 +182,7 @@ public class InvoiceService {
                     Object value = method.invoke(registration);
                     if (value != null && !value.toString().isEmpty()) {
                         String phone = value.toString();
-                        System.out.println("   ✅ Tìm thấy qua " + methodName + "(): " + phone);
+                        System.out.println("Tìm thấy qua " + methodName + "(): " + phone);
                         return phone;
                     }
                 } catch (Exception e) {
@@ -195,23 +190,26 @@ public class InvoiceService {
                 }
             }
             
-            System.out.println("   ⚠️ Không tìm thấy số điện thoại, dùng 'N/A'");
+            System.out.println("Không tìm thấy số điện thoại, dùng 'N/A'");
             return "N/A";
             
         } catch (Exception e) {
-            System.err.println("❌ Lỗi khi lấy số điện thoại: " + e.getMessage());
+            System.out.println("Lỗi khi lấy số điện thoại: " + e.getMessage());
             return "N/A";
         }
     }
     
+    // Lấy hóa đơn theo số hóa đơn
     public Optional<Invoice> getInvoiceByNumber(String invoiceNumber) {
         return invoiceRepository.findByInvoiceNumber(invoiceNumber);
     }
     
+    // Lấy hóa đơn theo transaction no
     public Optional<Invoice> getInvoiceByTransactionNo(String transactionNo) {
         return invoiceRepository.findByTransactionNo(transactionNo);
     }
     
+    // Tìm hóa đơn theo registration id
     public Optional<Invoice> findInvoiceByRegistrationId(Long patientRegistrationId) {
         List<Invoice> invoices = invoiceRepository.findByPatientRegistrationId(patientRegistrationId);
         if (!invoices.isEmpty()) {
@@ -220,22 +218,27 @@ public class InvoiceService {
         return Optional.empty();
     }
     
+    // Lấy danh sách hóa đơn theo registration id
     public List<Invoice> getInvoicesByPatientRegistrationId(Long patientRegistrationId) {
         return invoiceRepository.findByPatientRegistrationId(patientRegistrationId);
     }
     
+    // Lấy danh sách hóa đơn theo email hoặc phone
     public List<Invoice> getInvoicesByPatientEmailOrPhone(String email, String phone) {
         return invoiceRepository.findByPatientEmailOrPhone(email, phone);
     }
     
+    // Lấy tất cả hóa đơn
     public List<Invoice> getAllInvoices() {
         return invoiceRepository.findAllOrderByInvoiceDateDesc();
     }
     
+    // Lấy hóa đơn theo trạng thái
     public List<Invoice> getInvoicesByStatus(String status) {
         return invoiceRepository.findByStatus(status);
     }
     
+    // Cập nhật trạng thái hóa đơn
     @Transactional
     public Invoice updateInvoiceStatus(String invoiceNumber, String status) {
         Optional<Invoice> invoiceOpt = invoiceRepository.findByInvoiceNumber(invoiceNumber);
@@ -253,8 +256,42 @@ public class InvoiceService {
         return null;
     }
     
+    // Xóa hóa đơn
     @Transactional
     public void deleteInvoice(Long id) {
         invoiceRepository.deleteById(id);
+    }
+    
+    // Tìm kiếm hóa đơn (đơn giản hóa)
+    public List<Invoice> searchInvoices(String keyword, String status) {
+        try {
+            if (status != null && !status.isEmpty()) {
+                return getInvoicesByStatus(status);
+            } 
+            
+            if (keyword != null && !keyword.trim().isEmpty()) {
+                // Tìm kiếm đơn giản - trước mắt trả về tất cả
+                // Có thể implement tìm kiếm nâng cao sau
+                return getAllInvoices();
+            } 
+            
+            return getAllInvoices();
+            
+        } catch (Exception e) {
+            System.out.println("Lỗi khi tìm kiếm hóa đơn: " + e.getMessage());
+            return getAllInvoices();
+        }
+    }
+    
+    // Lấy hóa đơn theo khoảng thời gian
+    public List<Invoice> getInvoicesByDateRange(LocalDateTime fromDate, LocalDateTime toDate) {
+        try {
+            // Tạm thời trả về tất cả
+            // Có thể implement query theo ngày sau
+            return getAllInvoices();
+        } catch (Exception e) {
+            System.out.println("Lỗi khi lấy hóa đơn theo ngày: " + e.getMessage());
+            return getAllInvoices();
+        }
     }
 }

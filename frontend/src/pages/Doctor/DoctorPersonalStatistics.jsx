@@ -15,76 +15,76 @@ import {
 } from "recharts";
 import "../../css/DoctorPersonalStatistics.css";
 
-const DoctorPersonalStatistics = () => {
-  const [statistics, setStatistics] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [period, setPeriod] = useState("TODAY");
-  const [customRange, setCustomRange] = useState({
-    startDate: new Date().toISOString().split("T")[0],
-    endDate: new Date().toISOString().split("T")[0],
+function DoctorPersonalStatistics() {
+  const [statsData, setStatsData] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [errorMsg, setErrorMsg] = useState("");
+  const [timePeriod, setTimePeriod] = useState("TODAY");
+  const [customDates, setCustomDates] = useState({
+    fromDate: new Date().toISOString().split("T")[0],
+    toDate: new Date().toISOString().split("T")[0],
   });
   const navigate = useNavigate();
 
-  const fetchWithAuth = async (url, options = {}) => {
-    const user = JSON.parse(localStorage.getItem("user"));
+  const apiCall = async (url, options = {}) => {
+    const userInfo = JSON.parse(localStorage.getItem("user"));
 
-    const config = {
+    const requestConfig = {
       ...options,
       headers: {
         "Content-Type": "application/json",
         ...options.headers,
-        ...(user && user.token
-          ? { Authorization: `Bearer ${user.token}` }
+        ...(userInfo && userInfo.token
+          ? { Authorization: "Bearer " + userInfo.token }
           : {}),
       },
     };
 
-    const response = await fetch(url, config);
+    const result = await fetch(url, requestConfig);
 
-    if (response.status === 401 || response.status === 403) {
+    if (result.status === 401 || result.status === 403) {
       localStorage.removeItem("user");
       window.location.href = "/login";
-      throw new Error("Authentication failed");
+      throw new Error("Xác thực thất bại");
     }
 
-    return response;
+    return result;
   };
 
-  const fetchStatistics = async (selectedPeriod = period) => {
+  const getStatsData = async (selectedPeriod = timePeriod) => {
     try {
-      setLoading(true);
-      setError("");
+      setIsLoading(true);
+      setErrorMsg("");
 
-      const user = JSON.parse(localStorage.getItem("user"));
-      if (!user || user.role !== "DOCTOR") {
+      const userInfo = JSON.parse(localStorage.getItem("user"));
+      if (!userInfo || userInfo.role !== "DOCTOR") {
         navigate("/login");
         return;
       }
 
-      let url = `http://localhost:8080/api/doctor/statistics/${user.id}?period=${selectedPeriod}`;
-      const response = await fetchWithAuth(url);
+      let apiUrl = `http://localhost:8080/api/doctor/statistics/${userInfo.id}?period=${selectedPeriod}`;
+      const response = await apiCall(apiUrl);
 
-      if (!response.ok) {
+      if (response.status !== 200) {
         const errorText = await response.text();
-        throw new Error(`HTTP ${response.status}: ${errorText}`);
+        throw new Error("HTTP " + response.status + ": " + errorText);
       }
 
-      const data = await response.json();
+      const responseData = await response.json();
 
-      if (data.success) {
-        setStatistics(data);
+      if (responseData.success) {
+        setStatsData(responseData);
       } else {
-        throw new Error(data.message || "Lỗi từ server");
+        throw new Error(responseData.message || "Lỗi từ máy chủ");
       }
     } catch (err) {
-      setError(`Lỗi: ${err.message}`);
+      setErrorMsg("Lỗi: " + err.message);
 
-      const user = JSON.parse(localStorage.getItem("user"));
-      const defaultStats = {
+      const userInfo = JSON.parse(localStorage.getItem("user"));
+      const fallbackData = {
         success: true,
-        doctorId: user?.id || "N/A",
-        doctorName: user?.fullName || "Bác sĩ",
+        doctorId: userInfo?.id || "N/A",
+        doctorName: userInfo?.fullName || "Bác sĩ",
         period: selectedPeriod,
         startDate: new Date().toISOString().split("T")[0],
         endDate: new Date().toISOString().split("T")[0],
@@ -99,101 +99,103 @@ const DoctorPersonalStatistics = () => {
         chartData: null,
         lastUpdated: new Date().toISOString(),
       };
-      setStatistics(defaultStats);
+      setStatsData(fallbackData);
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
-  const fetchCustomStatistics = async () => {
+  const getCustomStats = async () => {
     try {
-      setLoading(true);
-      setError("");
+      setIsLoading(true);
+      setErrorMsg("");
 
-      const user = JSON.parse(localStorage.getItem("user"));
-      if (!user || user.role !== "DOCTOR") {
+      const userInfo = JSON.parse(localStorage.getItem("user"));
+      if (!userInfo || userInfo.role !== "DOCTOR") {
         navigate("/login");
         return;
       }
 
-      const url = `http://localhost:8080/api/doctor/statistics/custom/${user.id}?startDate=${customRange.startDate}&endDate=${customRange.endDate}`;
-      const response = await fetchWithAuth(url);
+      const apiUrl = `http://localhost:8080/api/doctor/statistics/custom/${userInfo.id}?startDate=${customDates.fromDate}&endDate=${customDates.toDate}`;
+      const response = await apiCall(apiUrl);
 
-      if (!response.ok) {
+      if (response.status !== 200) {
         const errorText = await response.text();
-        throw new Error(`HTTP ${response.status}: ${errorText}`);
+        throw new Error("HTTP " + response.status + ": " + errorText);
       }
 
-      const data = await response.json();
+      const responseData = await response.json();
 
-      if (data.success) {
-        setStatistics({
-          ...data,
+      if (responseData.success) {
+        setStatsData({
+          ...responseData,
           period: "CUSTOM",
         });
       } else {
-        throw new Error(data.message || "Lỗi từ server");
+        throw new Error(responseData.message || "Lỗi từ máy chủ");
       }
     } catch (err) {
-      setError(`Lỗi: ${err.message}`);
+      setErrorMsg("Lỗi: " + err.message);
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchStatistics();
+    getStatsData();
   }, []);
 
-  const handlePeriodChange = (newPeriod) => {
-    setPeriod(newPeriod);
-    fetchStatistics(newPeriod);
+  const changeTimePeriod = (newPeriod) => {
+    setTimePeriod(newPeriod);
+    getStatsData(newPeriod);
   };
 
-  const handleCustomRangeSubmit = (e) => {
+  const handleCustomDateSubmit = (e) => {
     e.preventDefault();
-    fetchCustomStatistics();
+    getCustomStats();
   };
 
   const formatNumber = (num) => {
     return num?.toLocaleString("vi-VN") || "0";
   };
 
-  const getPeriodText = (period) => {
-    const texts = {
+  const getPeriodDescription = (period) => {
+    const periodMap = {
       TODAY: "Hôm nay",
       WEEK: "Tuần này",
       MONTH: "Tháng này",
       CUSTOM: "Tùy chỉnh",
     };
-    return texts[period] || period;
+    return periodMap[period] || period;
   };
 
-  const getDateRangeText = () => {
-    if (!statistics) return "Đang tải...";
+  const getDateRangeDescription = () => {
+    if (!statsData) return "Đang tải...";
 
-    if (statistics.startDate && statistics.endDate) {
-      const start = new Date(statistics.startDate);
-      const end = new Date(statistics.endDate);
+    if (statsData.startDate && statsData.endDate) {
+      const start = new Date(statsData.startDate);
+      const end = new Date(statsData.endDate);
 
       if (start.toDateString() === end.toDateString()) {
         return start.toLocaleDateString("vi-VN");
       }
 
-      return `${start.toLocaleDateString("vi-VN")} - ${end.toLocaleDateString(
-        "vi-VN"
-      )}`;
+      return (
+        start.toLocaleDateString("vi-VN") +
+        " - " +
+        end.toLocaleDateString("vi-VN")
+      );
     }
 
     return "Không xác định";
   };
 
-  const getPieData = () => {
-    if (!statistics || !statistics.stats) {
+  const getPieChartData = () => {
+    if (!statsData || !statsData.stats) {
       return [];
     }
 
-    const stats = statistics.stats || {};
+    const stats = statsData.stats || {};
     const total = stats.totalAppointments || 0;
     const completed = stats.completedAppointments || 0;
     const cancelled = stats.cancelledAppointments || 0;
@@ -224,12 +226,12 @@ const DoctorPersonalStatistics = () => {
     ];
   };
 
-  const getBarData = () => {
-    if (!statistics || !statistics.chartData) {
+  const getBarChartData = () => {
+    if (!statsData || !statsData.chartData) {
       return [];
     }
 
-    const { labels = [], totals = [], completeds = [] } = statistics.chartData;
+    const { labels = [], totals = [], completeds = [] } = statsData.chartData;
 
     if (!labels || !totals || labels.length === 0) {
       return [];
@@ -242,7 +244,7 @@ const DoctorPersonalStatistics = () => {
     }));
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="statistics-loading">
         <div className="loading-spinner"></div>
@@ -251,47 +253,44 @@ const DoctorPersonalStatistics = () => {
     );
   }
 
-  const stats = statistics?.stats || {};
-  const successRate = statistics?.successRate || 0;
-  const failureRate = statistics?.failureRate || 0;
-  const doctorName = statistics?.doctorName || "Bác sĩ";
-  //   const doctorId = statistics?.doctorId || "N/A";
-  const chartData = statistics?.chartData || null;
+  const stats = statsData?.stats || {};
+  const successRate = statsData?.successRate || 0;
+  const failureRate = statsData?.failureRate || 0;
+  const doctorName = statsData?.doctorName || "Bác sĩ";
+  const chartInfo = statsData?.chartData || null;
 
   return (
     <div className="doctor-statistics-container">
-      {/* Header */}
       <div className="statistics-header">
         <div className="header-main">
-          <h1>📊 Thống Kê Cá Nhân</h1>
+          <h1>Thống Kê Cá Nhân</h1>
           <div className="doctor-info">
             <span className="doctor-name">
               Bác sĩ: <strong>{doctorName}</strong>
             </span>
-            {/* <span className="doctor-id">
-              ID: <strong>{doctorId}</strong>
-            </span> */}
             <span className="stat-period">
               Kỳ:{" "}
-              <strong>{getPeriodText(statistics?.period || "TODAY")}</strong>
+              <strong>
+                {getPeriodDescription(statsData?.period || "TODAY")}
+              </strong>
             </span>
             <span className="date-range">
-              Thời gian: <strong>{getDateRangeText()}</strong>
+              Thời gian: <strong>{getDateRangeDescription()}</strong>
             </span>
           </div>
         </div>
         <div className="header-actions">
-          <button className="btn-back" onClick={() => navigate("/doctor")}>
-            ↩ Quay lại
+          <button className="back-button" onClick={() => navigate("/doctor")}>
+            Quay lại
           </button>
         </div>
       </div>
 
-      {error && (
+      {errorMsg && (
         <div className="error-message">
-          <p>❌ {error}</p>
+          <p>{errorMsg}</p>
           <button
-            onClick={() => fetchStatistics(period)}
+            onClick={() => getStatsData(timePeriod)}
             className="retry-button"
           >
             Thử lại
@@ -299,73 +298,66 @@ const DoctorPersonalStatistics = () => {
         </div>
       )}
 
-      {/* Period Selector */}
       <div className="period-selector">
         <div className="period-buttons">
           <button
-            className={`period-btn ${period === "TODAY" ? "active" : ""}`}
-            onClick={() => handlePeriodChange("TODAY")}
+            className={`period-button ${timePeriod === "TODAY" ? "active" : ""}`}
+            onClick={() => changeTimePeriod("TODAY")}
           >
-            📅 Hôm nay
+            Hôm nay
           </button>
           <button
-            className={`period-btn ${period === "WEEK" ? "active" : ""}`}
-            onClick={() => handlePeriodChange("WEEK")}
+            className={`period-button ${timePeriod === "WEEK" ? "active" : ""}`}
+            onClick={() => changeTimePeriod("WEEK")}
           >
-            📅 Tuần này
+            Tuần này
           </button>
           <button
-            className={`period-btn ${period === "MONTH" ? "active" : ""}`}
-            onClick={() => handlePeriodChange("MONTH")}
+            className={`period-button ${timePeriod === "MONTH" ? "active" : ""}`}
+            onClick={() => changeTimePeriod("MONTH")}
           >
-            📅 Tháng này
+            Tháng này
           </button>
         </div>
 
         <div className="custom-range">
-          <h3>📆 Thống kê tùy chỉnh</h3>
-          <form onSubmit={handleCustomRangeSubmit} className="range-form">
+          <h3>Thống kê tùy chỉnh</h3>
+          <form onSubmit={handleCustomDateSubmit} className="range-form">
             <div className="date-inputs">
               <div className="input-group">
                 <label>Từ ngày:</label>
                 <input
                   type="date"
-                  value={customRange.startDate}
+                  value={customDates.fromDate}
                   onChange={(e) =>
-                    setCustomRange({
-                      ...customRange,
-                      startDate: e.target.value,
-                    })
+                    setCustomDates({ ...customDates, fromDate: e.target.value })
                   }
-                  max={customRange.endDate}
+                  max={customDates.toDate}
                 />
               </div>
               <div className="input-group">
                 <label>Đến ngày:</label>
                 <input
                   type="date"
-                  value={customRange.endDate}
+                  value={customDates.toDate}
                   onChange={(e) =>
-                    setCustomRange({ ...customRange, endDate: e.target.value })
+                    setCustomDates({ ...customDates, toDate: e.target.value })
                   }
-                  min={customRange.startDate}
+                  min={customDates.fromDate}
                   max={new Date().toISOString().split("T")[0]}
                 />
               </div>
             </div>
-            <button type="submit" className="btn-custom">
-              📈 Xem thống kê
+            <button type="submit" className="custom-button">
+              Xem thống kê
             </button>
           </form>
         </div>
       </div>
 
-      {/* Main Statistics */}
       <div className="main-statistics">
-        {/* Key Metrics */}
         <div className="key-metrics">
           <div className="metric-card total">
-            <div className="metric-icon">📋</div>
             <div className="metric-content">
               <div className="metric-value">
                 {formatNumber(stats.totalAppointments || 0)}
@@ -375,7 +367,6 @@ const DoctorPersonalStatistics = () => {
           </div>
 
           <div className="metric-card success">
-            <div className="metric-icon">✅</div>
             <div className="metric-content">
               <div className="metric-value">
                 {formatNumber(stats.completedAppointments || 0)}
@@ -385,7 +376,6 @@ const DoctorPersonalStatistics = () => {
           </div>
 
           <div className="metric-card rate">
-            <div className="metric-icon">📈</div>
             <div className="metric-content">
               <div className="metric-value">{successRate.toFixed(1)}%</div>
               <div className="metric-label">Tỷ lệ thành công</div>
@@ -393,7 +383,6 @@ const DoctorPersonalStatistics = () => {
           </div>
 
           <div className="metric-card failure">
-            <div className="metric-icon">📉</div>
             <div className="metric-content">
               <div className="metric-value">{failureRate.toFixed(1)}%</div>
               <div className="metric-label">Tỷ lệ không thành công</div>
@@ -401,19 +390,16 @@ const DoctorPersonalStatistics = () => {
           </div>
         </div>
 
-        {/* Charts Section */}
         <div className="charts-section">
-          {/* Phân bố trạng thái với hiệu ứng 3D */}
           <div className="chart-card">
-            <h3>📊 Phân bố trạng thái ca khám</h3>
+            <h3>Phân bố trạng thái ca khám</h3>
             <div className="chart-container">
-              {getPieData().length > 0 ? (
+              {getPieChartData().length > 0 ? (
                 <ResponsiveContainer width="100%" height={320}>
                   <PieChart>
                     <defs>
-                      {/* Gradient cho hiệu ứng 3D */}
                       <linearGradient
-                        id="gradient-success"
+                        id="grad-success"
                         x1="0%"
                         y1="0%"
                         x2="100%"
@@ -423,7 +409,7 @@ const DoctorPersonalStatistics = () => {
                         <stop offset="100%" stopColor="#0da271" />
                       </linearGradient>
                       <linearGradient
-                        id="gradient-danger"
+                        id="grad-danger"
                         x1="0%"
                         y1="0%"
                         x2="100%"
@@ -433,7 +419,7 @@ const DoctorPersonalStatistics = () => {
                         <stop offset="100%" stopColor="#dc2626" />
                       </linearGradient>
                       <linearGradient
-                        id="gradient-warning"
+                        id="grad-warning"
                         x1="0%"
                         y1="0%"
                         x2="100%"
@@ -443,7 +429,7 @@ const DoctorPersonalStatistics = () => {
                         <stop offset="100%" stopColor="#d97706" />
                       </linearGradient>
                       <linearGradient
-                        id="gradient-gray"
+                        id="grad-gray"
                         x1="0%"
                         y1="0%"
                         x2="100%"
@@ -454,9 +440,8 @@ const DoctorPersonalStatistics = () => {
                       </linearGradient>
                     </defs>
 
-                    {/* Lớp shadow tạo độ sâu 3D */}
                     <Pie
-                      data={getPieData()}
+                      data={getPieChartData()}
                       cx="50%"
                       cy="52%"
                       outerRadius={78}
@@ -466,7 +451,7 @@ const DoctorPersonalStatistics = () => {
                       fill="#8884d8"
                       opacity={0.3}
                     >
-                      {getPieData().map((entry, index) => (
+                      {getPieChartData().map((entry, index) => (
                         <Cell
                           key={`shadow-${index}`}
                           fill="rgba(0, 0, 0, 0.3)"
@@ -474,9 +459,8 @@ const DoctorPersonalStatistics = () => {
                       ))}
                     </Pie>
 
-                    {/* Pie chart chính với hiệu ứng 3D */}
                     <Pie
-                      data={getPieData()}
+                      data={getPieChartData()}
                       cx="50%"
                       cy="50%"
                       labelLine={false}
@@ -493,15 +477,15 @@ const DoctorPersonalStatistics = () => {
                       strokeWidth={2}
                       className="pie-3d"
                     >
-                      {getPieData().map((entry, index) => {
+                      {getPieChartData().map((entry, index) => {
                         const gradientId =
                           entry.name === "Đã hoàn thành"
-                            ? "gradient-success"
+                            ? "grad-success"
                             : entry.name === "Đã hủy"
-                            ? "gradient-danger"
-                            : entry.name === "Vắng mặt"
-                            ? "gradient-warning"
-                            : "gradient-gray";
+                              ? "grad-danger"
+                              : entry.name === "Vắng mặt"
+                                ? "grad-warning"
+                                : "grad-gray";
 
                         return (
                           <Cell
@@ -512,22 +496,12 @@ const DoctorPersonalStatistics = () => {
                         );
                       })}
                     </Pie>
-                    {/* <Tooltip
-                      formatter={(value, name) => [value, name]}
-                      contentStyle={{
-                        borderRadius: "8px",
-                        boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
-                        border: "none",
-                        background: "rgba(255, 255, 255, 0.95)",
-                        backdropFilter: "blur(10px)",
-                      }}
-                    /> */}
                     <Legend />
                   </PieChart>
                 </ResponsiveContainer>
               ) : (
                 <div className="no-data-chart">
-                  <div className="no-data-icon">📊</div>
+                  <div className="no-data-icon">Không có dữ liệu</div>
                   <p>Không có dữ liệu để hiển thị biểu đồ</p>
                   <p className="no-data-detail">
                     Tổng số ca: {stats.totalAppointments || 0}
@@ -537,13 +511,12 @@ const DoctorPersonalStatistics = () => {
             </div>
           </div>
 
-          {/* Biểu đồ xu hướng */}
-          {chartData && getBarData().length > 0 ? (
+          {chartInfo && getBarChartData().length > 0 ? (
             <div className="chart-card">
-              <h3>📈 Xu hướng số ca khám</h3>
+              <h3>Xu hướng số ca khám</h3>
               <div className="chart-container">
                 <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={getBarData()}>
+                  <BarChart data={getBarChartData()}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="name" />
                     <YAxis />
@@ -566,9 +539,9 @@ const DoctorPersonalStatistics = () => {
             </div>
           ) : (
             <div className="chart-card">
-              <h3>📈 Xu hướng số ca khám</h3>
+              <h3>Xu hướng số ca khám</h3>
               <div className="no-data-chart">
-                <div className="no-data-icon">📈</div>
+                <div className="no-data-icon">Không có dữ liệu</div>
                 <p>Không có dữ liệu biểu đồ</p>
                 <p>API không trả về dữ liệu chartData hoặc dữ liệu rỗng</p>
               </div>
@@ -576,40 +549,37 @@ const DoctorPersonalStatistics = () => {
           )}
         </div>
 
-        {/* Quick Actions */}
         <div className="quick-actions">
           <button
-            className="btn-action"
+            className="action-button"
             onClick={() => navigate("/doctor/appointments")}
           >
-            👁️ Xem lịch hẹn
+            Xem lịch hẹn
           </button>
-          <button className="btn-action" onClick={() => window.print()}>
-            🖨️ In báo cáo
+          <button className="action-button" onClick={() => window.print()}>
+            In báo cáo
           </button>
           <button
-            className="btn-action"
+            className="action-button"
             onClick={() => {
-              if (!statistics) return;
-              const dataStr = JSON.stringify(statistics, null, 2);
+              if (!statsData) return;
+              const dataString = JSON.stringify(statsData, null, 2);
               const dataUri =
                 "data:application/json;charset=utf-8," +
-                encodeURIComponent(dataStr);
-              const exportFileDefaultName = `thong-ke-${doctorName}-${
-                new Date().toISOString().split("T")[0]
-              }.json`;
-              const linkElement = document.createElement("a");
-              linkElement.setAttribute("href", dataUri);
-              linkElement.setAttribute("download", exportFileDefaultName);
-              linkElement.click();
+                encodeURIComponent(dataString);
+              const fileName = `thong-ke-${doctorName}-${new Date().toISOString().split("T")[0]}.json`;
+              const downloadLink = document.createElement("a");
+              downloadLink.setAttribute("href", dataUri);
+              downloadLink.setAttribute("download", fileName);
+              downloadLink.click();
             }}
           >
-            💾 Xuất dữ liệu
+            Xuất dữ liệu
           </button>
         </div>
       </div>
     </div>
   );
-};
+}
 
 export default DoctorPersonalStatistics;

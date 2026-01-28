@@ -20,19 +20,22 @@ const DoctorAppointments = () => {
   const [activeTab, setActiveTab] = useState("today");
   const navigate = useNavigate();
 
-  // Fetch interceptor để xử lý lỗi authentication
+  // Ham fetch voi token
   const fetchWithAuth = async (url, options = {}) => {
     const user = JSON.parse(localStorage.getItem("user"));
 
+    let headers = {
+      "Content-Type": "application/json",
+      ...options.headers,
+    };
+
+    if (user && user.token) {
+      headers.Authorization = "Bearer " + user.token;
+    }
+
     const config = {
       ...options,
-      headers: {
-        "Content-Type": "application/json",
-        ...options.headers,
-        ...(user && user.token
-          ? { Authorization: `Bearer ${user.token}` }
-          : {}),
-      },
+      headers: headers,
     };
 
     const response = await fetch(url, config);
@@ -46,7 +49,7 @@ const DoctorAppointments = () => {
     return response;
   };
 
-  // Lấy thông tin bác sĩ và lịch hẹn
+  // Lay thong tin bac si va lich hen
   useEffect(() => {
     const fetchDoctorAppointments = async () => {
       try {
@@ -54,7 +57,7 @@ const DoctorAppointments = () => {
         setError("");
 
         const user = JSON.parse(localStorage.getItem("user"));
-        console.log("👤 Current user:", user);
+        console.log("Current user:", user);
 
         if (!user || user.role !== "DOCTOR") {
           navigate("/login");
@@ -62,57 +65,54 @@ const DoctorAppointments = () => {
         }
 
         const userId = user.id;
-        console.log("🩺 User ID (from users table):", userId);
+        console.log("User ID:", userId);
 
-        const apiUrl = `http://localhost:8080/api/doctor/appointments/${userId}`;
-        console.log("🌐 Calling API with user ID:", apiUrl);
+        const apiUrl =
+          "http://localhost:8080/api/doctor/appointments/" + userId;
+        console.log("Calling API:", apiUrl);
 
         const response = await fetchWithAuth(apiUrl, {
           method: "GET",
         });
 
-        console.log(
-          "📡 Response status:",
-          response.status,
-          response.statusText
-        );
+        console.log("Response status:", response.status, response.statusText);
 
         if (!response.ok) {
           const errorText = await response.text();
-          console.error("❌ HTTP Error:", errorText);
+          console.error("HTTP Error:", errorText);
           throw new Error(
-            `HTTP error! status: ${response.status} - ${errorText}`
+            "HTTP error! status: " + response.status + " - " + errorText,
           );
         }
 
         const contentType = response.headers.get("content-type");
         if (!contentType || !contentType.includes("application/json")) {
           const text = await response.text();
-          console.error("❌ Response is not JSON:", text.substring(0, 500));
-          throw new Error("Server trả về dữ liệu không phải JSON.");
+          console.error("Response is not JSON:", text.substring(0, 500));
+          throw new Error("Server tra ve du lieu khong phai JSON.");
         }
 
         const data = await response.json();
-        console.log("📦 API Response:", data);
+        console.log("API Response:", data);
 
         if (data.success) {
           const allAppointments = data.appointments || [];
-          console.log("🎯 Doctor's appointments:", allAppointments);
+          console.log("Doctor's appointments:", allAppointments);
 
           setAppointments(allAppointments);
           setCurrentDoctor({
             id: data.doctorId,
-            name: data.doctorName || user.fullName || "Bác sĩ",
+            name: data.doctorName || user.fullName || "Bac si",
           });
           setError("");
-          console.log("✅ Loaded appointments for doctor ID:", data.doctorId);
+          console.log("Loaded appointments for doctor ID:", data.doctorId);
         } else {
-          throw new Error(data.message || "Lỗi từ server");
+          throw new Error(data.message || "Loi tu server");
         }
       } catch (err) {
-        console.error("💥 Fetch error:", err);
-        const errorMessage = err.message || "Lỗi kết nối đến server";
-        setError(`Lỗi: ${errorMessage}`);
+        console.error("Fetch error:", err);
+        const errorMessage = err.message || "Loi ket noi den server";
+        setError("Loi: " + errorMessage);
 
         setAppointments([]);
 
@@ -120,12 +120,12 @@ const DoctorAppointments = () => {
         if (user) {
           setCurrentDoctor({
             id: user.id || "unknown",
-            name: user.fullName || user.username || "Bác sĩ",
+            name: user.fullName || user.username || "Bac si",
           });
         } else {
           setCurrentDoctor({
             id: "unknown",
-            name: "Bác sĩ",
+            name: "Bac si",
           });
         }
       } finally {
@@ -136,7 +136,7 @@ const DoctorAppointments = () => {
     fetchDoctorAppointments();
   }, [navigate]);
 
-  // Hàm format date cho filter (chuẩn hóa thành YYYY-MM-DD)
+  // Ham format date cho filter
   const formatDateForFilter = (dateString) => {
     if (!dateString) return null;
     try {
@@ -152,12 +152,12 @@ const DoctorAppointments = () => {
       const date = new Date(dateString);
       return date.toISOString().split("T")[0];
     } catch (error) {
-      console.error("❌ Error in formatDateForFilter:", error);
+      console.error("Error in formatDateForFilter:", error);
       return null;
     }
   };
 
-  // Lọc lịch hẹn khi filters thay đổi
+  // Loc lich hen khi filters thay doi
   useEffect(() => {
     filterAppointments();
   }, [appointments, filters]);
@@ -165,10 +165,10 @@ const DoctorAppointments = () => {
   const filterAppointments = () => {
     let filtered = appointments;
 
-    console.log("🔄 FILTERING - Total appointments:", appointments.length);
-    console.log("🔄 Current filters:", filters);
+    console.log("FILTERING - Total appointments:", appointments.length);
+    console.log("Current filters:", filters);
 
-    // Lọc theo trạng thái
+    // Loc theo trang thai
     if (filters.status !== "ALL") {
       if (filters.status === "TODAY") {
         const today = new Date().toISOString().split("T")[0];
@@ -181,7 +181,7 @@ const DoctorAppointments = () => {
       }
     }
 
-    // Lọc theo ngày cụ thể (CHỈ KHI CÓ CHỌN NGÀY)
+    // Loc theo ngay cu the
     if (filters.date) {
       filtered = filtered.filter((apt) => {
         const aptDate = formatDateForFilter(apt.appointmentDate);
@@ -189,7 +189,7 @@ const DoctorAppointments = () => {
       });
     }
 
-    // Tìm kiếm
+    // Tim kiem
     if (filters.search) {
       const searchLower = filters.search.toLowerCase();
       filtered = filtered.filter(
@@ -197,11 +197,11 @@ const DoctorAppointments = () => {
           apt.fullName?.toLowerCase().includes(searchLower) ||
           apt.phone?.includes(filters.search) ||
           apt.registrationNumber?.includes(filters.search) ||
-          apt.department?.toLowerCase().includes(searchLower)
+          apt.department?.toLowerCase().includes(searchLower),
       );
     }
 
-    // Sắp xếp: theo ngày gần nhất và số thứ tự
+    // Sap xep
     filtered.sort((a, b) => {
       const dateA = new Date(a.appointmentDate);
       const dateB = new Date(b.appointmentDate);
@@ -211,13 +211,13 @@ const DoctorAppointments = () => {
       return (a.queueNumber || 999) - (b.queueNumber || 999);
     });
 
-    console.log("✅ FILTER RESULT - Showing:", filtered.length, "appointments");
+    console.log("FILTER RESULT - Showing:", filtered.length, "appointments");
     setFilteredAppointments(filtered);
   };
 
-  // Format ngày hiển thị
+  // Format ngay hien thi
   const formatDate = (dateString) => {
-    if (!dateString) return "Chưa có";
+    if (!dateString) return "Chua co";
     try {
       let date;
       if (
@@ -236,7 +236,7 @@ const DoctorAppointments = () => {
     }
   };
 
-  // Format tiền
+  // Format tien
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat("vi-VN", {
       style: "currency",
@@ -244,37 +244,32 @@ const DoctorAppointments = () => {
     }).format(amount || 0);
   };
 
-  // Lấy class cho trạng thái
+  // Lay class cho trang thai
   const getStatusClass = (status) => {
-    const statusMap = {
-      CONFIRMED: "status-waiting",
-      APPROVED: "status-waiting",
-      PENDING: "status-pending",
-      COMPLETED: "status-completed",
-      CANCELLED: "status-cancelled",
-      NEEDS_MANUAL_REVIEW: "status-pending",
-      REJECTED: "status-cancelled",
-      IN_PROGRESS: "status-in-progress",
-    };
-    return statusMap[status] || "status-pending";
+    if (status === "CONFIRMED" || status === "APPROVED")
+      return "status-waiting";
+    if (status === "PENDING" || status === "NEEDS_MANUAL_REVIEW")
+      return "status-pending";
+    if (status === "COMPLETED") return "status-completed";
+    if (status === "CANCELLED" || status === "REJECTED")
+      return "status-cancelled";
+    if (status === "IN_PROGRESS") return "status-in-progress";
+    return "status-pending";
   };
 
-  // Lấy tên trạng thái tiếng Việt
+  // Lay ten trang thai tieng Viet
   const getStatusText = (status) => {
-    const statusMap = {
-      CONFIRMED: "CHỜ KHÁM",
-      APPROVED: "CHỜ KHÁM",
-      PENDING: "CHỜ XÁC NHẬN",
-      COMPLETED: "ĐÃ KHÁM",
-      CANCELLED: "ĐÃ HỦY",
-      NEEDS_MANUAL_REVIEW: "CHỜ DUYỆT",
-      REJECTED: "ĐÃ TỪ CHỐI",
-      IN_PROGRESS: "ĐANG KHÁM",
-    };
-    return statusMap[status] || status;
+    if (status === "CONFIRMED" || status === "APPROVED") return "CHO KHAM";
+    if (status === "PENDING") return "CHO XAC NHAN";
+    if (status === "COMPLETED") return "DA KHAM";
+    if (status === "CANCELLED") return "DA HUY";
+    if (status === "NEEDS_MANUAL_REVIEW") return "CHO DUYET";
+    if (status === "REJECTED") return "DA TU CHOI";
+    if (status === "IN_PROGRESS") return "DANG KHAM";
+    return status;
   };
 
-  // Thêm các hàm trở lại và sử dụng chúng
+  // Them cac ham tro lai va su dung chung
   const getStatusBadge = (status) => {
     return (
       <span className={`status-badge ${getStatusClass(status)}`}>
@@ -284,32 +279,27 @@ const DoctorAppointments = () => {
   };
 
   const getPaymentStatusBadge = (paymentStatus) => {
-    const paymentConfig = {
-      PAID: {
-        label: "ĐÃ THANH TOÁN",
-        class: "payment-status-paid",
-      },
-      UNPAID: {
-        label: "CHƯA THANH TOÁN",
-        class: "payment-status-unpaid",
-      },
-      PENDING: {
-        label: "ĐANG XỬ LÝ",
-        class: "payment-status-pending",
-      },
-    };
+    let label = "";
+    let className = "";
 
-    const config = paymentConfig[paymentStatus] || {
-      label: paymentStatus,
-      class: "payment-status-default",
-    };
+    if (paymentStatus === "PAID") {
+      label = "DA THANH TOAN";
+      className = "payment-status-paid";
+    } else if (paymentStatus === "UNPAID") {
+      label = "CHUA THANH TOAN";
+      className = "payment-status-unpaid";
+    } else if (paymentStatus === "PENDING") {
+      label = "DANG XU LY";
+      className = "payment-status-pending";
+    } else {
+      label = paymentStatus;
+      className = "payment-status-default";
+    }
 
-    return (
-      <span className={`payment-badge ${config.class}`}>{config.label}</span>
-    );
+    return <span className={`payment-badge ${className}`}>{label}</span>;
   };
 
-  // Tính toán thống kê
+  // Tinh toan thong ke
   const calculateStats = () => {
     const today = new Date().toISOString().split("T")[0];
 
@@ -322,13 +312,13 @@ const DoctorAppointments = () => {
       total: appointments.length,
       today: todayAppointments.length,
       waiting: todayAppointments.filter(
-        (apt) => apt.status === "CONFIRMED" || apt.status === "APPROVED"
+        (apt) => apt.status === "CONFIRMED" || apt.status === "APPROVED",
       ).length,
       completed: todayAppointments.filter((apt) => apt.status === "COMPLETED")
         .length,
       pending: appointments.filter(
         (apt) =>
-          apt.status === "PENDING" || apt.status === "NEEDS_MANUAL_REVIEW"
+          apt.status === "PENDING" || apt.status === "NEEDS_MANUAL_REVIEW",
       ).length,
     };
   };
@@ -337,10 +327,14 @@ const DoctorAppointments = () => {
 
   // Toggle card expand
   const toggleCardExpand = (appointmentId) => {
-    setExpandedCard((prev) => (prev === appointmentId ? null : appointmentId));
+    if (expandedCard === appointmentId) {
+      setExpandedCard(null);
+    } else {
+      setExpandedCard(appointmentId);
+    }
   };
 
-  // Xử lý bắt đầu khám - ĐÃ SỬA LỖI FOREIGN KEY
+  // Xu ly bat dau kham
   const handleStartExamination = async (appointmentId) => {
     setActionLoading(appointmentId);
     try {
@@ -348,80 +342,81 @@ const DoctorAppointments = () => {
 
       if (!user || !user.token) {
         throw new Error(
-          "Không tìm thấy thông tin đăng nhập. Vui lòng đăng nhập lại."
+          "Khong tim thay thong tin dang nhap. Vui long dang nhap lai.",
         );
       }
 
       const appointment = appointments.find((apt) => apt.id === appointmentId);
       if (!appointment) {
-        throw new Error("Không tìm thấy thông tin lịch hẹn");
+        throw new Error("Khong tim thay thong tin lich hen");
       }
 
-      console.log("👤 Current user:", user);
-      console.log("🩺 Current doctor:", currentDoctor);
-      console.log("📅 Appointment:", appointment);
+      console.log("Current user:", user);
+      console.log("Current doctor:", currentDoctor);
+      console.log("Appointment:", appointment);
 
-      // 🔥 SỬ DỤNG DOCTOR_ID TỪ APPOINTMENT, KHÔNG PHẢI TỪ USER
       const appointmentDoctorId = appointment.doctorId;
 
       if (!appointmentDoctorId) {
         throw new Error(
-          "Lịch hẹn chưa được phân công cho bác sĩ. Vui lòng liên hệ quản trị viên."
+          "Lich hen chua duoc phan cong cho bac si. Vui long lien he quan tri vien.",
         );
       }
 
-      console.log("🎯 Using appointment doctor ID:", appointmentDoctorId);
+      console.log("Using appointment doctor ID:", appointmentDoctorId);
 
-      // Đọc số thứ tự trước khi bắt đầu khám
       if (appointment && appointment.queueNumber) {
         alert(
-          `📢 ĐANG GỌI SỐ THỨ TỰ: ${appointment.queueNumber}\nBỆNH NHÂN: ${appointment.fullName}\nVUI LÒNG ĐẾN PHÒNG KHÁM!`
+          "DANG GOI SO THU TU: " +
+            appointment.queueNumber +
+            "\nBENH NHAN: " +
+            appointment.fullName +
+            "\nVUI LONG DEN PHONG KHAM!",
         );
       }
 
-      // Chuẩn bị request body - SỬ DỤNG DOCTOR_ID TỪ APPOINTMENT
       const requestBody = {
         doctorId: appointmentDoctorId,
       };
 
-      console.log("🌐 Sending request to start examination...");
-      console.log("📤 Request body:", requestBody);
-      console.log("🔐 Using token:", user.token ? "Present" : "Missing");
+      console.log("Sending request to start examination...");
+      console.log("Request body:", requestBody);
+      console.log("Using token:", user.token ? "Present" : "Missing");
 
-      // Gọi API bắt đầu khám với fetchWithAuth
       const response = await fetchWithAuth(
-        `http://localhost:8080/api/doctor/medical-records/${appointmentId}/start`,
+        "http://localhost:8080/api/doctor/medical-records/" +
+          appointmentId +
+          "/start",
         {
           method: "POST",
           body: JSON.stringify(requestBody),
-        }
+        },
       );
 
-      console.log("🩺 Start examination response status:", response.status);
+      console.log("Start examination response status:", response.status);
 
       if (!response.ok) {
         if (response.status === 403) {
           throw new Error(
-            "Truy cập bị từ chối. Vui lòng kiểm tra quyền truy cập hoặc đăng nhập lại."
+            "Truy cap bi tu choi. Vui long kiem tra quyen truy cap hoac dang nhap lai.",
           );
         } else if (response.status === 401) {
           localStorage.removeItem("user");
           navigate("/login");
-          throw new Error("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.");
+          throw new Error("Phien dang nhap het han. Vui long dang nhap lai.");
         } else if (response.status === 404) {
-          throw new Error("Không tìm thấy lịch hẹn.");
+          throw new Error("Khong tim thay lich hen.");
         } else {
           const errorText = await response.text();
-          console.error("❌ Server error response:", errorText);
-          throw new Error(`Lỗi server: ${response.status}`);
+          console.error("Server error response:", errorText);
+          throw new Error("Loi server: " + response.status);
         }
       }
 
       const result = await response.json();
-      console.log("🩺 Start examination result:", result);
+      console.log("Start examination result:", result);
 
       if (result.success) {
-        // Cập nhật local state với DTO data
         setAppointments((prev) =>
           prev.map((apt) =>
             apt.id === appointmentId
@@ -429,23 +424,21 @@ const DoctorAppointments = () => {
                   ...apt,
                   examinationStatus: "IN_PROGRESS",
                   status: "IN_PROGRESS",
-                  // Cập nhật thêm thông tin từ DTO nếu cần
                   ...result.appointment,
                 }
-              : apt
-          )
+              : apt,
+          ),
         );
 
-        alert("✅ Bắt đầu khám thành công! Chuyển đến trang khám bệnh...");
+        alert("Bat dau kham thanh cong! Chuyen den trang kham benh...");
 
-        // Chuyển hướng đến trang khám bệnh
-        navigate(`/doctor/examination/${appointmentId}`);
+        navigate("/doctor/examination/" + appointmentId);
       } else {
-        throw new Error(result.message || "Không thể bắt đầu khám");
+        throw new Error(result.message || "Khong the bat dau kham");
       }
     } catch (error) {
-      console.error("❌ Lỗi bắt đầu khám:", error);
-      alert(`❌ Lỗi khi bắt đầu khám: ${error.message}`);
+      console.error("Loi bat dau kham:", error);
+      alert("Loi khi bat dau kham: " + error.message);
     } finally {
       setActionLoading(null);
     }
@@ -455,42 +448,46 @@ const DoctorAppointments = () => {
     setActionLoading(appointmentId);
     try {
       const response = await fetchWithAuth(
-        `http://localhost:8080/api/doctor/appointments/${appointmentId}/complete`,
+        "http://localhost:8080/api/doctor/appointments/" +
+          appointmentId +
+          "/complete",
         {
           method: "PUT",
-        }
+        },
       );
 
       if (response.ok) {
         setAppointments((prev) =>
           prev.map((apt) =>
-            apt.id === appointmentId ? { ...apt, status: "COMPLETED" } : apt
-          )
+            apt.id === appointmentId ? { ...apt, status: "COMPLETED" } : apt,
+          ),
         );
-        alert("✅ Đã đánh dấu đã khám thành công!");
+        alert("Da danh dau da kham thanh cong!");
       } else {
-        throw new Error("Không thể đánh dấu đã khám");
+        throw new Error("Khong the danh dau da kham");
       }
     } catch (error) {
-      console.error("❌ Lỗi đánh dấu đã khám:", error);
-      alert("❌ Lỗi khi đánh dấu đã khám");
+      console.error("Loi danh dau da kham:", error);
+      alert("Loi khi danh dau da kham");
     } finally {
       setActionLoading(null);
     }
   };
 
   const handleMarkAsMissed = async (appointmentId) => {
-    if (!window.confirm("Xác nhận bệnh nhân không đi khám?")) {
+    if (!window.confirm("Xac nhan benh nhan khong di kham?")) {
       return;
     }
 
     setActionLoading(appointmentId);
     try {
       const response = await fetchWithAuth(
-        `http://localhost:8080/api/doctor/medical-records/${appointmentId}/missed`,
+        "http://localhost:8080/api/doctor/medical-records/" +
+          appointmentId +
+          "/missed",
         {
           method: "PUT",
-        }
+        },
       );
 
       if (response.ok) {
@@ -502,27 +499,27 @@ const DoctorAppointments = () => {
                   examinationStatus: "MISSED",
                   status: "CANCELLED",
                 }
-              : apt
-          )
+              : apt,
+          ),
         );
-        alert("✅ Đã đánh dấu không đi khám!");
+        alert("Da danh dau khong di kham!");
       } else {
-        throw new Error("Không thể đánh dấu không đi khám");
+        throw new Error("Khong the danh dau khong di kham");
       }
     } catch (error) {
-      console.error("❌ Lỗi đánh dấu không đi khám:", error);
-      alert("❌ Lỗi khi đánh dấu không đi khám");
+      console.error("Loi danh dau khong di kham:", error);
+      alert("Loi khi danh dau khong di kham");
     } finally {
       setActionLoading(null);
     }
   };
 
-  // Hàm chuyển đến trang kê đơn thuốc
+  // Ham chuyen den trang ke don thuoc
   const handlePrescribeMedication = (appointmentId) => {
-    navigate(`/doctor/prescription/${appointmentId}`);
+    navigate("/doctor/prescription/" + appointmentId);
   };
 
-  // Hàm kiểm tra có nên hiển thị nút kê đơn thuốc không
+  // Ham kiem tra co nen hien thi nut ke don thuoc khong
   const shouldShowPrescribeButton = (appointment) => {
     return (
       appointment.status === "COMPLETED" && appointment.paymentStatus === "PAID"
@@ -534,7 +531,7 @@ const DoctorAppointments = () => {
       <div className="loading-overlay">
         <div className="loading-content">
           <div className="spinner"></div>
-          <p>Đang tải dữ liệu lịch hẹn...</p>
+          <p>Dang tai du lieu lich hen...</p>
         </div>
       </div>
     );
@@ -547,19 +544,19 @@ const DoctorAppointments = () => {
         <div className="header-title">
           <i className="bi-heart-pulse"></i>
           <div>
-            <h1>Quản Lý Lịch Hẹn Khám Bệnh</h1>
-            <p>Quản lý và khám bệnh cho bệnh nhân</p>
+            <h1>Quan Ly Lich Hen Kham Benh</h1>
+            <p>Quan ly va kham benh cho benh nhan</p>
           </div>
         </div>
         <div className="header-actions">
-          <button onClick={() => window.location.reload()} title="Làm mới">
+          <button onClick={() => window.location.reload()} title="Lam moi">
             <i className="bi-arrow-clockwise"></i>
-            <span>Làm mới</span>
+            <span>Lam moi</span>
           </button>
           {statsData.waiting > 0 && (
             <div className="pending-badge">
               <span>{statsData.waiting}</span>
-              <span>Bệnh nhân chờ khám</span>
+              <span>Benh nhan cho kham</span>
             </div>
           )}
         </div>
@@ -569,10 +566,10 @@ const DoctorAppointments = () => {
         <div className="error-alert">
           <i className="bi-exclamation-triangle"></i>
           <div>
-            <h4>Đã xảy ra lỗi!</h4>
+            <h4>Da xay ra loi!</h4>
             <p>{error}</p>
           </div>
-          <button onClick={() => window.location.reload()}>Thử lại</button>
+          <button onClick={() => window.location.reload()}>Thu lai</button>
         </div>
       )}
 
@@ -581,31 +578,31 @@ const DoctorAppointments = () => {
         <div className="stat-card">
           <i className="bi-people"></i>
           <div>
-            <h3>Tổng lịch hẹn</h3>
+            <h3>Tong lich hen</h3>
             <p>{statsData.total}</p>
           </div>
         </div>
         <div className="stat-card">
           <i className="bi-calendar-check"></i>
           <div>
-            <h3>Hôm nay</h3>
+            <h3>Hom nay</h3>
             <p>{statsData.today}</p>
           </div>
         </div>
         <div className="stat-card">
           <i className="bi-clock"></i>
           <div>
-            <h3>Chờ khám</h3>
+            <h3>Cho kham</h3>
             <p>{statsData.waiting}</p>
             {statsData.waiting > 0 && (
-              <div className="stat-badge">Cần khám ngay</div>
+              <div className="stat-badge">Can kham ngay</div>
             )}
           </div>
         </div>
         <div className="stat-card">
           <i className="bi-check-circle"></i>
           <div>
-            <h3>Đã khám</h3>
+            <h3>Da kham</h3>
             <p>{statsData.completed}</p>
           </div>
         </div>
@@ -620,7 +617,7 @@ const DoctorAppointments = () => {
           onClick={() => setActiveTab("today")}
         >
           <i className="bi-calendar-day"></i>
-          <span>Hôm nay</span>
+          <span>Hom nay</span>
           <span className="tab-count">{statsData.today}</span>
         </button>
         <button
@@ -630,7 +627,7 @@ const DoctorAppointments = () => {
           onClick={() => setActiveTab("waiting")}
         >
           <i className="bi-clock"></i>
-          <span>Chờ khám</span>
+          <span>Cho kham</span>
           <span className="tab-count badge">{statsData.waiting}</span>
         </button>
         <button
@@ -638,7 +635,7 @@ const DoctorAppointments = () => {
           onClick={() => setActiveTab("completed")}
         >
           <i className="bi-check-circle"></i>
-          <span>Đã khám</span>
+          <span>Da kham</span>
           <span className="tab-count">{statsData.completed}</span>
         </button>
         <button
@@ -646,7 +643,7 @@ const DoctorAppointments = () => {
           onClick={() => setActiveTab("all")}
         >
           <i className="bi-list"></i>
-          <span>Tất cả</span>
+          <span>Tat ca</span>
           <span className="tab-count">{statsData.total}</span>
         </button>
       </div>
@@ -655,27 +652,27 @@ const DoctorAppointments = () => {
       <div className="filters">
         <div className="filter-group">
           <label htmlFor="status-filter">
-            <i className="bi-funnel"></i> Trạng thái
+            <i className="bi-funnel"></i> Trang thai
           </label>
           <select
             id="status-filter"
             value={filters.status}
             onChange={(e) => setFilters({ ...filters, status: e.target.value })}
           >
-            <option value="ALL">Tất cả trạng thái</option>
-            <option value="TODAY">Hôm nay</option>
-            <option value="CONFIRMED">Chờ khám</option>
-            <option value="APPROVED">Đã duyệt</option>
-            <option value="PENDING">Chờ xác nhận</option>
-            <option value="COMPLETED">Đã khám</option>
-            <option value="CANCELLED">Đã hủy</option>
-            <option value="IN_PROGRESS">Đang khám</option>
+            <option value="ALL">Tat ca trang thai</option>
+            <option value="TODAY">Hom nay</option>
+            <option value="CONFIRMED">Cho kham</option>
+            <option value="APPROVED">Da duyet</option>
+            <option value="PENDING">Cho xac nhan</option>
+            <option value="COMPLETED">Da kham</option>
+            <option value="CANCELLED">Da huy</option>
+            <option value="IN_PROGRESS">Dang kham</option>
           </select>
         </div>
 
         <div className="filter-group">
           <label htmlFor="date-filter">
-            <i className="bi-calendar"></i> Ngày khám
+            <i className="bi-calendar"></i> Ngay kham
           </label>
           <input
             id="date-filter"
@@ -687,13 +684,13 @@ const DoctorAppointments = () => {
 
         <div className="filter-group filter-search">
           <label htmlFor="search-filter">
-            <i className="bi-search"></i> Tìm kiếm
+            <i className="bi-search"></i> Tim kiem
           </label>
           <div className="search-wrapper">
             <input
               id="search-filter"
               type="text"
-              placeholder="Tên, SĐT, mã đơn, khoa..."
+              placeholder="Ten, SDT, ma don, khoa..."
               value={filters.search}
               onChange={(e) =>
                 setFilters({ ...filters, search: e.target.value })
@@ -720,7 +717,7 @@ const DoctorAppointments = () => {
             })
           }
         >
-          <i className="bi-x-circle"></i> Xóa bộ lọc
+          <i className="bi-x-circle"></i> Xoa bo loc
         </button>
       </div>
 
@@ -729,7 +726,7 @@ const DoctorAppointments = () => {
         <div className="list-header">
           <h2>
             <i className="bi-person-lines-fill"></i>
-            Danh sách bệnh nhân
+            Danh sach benh nhan
             <span className="count-badge">{filteredAppointments.length}</span>
           </h2>
           <button
@@ -737,15 +734,15 @@ const DoctorAppointments = () => {
             onClick={() => window.location.reload()}
           >
             <i className="bi-arrow-clockwise"></i>
-            Làm mới
+            Lam moi
           </button>
         </div>
 
         {filteredAppointments.length === 0 ? (
           <div className="empty-state">
             <i className="bi-person-x"></i>
-            <h3>Không có bệnh nhân nào</h3>
-            <p>Vui lòng kiểm tra lại bộ lọc hoặc ngày khám</p>
+            <h3>Khong co benh nhan nao</h3>
+            <p>Vui long kiem tra lai bo loc hoac ngay kham</p>
           </div>
         ) : (
           <div className="appointments">
@@ -770,10 +767,9 @@ const DoctorAppointments = () => {
                         </span>
                       </h3>
                       <div className="status-container">
-                        {/* Sử dụng getStatusBadge và getPaymentStatusBadge */}
                         {getStatusBadge(appointment.status)}
                         {getPaymentStatusBadge(
-                          appointment.paymentStatus || "UNPAID"
+                          appointment.paymentStatus || "UNPAID",
                         )}
                       </div>
                     </div>
@@ -791,10 +787,10 @@ const DoctorAppointments = () => {
                   <div className="info-row">
                     <div className="info-item">
                       <span className="info-label">
-                        <i className="bi-telephone"></i> SĐT
+                        <i className="bi-telephone"></i> SDT
                       </span>
                       <span className="info-value">
-                        {appointment.phone || "Chưa có"}
+                        {appointment.phone || "Chua co"}
                       </span>
                     </div>
                     <div className="info-item">
@@ -802,7 +798,7 @@ const DoctorAppointments = () => {
                         <i className="bi-envelope"></i> Email
                       </span>
                       <span className="info-value">
-                        {appointment.email || "Chưa có"}
+                        {appointment.email || "Chua co"}
                       </span>
                     </div>
                     <div className="info-item">
@@ -810,14 +806,14 @@ const DoctorAppointments = () => {
                         <i className="bi-hospital"></i> Khoa
                       </span>
                       <span className="info-value">
-                        {appointment.department || "Chưa có"}
+                        {appointment.department || "Chua co"}
                       </span>
                     </div>
                   </div>
                   <div className="info-row">
                     <div className="info-item">
                       <span className="info-label">
-                        <i className="bi-calendar-event"></i> Ngày khám
+                        <i className="bi-calendar-event"></i> Ngay kham
                       </span>
                       <span className="info-value">
                         {formatDate(appointment.appointmentDate)}
@@ -825,7 +821,7 @@ const DoctorAppointments = () => {
                     </div>
                     <div className="info-item">
                       <span className="info-label">
-                        <i className="bi-cash"></i> Phí khám
+                        <i className="bi-cash"></i> Phi kham
                       </span>
                       <span
                         className={`info-value fee-${
@@ -839,12 +835,12 @@ const DoctorAppointments = () => {
                     </div>
                     <div className="info-item">
                       <span className="info-label">
-                        <i className="bi-sort-numeric-up"></i> Số thứ tự
+                        <i className="bi-sort-numeric-up"></i> So thu tu
                       </span>
                       <span className="info-value queue-number">
                         {appointment.queueNumber
-                          ? `#${appointment.queueNumber}`
-                          : "Chưa có"}
+                          ? "#" + appointment.queueNumber
+                          : "Chua co"}
                       </span>
                     </div>
                   </div>
@@ -856,7 +852,7 @@ const DoctorAppointments = () => {
                       <div className="detail-section symptoms-section">
                         <div className="section-header">
                           <h4 className="section-title">
-                            <i className="bi-clipboard-pulse"></i> TRIỆU CHỨNG
+                            <i className="bi-clipboard-pulse"></i> TRIEU CHUNG
                           </h4>
                           <div className="section-divider"></div>
                         </div>
@@ -869,29 +865,29 @@ const DoctorAppointments = () => {
                     <div className="detail-section appointment-section">
                       <div className="section-header">
                         <h4 className="section-title">
-                          <i className="bi-calendar-check"></i> THÔNG TIN KHÁM
+                          <i className="bi-calendar-check"></i> THONG TIN KHAM
                         </h4>
                         <div className="section-divider"></div>
                       </div>
                       <div className="appointment-info">
                         <div>
-                          <span>Giờ hẹn:</span>{" "}
-                          {appointment.expectedTimeSlot || "Chưa có"}
+                          <span>Gio hen:</span>{" "}
+                          {appointment.expectedTimeSlot || "Chua co"}
                         </div>
                         {appointment.roomNumber && (
                           <div>
-                            <span>Phòng khám:</span> {appointment.roomNumber}
+                            <span>Phong kham:</span> {appointment.roomNumber}
                           </div>
                         )}
                         {appointment.dob && (
                           <div>
-                            <span>Ngày sinh:</span>{" "}
+                            <span>Ngay sinh:</span>{" "}
                             {formatDate(appointment.dob)}
                           </div>
                         )}
                         {appointment.gender && (
                           <div>
-                            <span>Giới tính:</span> {appointment.gender}
+                            <span>Gioi tinh:</span> {appointment.gender}
                           </div>
                         )}
                       </div>
@@ -900,7 +896,7 @@ const DoctorAppointments = () => {
                     <div className="actions-section">
                       <div className="section-header">
                         <h4 className="section-title">
-                          <i className="bi-gear"></i> THAO TÁC
+                          <i className="bi-gear"></i> THAO TAC
                         </h4>
                         <div className="section-divider"></div>
                       </div>
@@ -921,8 +917,8 @@ const DoctorAppointments = () => {
                                 <i className="bi-heart-pulse"></i>
                               )}
                               {actionLoading === appointment.id
-                                ? "Đang xử lý..."
-                                : "Bắt đầu khám"}
+                                ? "Dang xu ly..."
+                                : "Bat dau kham"}
                             </button>
                             <button
                               className="action-btn complete-btn"
@@ -937,10 +933,9 @@ const DoctorAppointments = () => {
                                 <i className="bi-check-circle"></i>
                               )}
                               {actionLoading === appointment.id
-                                ? "Đang xử lý..."
-                                : "Đánh dấu đã khám"}
+                                ? "Dang xu ly..."
+                                : "Danh dau da kham"}
                             </button>
-                            {/* Thêm nút đánh dấu không đi khám */}
                             <button
                               className="action-btn missed-btn"
                               onClick={() => handleMarkAsMissed(appointment.id)}
@@ -952,8 +947,8 @@ const DoctorAppointments = () => {
                                 <i className="bi-x-circle"></i>
                               )}
                               {actionLoading === appointment.id
-                                ? "Đang xử lý..."
-                                : "Không đi khám"}
+                                ? "Dang xu ly..."
+                                : "Khong di kham"}
                             </button>
                           </>
                         )}
@@ -962,11 +957,11 @@ const DoctorAppointments = () => {
                           <button
                             className="action-btn start-exam-btn"
                             onClick={() =>
-                              navigate(`/doctor/examination/${appointment.id}`)
+                              navigate("/doctor/examination/" + appointment.id)
                             }
                           >
                             <i className="bi-heart-pulse"></i>
-                            Tiếp tục khám
+                            Tiep tuc kham
                           </button>
                         )}
 
@@ -979,7 +974,7 @@ const DoctorAppointments = () => {
                               }
                             >
                               <i className="bi-capsule"></i>
-                              Kê đơn thuốc
+                              Ke don thuoc
                             </button>
                           )}
                       </div>
@@ -1000,7 +995,7 @@ const DoctorAppointments = () => {
               <i className="bi-bell-fill"></i>
             </div>
             <div className="toast-title">
-              <h4>Có bệnh nhân mới cần khám!</h4>
+              <h4>Co benh nhan moi can kham!</h4>
             </div>
             <button
               className="toast-close"
@@ -1030,7 +1025,7 @@ const DoctorAppointments = () => {
                   setShowNotification(false);
                 }}
               >
-                <i className="bi-lightning"></i> Bắt đầu khám
+                <i className="bi-lightning"></i> Bat dau kham
               </button>
               <button
                 className="toast-btn close"

@@ -1,218 +1,190 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { format } from "date-fns";
 import vi from "date-fns/locale/vi";
-import {
-  FaFileMedical,
-  FaSearch,
-  FaTimes,
-  FaEye,
-  FaPrint,
-  FaDownload,
-  FaShareAlt,
-  FaChevronLeft,
-  FaChevronRight,
-  FaFilter,
-  FaCalendar,
-  FaUserMd,
-  FaPills,
-  FaNotesMedical,
-  FaStethoscope,
-  FaClipboardCheck,
-  FaExclamationTriangle,
-  FaInfoCircle,
-  FaSpinner,
-  FaHome,
-  FaPhoneAlt,
-  FaQuestionCircle,
-  FaRedo,
-  FaClock,
-} from "react-icons/fa";
 import "../../css/MedicalExaminationResults.css";
 
 const MedicalExaminationResults = () => {
-  const [user, setUser] = useState(null);
-  const [medicalRecords, setMedicalRecords] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [errorMessage, setErrorMessage] = useState("");
-  const [page, setPage] = useState(0);
-  const [rowsPerPage] = useState(10);
-  const [totalRecords, setTotalRecords] = useState(0);
+  const [userData, setUserData] = useState(null);
+  const [examinationData, setExaminationData] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [errorText, setErrorText] = useState("");
+  const [currentPage, setCurrentPage] = useState(0);
+  const [itemsPerPage] = useState(10);
+  const [totalItems, setTotalItems] = useState(0);
 
-  // States for search
-  const [searchKeyword, setSearchKeyword] = useState("");
-  const [searchFromDate, setSearchFromDate] = useState("");
-  const [searchToDate, setSearchToDate] = useState("");
+  const [searchText, setSearchText] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
 
-  // States for detail view
-  const [selectedRecord, setSelectedRecord] = useState(null);
-  const [detailDialogOpen, setDetailDialogOpen] = useState(false);
-  const [detailLoading, setDetailLoading] = useState(false);
+  const [selectedItem, setSelectedItem] = useState(null);
+  const [showDetail, setShowDetail] = useState(false);
+  const [loadingDetail, setLoadingDetail] = useState(false);
 
-  const getToken = useCallback(() => {
-    const userData = localStorage.getItem("user");
-    if (!userData) return null;
+  const getAuthToken = useCallback(() => {
+    const storedUser = localStorage.getItem("user");
+    if (!storedUser) return null;
     try {
-      return JSON.parse(userData)?.token || null;
+      return JSON.parse(storedUser)?.token || null;
     } catch {
       return null;
     }
   }, []);
 
-  const fetchMedicalRecords = useCallback(async () => {
-    if (!user?.id) return;
+  const loadExaminationData = useCallback(async () => {
+    if (!userData?.id) return;
 
-    setLoading(true);
-    setErrorMessage("");
+    setIsLoading(true);
+    setErrorText("");
 
     try {
-      const token = getToken();
-      if (!token) {
-        setErrorMessage("Vui lòng đăng nhập để xem kết quả khám bệnh");
-        setLoading(false);
+      const authToken = getAuthToken();
+      if (!authToken) {
+        setErrorText("Vui lòng đăng nhập để xem kết quả");
+        setIsLoading(false);
         return;
       }
 
-      const response = await fetch(
-        `http://localhost:8080/api/patient/medical-records?patientId=${user.id}&page=${page}&size=${rowsPerPage}`,
+      const apiResponse = await fetch(
+        `http://localhost:8080/api/patient/medical-records?patientId=${userData.id}&page=${currentPage}&size=${itemsPerPage}`,
         {
           headers: {
-            Authorization: `Bearer ${token}`,
+            Authorization: `Bearer ${authToken}`,
             "Content-Type": "application/json",
           },
         },
       );
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+      if (!apiResponse.ok) {
+        throw new Error(`Lỗi HTTP! Mã lỗi: ${apiResponse.status}`);
       }
 
-      const data = await response.json();
+      const resultData = await apiResponse.json();
 
-      if (data.success) {
-        setMedicalRecords(data.medicalRecords || []);
-        setTotalRecords(data.totalItems || 0);
+      if (resultData.success) {
+        setExaminationData(resultData.medicalRecords || []);
+        setTotalItems(resultData.totalItems || 0);
       } else {
-        setErrorMessage(data.message || "Không thể tải dữ liệu");
+        setErrorText(resultData.message || "Không thể tải dữ liệu");
       }
-    } catch (err) {
-      console.error("Error fetching medical records:", err);
-      setErrorMessage("Lỗi khi kết nối đến server");
+    } catch (error) {
+      console.error("Lỗi khi tải dữ liệu:", error);
+      setErrorText("Lỗi kết nối đến máy chủ");
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
-  }, [user, page, rowsPerPage, getToken]);
+  }, [userData, currentPage, itemsPerPage, getAuthToken]);
 
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
     if (storedUser) {
       try {
         const parsedUser = JSON.parse(storedUser);
-        setUser(parsedUser);
-      } catch (e) {
-        console.error("Error parsing user:", e);
+        setUserData(parsedUser);
+      } catch (parseError) {
+        console.error("Lỗi phân tích dữ liệu người dùng:", parseError);
       }
     }
   }, []);
 
   useEffect(() => {
-    if (user?.id) {
-      fetchMedicalRecords();
+    if (userData?.id) {
+      loadExaminationData();
     }
-  }, [user, fetchMedicalRecords]);
+  }, [userData, loadExaminationData]);
 
-  const handleSearch = async () => {
-    if (!user?.id) return;
+  const performSearch = async () => {
+    if (!userData?.id) return;
 
-    setLoading(true);
-    setErrorMessage("");
+    setIsLoading(true);
+    setErrorText("");
 
     try {
-      const token = getToken();
-      let url = `http://localhost:8080/api/patient/medical-records/search?patientId=${user.id}&page=0&size=${rowsPerPage}`;
+      const authToken = getAuthToken();
+      let apiUrl = `http://localhost:8080/api/patient/medical-records/search?patientId=${userData.id}&page=0&size=${itemsPerPage}`;
 
-      if (searchKeyword) {
-        url += `&keyword=${encodeURIComponent(searchKeyword)}`;
+      if (searchText) {
+        apiUrl += `&keyword=${encodeURIComponent(searchText)}`;
       }
-      if (searchFromDate) {
-        url += `&fromDate=${searchFromDate}`;
+      if (startDate) {
+        apiUrl += `&fromDate=${startDate}`;
       }
-      if (searchToDate) {
-        url += `&toDate=${searchToDate}`;
+      if (endDate) {
+        apiUrl += `&toDate=${endDate}`;
       }
 
-      const response = await fetch(url, {
+      const apiResponse = await fetch(apiUrl, {
         headers: {
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${authToken}`,
           "Content-Type": "application/json",
         },
       });
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+      if (!apiResponse.ok) {
+        throw new Error(`Lỗi HTTP! Mã lỗi: ${apiResponse.status}`);
       }
 
-      const data = await response.json();
+      const resultData = await apiResponse.json();
 
-      if (data.success) {
-        setMedicalRecords(data.medicalRecords || []);
-        setTotalRecords(data.totalItems || 0);
-        setPage(0);
+      if (resultData.success) {
+        setExaminationData(resultData.medicalRecords || []);
+        setTotalItems(resultData.totalItems || 0);
+        setCurrentPage(0);
       } else {
-        setErrorMessage(data.message || "Không thể tìm kiếm dữ liệu");
+        setErrorText(resultData.message || "Không thể thực hiện tìm kiếm");
       }
-    } catch (err) {
-      console.error("Error searching medical records:", err);
-      setErrorMessage("Lỗi khi tìm kiếm");
+    } catch (error) {
+      console.error("Lỗi khi tìm kiếm:", error);
+      setErrorText("Lỗi trong quá trình tìm kiếm");
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
-  const handleClearSearch = () => {
-    setSearchKeyword("");
-    setSearchFromDate("");
-    setSearchToDate("");
-    if (user?.id) {
-      fetchMedicalRecords();
+  const resetSearchFilters = () => {
+    setSearchText("");
+    setStartDate("");
+    setEndDate("");
+    if (userData?.id) {
+      loadExaminationData();
     }
   };
 
-  const handleViewDetail = async (recordId) => {
-    setDetailLoading(true);
+  const viewDetail = async (recordId) => {
+    setLoadingDetail(true);
 
     try {
-      const token = getToken();
-      const response = await fetch(
-        `http://localhost:8080/api/patient/medical-records/${recordId}?patientId=${user.id}`,
+      const authToken = getAuthToken();
+      const apiResponse = await fetch(
+        `http://localhost:8080/api/patient/medical-records/${recordId}?patientId=${userData.id}`,
         {
           headers: {
-            Authorization: `Bearer ${token}`,
+            Authorization: `Bearer ${authToken}`,
             "Content-Type": "application/json",
           },
         },
       );
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+      if (!apiResponse.ok) {
+        throw new Error(`Lỗi HTTP! Mã lỗi: ${apiResponse.status}`);
       }
 
-      const data = await response.json();
+      const resultData = await apiResponse.json();
 
-      if (data.success) {
-        setSelectedRecord(data.medicalRecord);
-        setDetailDialogOpen(true);
+      if (resultData.success) {
+        setSelectedItem(resultData.medicalRecord);
+        setShowDetail(true);
       } else {
-        setErrorMessage(data.message || "Không thể xem chi tiết");
+        setErrorText(resultData.message || "Không thể xem chi tiết");
       }
-    } catch (err) {
-      console.error("Error fetching record detail:", err);
-      setErrorMessage("Lỗi khi lấy chi tiết");
+    } catch (error) {
+      console.error("Lỗi khi lấy chi tiết:", error);
+      setErrorText("Lỗi khi truy xuất dữ liệu chi tiết");
     } finally {
-      setDetailLoading(false);
+      setLoadingDetail(false);
     }
   };
 
-  const handlePrint = (record) => {
+  const printRecord = (record) => {
     const printWindow = window.open("", "_blank");
     printWindow.document.write(`
       <html>
@@ -331,69 +303,58 @@ const MedicalExaminationResults = () => {
     printWindow.print();
   };
 
-  const handleChangePage = (newPage) => {
-    setPage(newPage);
+  const changePage = (newPage) => {
+    setCurrentPage(newPage);
   };
 
-  const getStatusBadge = (status) => {
-    const statusConfig = {
+  const getStatusDisplay = (status) => {
+    const statusOptions = {
       COMPLETED: {
         label: "ĐÃ HOÀN THÀNH",
-        class: "status-completed",
-        icon: <FaClipboardCheck size={14} />,
+        className: "status-completed",
       },
       IN_PROGRESS: {
         label: "ĐANG KHÁM",
-        class: "status-in-progress",
-        icon: <FaStethoscope size={14} />,
+        className: "status-in-progress",
       },
       PENDING: {
         label: "CHỜ KHÁM",
-        class: "status-pending",
-        icon: <FaClock size={14} />,
+        className: "status-pending",
       },
       CANCELLED: {
         label: "ĐÃ HỦY",
-        class: "status-cancelled",
-        icon: <FaTimes size={14} />,
+        className: "status-cancelled",
       },
     };
 
-    const config = statusConfig[status] || {
+    const option = statusOptions[status] || {
       label: "KHÔNG XÁC ĐỊNH",
-      class: "status-default",
-      icon: <FaInfoCircle size={14} />,
+      className: "status-default",
     };
 
     return (
-      <span className={`status-badge ${config.class}`}>
-        {config.icon}
-        <span>{config.label}</span>
+      <span className={`status-badge ${option.className}`}>
+        <span>{option.label}</span>
       </span>
     );
   };
 
-  const startIndex = page * rowsPerPage;
-  const currentRecords = medicalRecords;
-  const endIndex = startIndex + (medicalRecords ? medicalRecords.length : 0);
+  const startIndex = currentPage * itemsPerPage;
+  const currentRecords = examinationData;
+  const endIndex = startIndex + (examinationData ? examinationData.length : 0);
 
-  const formatDate = (dateString) => {
+  const formatDateDisplay = (dateString) => {
     if (!dateString) return "Chưa có";
     return format(new Date(dateString), "dd/MM/yyyy", { locale: vi });
   };
 
-  // const formatDateTime = (dateString) => {
-  //   if (!dateString) return "Chưa có";
-  //   return format(new Date(dateString), "dd/MM/yyyy HH:mm", { locale: vi });
-  // };
-
-  if (loading && medicalRecords.length === 0) {
+  if (isLoading && examinationData.length === 0) {
     return (
       <div className="medical-results-container">
         <div className="loading-overlay">
           <div className="loading-content">
             <div className="spinner-large">
-              <FaSpinner className="animate-spin" size={48} />
+              <div className="spinner-icon"></div>
             </div>
             <p className="loading-text">Đang tải kết quả khám bệnh...</p>
             <p className="loading-subtext">Vui lòng đợi trong giây lát</p>
@@ -405,11 +366,10 @@ const MedicalExaminationResults = () => {
 
   return (
     <div className="medical-results-container">
-      {/* Header */}
       <div className="patient-header">
         <div className="header-content">
           <div className="header-icon-wrapper">
-            <FaFileMedical size={40} />
+            <div className="header-icon"></div>
           </div>
           <h1 className="header-title">KẾT QUẢ KHÁM BỆNH</h1>
           <p className="header-subtitle">
@@ -418,44 +378,42 @@ const MedicalExaminationResults = () => {
         </div>
       </div>
 
-      {/* Thông báo lỗi */}
-      {errorMessage && (
+      {errorText && (
         <div className="error-message-card">
           <div className="error-icon">
-            <FaExclamationTriangle size={40} />
+            <div className="error-icon-img"></div>
           </div>
           <div className="error-content">
             <h4>CÓ LỖI XẢY RA</h4>
-            <p>{errorMessage}</p>
+            <p>{errorText}</p>
           </div>
-          <button className="retry-button-large" onClick={fetchMedicalRecords}>
-            <FaRedo size={18} />
+          <button className="retry-button-large" onClick={loadExaminationData}>
+            <div className="retry-icon"></div>
             THỬ LẠI
           </button>
         </div>
       )}
 
-      {/* Thống kê nhanh */}
       <div className="quick-stats">
         <div className="stat-card">
           <div className="stat-icon">
-            <FaFileMedical size={32} />
+            <div className="stat-icon-img"></div>
           </div>
           <div className="stat-content">
             <h3>Tổng số kết quả</h3>
-            <p className="stat-number">{totalRecords}</p>
+            <p className="stat-number">{totalItems}</p>
           </div>
         </div>
 
         <div className="stat-card">
           <div className="stat-icon">
-            <FaClipboardCheck size={32} />
+            <div className="stat-icon-img"></div>
           </div>
           <div className="stat-content">
             <h3>Đã hoàn thành</h3>
             <p className="stat-number">
               {
-                medicalRecords.filter(
+                examinationData.filter(
                   (r) => r.examinationStatus === "COMPLETED",
                 ).length
               }
@@ -465,13 +423,13 @@ const MedicalExaminationResults = () => {
 
         <div className="stat-card">
           <div className="stat-icon">
-            <FaStethoscope size={32} />
+            <div className="stat-icon-img"></div>
           </div>
           <div className="stat-content">
             <h3>Đang khám</h3>
             <p className="stat-number">
               {
-                medicalRecords.filter(
+                examinationData.filter(
                   (r) => r.examinationStatus === "IN_PROGRESS",
                 ).length
               }
@@ -481,13 +439,13 @@ const MedicalExaminationResults = () => {
 
         <div className="stat-card">
           <div className="stat-icon">
-            <FaPills size={32} />
+            <div className="stat-icon-img"></div>
           </div>
           <div className="stat-content">
             <h3>Có thuốc kê</h3>
             <p className="stat-number">
               {
-                medicalRecords.filter(
+                examinationData.filter(
                   (r) => r.medications && r.medications.length > 0,
                 ).length
               }
@@ -496,25 +454,24 @@ const MedicalExaminationResults = () => {
         </div>
       </div>
 
-      {/* Bộ lọc đơn giản */}
       <div className="simple-filters">
         <div className="filters-title">
-          <FaSearch size={24} />
+          <div className="filter-title-icon"></div>
           <h2>TÌM KẾT QUẢ KHÁM</h2>
         </div>
 
         <div className="filter-row single">
           <div className="filter-group">
             <label htmlFor="keyword-search">
-              <FaSearch size={18} />
+              <div className="filter-label-icon"></div>
               <span>Từ khóa</span>
             </label>
             <input
               id="keyword-search"
               type="text"
               placeholder="Triệu chứng, chẩn đoán, bác sĩ..."
-              value={searchKeyword}
-              onChange={(e) => setSearchKeyword(e.target.value)}
+              value={searchText}
+              onChange={(e) => setSearchText(e.target.value)}
               className="filter-input"
             />
           </div>
@@ -523,43 +480,43 @@ const MedicalExaminationResults = () => {
         <div className="filter-row">
           <div className="filter-group">
             <label htmlFor="from-date">
-              <FaCalendar size={18} />
+              <div className="filter-label-icon"></div>
               <span>Từ ngày</span>
             </label>
             <input
               id="from-date"
               type="date"
-              value={searchFromDate}
-              onChange={(e) => setSearchFromDate(e.target.value)}
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
               className="filter-input"
             />
           </div>
 
           <div className="filter-group">
             <label htmlFor="to-date">
-              <FaCalendar size={18} />
+              <div className="filter-label-icon"></div>
               <span>Đến ngày</span>
             </label>
             <input
               id="to-date"
               type="date"
-              value={searchToDate}
-              onChange={(e) => setSearchToDate(e.target.value)}
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
               className="filter-input"
             />
           </div>
 
           <div className="filter-group form-buttons">
-            <button className="search-button" onClick={handleSearch}>
-              <FaSearch size={18} />
+            <button className="search-button" onClick={performSearch}>
+              <div className="search-button-icon"></div>
               TÌM KIẾM
             </button>
-            {(searchKeyword || searchFromDate || searchToDate) && (
+            {(searchText || startDate || endDate) && (
               <button
                 className="clear-filters-button"
-                onClick={handleClearSearch}
+                onClick={resetSearchFilters}
               >
-                <FaTimes size={18} />
+                <div className="clear-button-icon"></div>
                 XÓA BỘ LỌC
               </button>
             )}
@@ -567,30 +524,29 @@ const MedicalExaminationResults = () => {
         </div>
       </div>
 
-      {/* Danh sách kết quả */}
       <div className="results-section">
         <div className="section-header">
           <div className="section-title">
-            <FaFileMedical size={24} />
+            <div className="section-title-icon"></div>
             <h2>
               DANH SÁCH KẾT QUẢ
               <span className="record-count"> ({currentRecords.length})</span>
             </h2>
           </div>
-          <button className="refresh-button" onClick={fetchMedicalRecords}>
-            <FaRedo size={18} />
+          <button className="refresh-button" onClick={loadExaminationData}>
+            <div className="refresh-icon"></div>
             <span>LÀM MỚI</span>
           </button>
         </div>
 
-        {medicalRecords.length === 0 ? (
+        {examinationData.length === 0 ? (
           <div className="empty-state">
             <div className="empty-icon">
-              <FaFileMedical size={80} />
+              <div className="empty-icon-img"></div>
             </div>
             <h3>KHÔNG CÓ KẾT QUẢ NÀO</h3>
             <p>
-              {searchKeyword || searchFromDate || searchToDate
+              {searchText || startDate || endDate
                 ? "Không tìm thấy kết quả khám nào phù hợp với bộ lọc"
                 : "Bạn chưa có kết quả khám bệnh nào"}
             </p>
@@ -608,7 +564,7 @@ const MedicalExaminationResults = () => {
                       <th>Chẩn đoán</th>
                       <th>Bác sĩ</th>
                       <th>Trạng thái</th>
-                      <th>Thao tác (Xem chi tiết, In)</th>
+                      <th>Thao tác</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -617,7 +573,7 @@ const MedicalExaminationResults = () => {
                         <td>{startIndex + index + 1}</td>
                         <td>
                           {record.examinationDate
-                            ? formatDate(record.examinationDate)
+                            ? formatDateDisplay(record.examinationDate)
                             : "Không xác định"}
                         </td>
                         <td
@@ -634,7 +590,7 @@ const MedicalExaminationResults = () => {
                         </td>
                         <td>
                           <div className="doctor-info">
-                            <FaUserMd size={18} />
+                            <div className="doctor-icon"></div>
                             <div>
                               <strong>
                                 {record.doctorName || "Không xác định"}
@@ -643,26 +599,26 @@ const MedicalExaminationResults = () => {
                             </div>
                           </div>
                         </td>
-                        <td>{getStatusBadge(record.examinationStatus)}</td>
+                        <td>{getStatusDisplay(record.examinationStatus)}</td>
                         <td className="action-cell">
                           <div className="action-buttons">
                             <button
                               className="btn btn-sm btn-info action-btn-view"
-                              onClick={() => handleViewDetail(record.id)}
-                              disabled={detailLoading}
+                              onClick={() => viewDetail(record.id)}
+                              disabled={loadingDetail}
                               aria-label="Xem chi tiết"
                               title="Xem chi tiết"
                             >
-                              <FaEye aria-hidden="true" />
+                              <div className="view-icon"></div>
                               <span className="action-label">Xem chi tiết</span>
                             </button>
                             <button
                               className="btn btn-sm btn-secondary action-btn-print"
-                              onClick={() => handlePrint(record)}
+                              onClick={() => printRecord(record)}
                               aria-label="In kết quả"
                               title="In kết quả"
                             >
-                              <FaPrint aria-hidden="true" />
+                              <div className="print-icon"></div>
                               <span className="action-label">In</span>
                             </button>
                           </div>
@@ -675,155 +631,146 @@ const MedicalExaminationResults = () => {
 
               <div className="table-footer">
                 <div className="pagination-info">
-                  Hiển thị {startIndex + 1} - {endIndex} trên {totalRecords} kết
+                  Hiển thị {startIndex + 1} - {endIndex} trên {totalItems} kết
                   quả
                 </div>
                 <div className="pagination-controls">
                   <button
                     className="btn btn-sm"
-                    onClick={() => handleChangePage(page - 1)}
-                    disabled={page === 0}
+                    onClick={() => changePage(currentPage - 1)}
+                    disabled={currentPage === 0}
                   >
-                    <FaChevronLeft size={16} /> Trước
+                    <div className="prev-icon"></div> Trước
                   </button>
                   <span className="page-numbers">
-                    Trang {page + 1} /{" "}
-                    {Math.max(1, Math.ceil(totalRecords / rowsPerPage))}
+                    Trang {currentPage + 1} /{" "}
+                    {Math.max(1, Math.ceil(totalItems / itemsPerPage))}
                   </span>
                   <button
                     className="btn btn-sm"
-                    onClick={() => handleChangePage(page + 1)}
-                    disabled={endIndex >= totalRecords}
+                    onClick={() => changePage(currentPage + 1)}
+                    disabled={endIndex >= totalItems}
                   >
-                    Sau <FaChevronRight size={16} />
+                    Sau <div className="next-icon"></div>
                   </button>
                 </div>
-                {/* page-size selector removed per UX request */}
               </div>
             </div>
           </>
         )}
       </div>
 
-      {/* Modal chi tiết kết quả */}
-      {detailDialogOpen && selectedRecord && (
-        <div
-          className="modal-overlay"
-          onClick={() => setDetailDialogOpen(false)}
-        >
+      {showDetail && selectedItem && (
+        <div className="modal-overlay" onClick={() => setShowDetail(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            {detailLoading ? (
+            {loadingDetail ? (
               <div className="modal-loading">
-                <FaSpinner className="animate-spin" size={32} />
+                <div className="modal-spinner"></div>
                 <p>Đang tải chi tiết...</p>
               </div>
             ) : (
               <>
                 <div className="modal-header">
                   <h2>
-                    <FaFileMedical size={24} />
+                    <div className="modal-title-icon"></div>
                     <span>CHI TIẾT KẾT QUẢ KHÁM</span>
                   </h2>
                   <button
                     className="close-modal"
-                    onClick={() => setDetailDialogOpen(false)}
+                    onClick={() => setShowDetail(false)}
                     aria-label="Đóng cửa sổ"
                   >
-                    <FaTimes size={24} />
+                    <div className="close-icon"></div>
                   </button>
                 </div>
 
                 <div className="modal-body">
-                  {/* Thông tin chung */}
                   <div className="detail-section">
                     <h3 className="section-title">
-                      <FaInfoCircle size={18} />
+                      <div className="section-title-icon-small"></div>
                       <span>THÔNG TIN CHUNG</span>
                     </h3>
                     <div className="info-grid">
                       <div className="info-item">
                         <span className="info-label">Ngày khám:</span>
                         <span className="info-value">
-                          {formatDate(selectedRecord.examinationDate)}
+                          {formatDateDisplay(selectedItem.examinationDate)}
                         </span>
                       </div>
                       <div className="info-item">
                         <span className="info-label">Bác sĩ:</span>
                         <span className="info-value highlight">
-                          {selectedRecord.doctorName}
+                          {selectedItem.doctorName}
                         </span>
                       </div>
                       <div className="info-item">
                         <span className="info-label">Chuyên khoa:</span>
                         <span className="info-value">
-                          {selectedRecord.doctorSpecialty}
+                          {selectedItem.doctorSpecialty}
                         </span>
                       </div>
                       <div className="info-item">
                         <span className="info-label">Trạng thái:</span>
                         <span className="info-value">
-                          {getStatusBadge(selectedRecord.examinationStatus)}
+                          {getStatusDisplay(selectedItem.examinationStatus)}
                         </span>
                       </div>
                     </div>
                   </div>
 
-                  {/* Thông tin khám */}
                   <div className="detail-section">
                     <h3 className="section-title">
-                      <FaStethoscope size={18} />
+                      <div className="section-title-icon-small"></div>
                       <span>THÔNG TIN KHÁM</span>
                     </h3>
                     <div className="info-content">
                       <div className="info-block">
                         <h4>Triệu chứng chính:</h4>
                         <div className="info-text">
-                          {selectedRecord.chiefComplaint || "Không có"}
+                          {selectedItem.chiefComplaint || "Không có"}
                         </div>
                       </div>
                       <div className="info-block">
                         <h4>Tiền sử bệnh:</h4>
                         <div className="info-text">
-                          {selectedRecord.historyOfIllness || "Không có"}
+                          {selectedItem.historyOfIllness || "Không có"}
                         </div>
                       </div>
                       <div className="info-block">
                         <h4>Khám thực thể:</h4>
                         <div className="info-text">
-                          {selectedRecord.physicalExamination || "Không có"}
+                          {selectedItem.physicalExamination || "Không có"}
                         </div>
                       </div>
                     </div>
                   </div>
 
-                  {/* Chẩn đoán */}
                   <div className="detail-section">
                     <h3 className="section-title">
-                      <FaNotesMedical size={18} />
+                      <div className="section-title-icon-small"></div>
                       <span>CHẨN ĐOÁN</span>
                     </h3>
                     <div className="info-content">
                       <div className="info-block">
                         <h4>Chẩn đoán sơ bộ:</h4>
                         <div className="info-text">
-                          {selectedRecord.preliminaryDiagnosis || "Không có"}
+                          {selectedItem.preliminaryDiagnosis || "Không có"}
                         </div>
                       </div>
                       <div className="info-block">
                         <h4>Chẩn đoán chính thức:</h4>
                         <div className="info-text">
-                          {selectedRecord.finalDiagnosis || "Không có"}
+                          {selectedItem.finalDiagnosis || "Không có"}
                         </div>
                       </div>
                     </div>
                   </div>
 
-                  {/* Thuốc được kê */}
-                  {selectedRecord.medications &&
-                    selectedRecord.medications.length > 0 && (
+                  {selectedItem.medications &&
+                    selectedItem.medications.length > 0 && (
                       <div className="detail-section">
                         <h3 className="section-title">
-                          <FaPills size={18} />
+                          <div className="section-title-icon-small"></div>
                           <span>THUỐC ĐƯỢC KÊ</span>
                         </h3>
                         <div className="medication-table-container">
@@ -838,7 +785,7 @@ const MedicalExaminationResults = () => {
                               </tr>
                             </thead>
                             <tbody>
-                              {selectedRecord.medications.map((med, index) => (
+                              {selectedItem.medications.map((med, index) => (
                                 <tr key={index}>
                                   <td>{med.name || ""}</td>
                                   <td>{med.dosage || ""}</td>
@@ -853,24 +800,23 @@ const MedicalExaminationResults = () => {
                       </div>
                     )}
 
-                  {/* Hướng dẫn & lời khuyên */}
                   <div className="detail-section">
                     <h3 className="section-title">
-                      <FaClipboardCheck size={18} />
+                      <div className="section-title-icon-small"></div>
                       <span>HƯỚNG DẪN & LỜI KHUYÊN</span>
                     </h3>
                     <div className="advice-content">
                       <div className="advice-text">
-                        {selectedRecord.advice || "Không có lời khuyên cụ thể"}
+                        {selectedItem.advice || "Không có lời khuyên cụ thể"}
                       </div>
-                      {selectedRecord.followUpDate && (
+                      {selectedItem.followUpDate && (
                         <div className="follow-up-info">
                           <div className="follow-up-icon">
-                            <FaCalendar size={16} />
+                            <div className="calendar-icon-small"></div>
                           </div>
                           <div className="follow-up-text">
                             <strong>HẸN TÁI KHÁM:</strong>{" "}
-                            {formatDate(selectedRecord.followUpDate)}
+                            {formatDateDisplay(selectedItem.followUpDate)}
                           </div>
                         </div>
                       )}
@@ -881,15 +827,15 @@ const MedicalExaminationResults = () => {
                 <div className="modal-footer">
                   <button
                     className="modal-button secondary"
-                    onClick={() => setDetailDialogOpen(false)}
+                    onClick={() => setShowDetail(false)}
                   >
                     ĐÓNG
                   </button>
                   <button
                     className="modal-button primary"
-                    onClick={() => handlePrint(selectedRecord)}
+                    onClick={() => printRecord(selectedItem)}
                   >
-                    <FaPrint size={18} />
+                    <div className="print-icon-small"></div>
                     IN KẾT QUẢ
                   </button>
                 </div>
@@ -899,10 +845,9 @@ const MedicalExaminationResults = () => {
         </div>
       )}
 
-      {/* Hỗ trợ nhanh */}
       <div className="quick-help">
         <div className="help-header">
-          <FaPhoneAlt size={24} />
+          <div className="help-header-icon"></div>
           <h3>CẦN HỖ TRỢ?</h3>
         </div>
         <p>
@@ -910,7 +855,7 @@ const MedicalExaminationResults = () => {
         </p>
         <p className="help-time">Thời gian: 7:00 - 22:00 hàng ngày</p>
         <button className="help-button">
-          <FaQuestionCircle size={20} />
+          <div className="help-button-icon"></div>
           <span>HƯỚNG DẪN CHI TIẾT</span>
         </button>
       </div>

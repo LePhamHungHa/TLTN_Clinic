@@ -10,27 +10,16 @@ const InvoiceHistory = () => {
   const [error, setError] = useState(null);
   const [userInfo, setUserInfo] = useState(null);
 
-  // Sử dụng useRef để theo dõi đã gọi API chưa
   const hasFetched = useRef(false);
-  const fetchCount = useRef(0);
 
-  // Lấy thông tin user từ localStorage khi component mount
   useEffect(() => {
-    // Kiểm tra đã gọi API chưa (tránh gọi 2 lần trong StrictMode)
     if (hasFetched.current) {
-      console.log("⚠️ Đã gọi API rồi, bỏ qua lần gọi thứ 2");
       return;
     }
 
     hasFetched.current = true;
-    fetchCount.current += 1;
-
-    console.log(
-      `🔄 InvoiceHistory useEffect RUNNING (call #${fetchCount.current})`
-    );
 
     const userData = JSON.parse(localStorage.getItem("user") || "{}");
-    console.log("👤 User info from localStorage:", userData);
     setUserInfo(userData);
 
     if (userData.email) {
@@ -39,32 +28,15 @@ const InvoiceHistory = () => {
       setError("Vui lòng đăng nhập để xem hóa đơn");
       setLoading(false);
     }
-
-    // Cleanup
-    return () => {
-      console.log("🧹 InvoiceHistory useEffect CLEANUP");
-    };
-  }, []); // Chỉ chạy 1 lần khi mount
+  }, []);
 
   const fetchPatientInvoices = async (userData) => {
-    const callId = Date.now(); // ID duy nhất cho mỗi lần gọi
-    console.log(`📞 fetchPatientInvoices STARTED (callId: ${callId})`);
-
     try {
       setLoading(true);
       setError(null);
 
-      console.log("🔍 Fetching invoices for user:", {
-        email: userData.email,
-        phone: userData.phone,
-        fullName: userData.fullName,
-      });
-
-      // CHỈ GỌI API VỚI AUTH (không thử nhiều API nữa)
       if (userData.token) {
         try {
-          console.log(`📡 Calling API /invoices/patient (callId: ${callId})`);
-
           const response = await axios.get(
             "http://localhost:8080/api/invoices/patient",
             {
@@ -75,62 +47,30 @@ const InvoiceHistory = () => {
               headers: {
                 Authorization: `Bearer ${userData.token}`,
               },
-            }
+            },
           );
 
-          console.log(`✅ API Response received (callId: ${callId}):`, {
-            dataType: Array.isArray(response.data)
-              ? "Array"
-              : typeof response.data,
-            length: Array.isArray(response.data) ? response.data.length : "N/A",
-          });
-
-          // Nếu response là array
           if (Array.isArray(response.data)) {
             setInvoices(response.data);
-            console.log(`📊 Đã nhận ${response.data.length} hóa đơn`);
-
-            // DEBUG: In chi tiết từng invoice
-            response.data.forEach((invoice, index) => {
-              console.log(`📄 Invoice ${index + 1}:`, {
-                id: invoice.id,
-                invoiceNumber: invoice.invoiceNumber,
-                transactionNo: invoice.transactionNo,
-                patientName: invoice.patientName,
-                amount: invoice.amount,
-                createdAt: invoice.createdAt,
-                status: invoice.status,
-              });
-            });
           } else {
-            console.log("⚠️ Response không phải array:", response.data);
             setInvoices([]);
           }
         } catch (authErr) {
-          console.error(
-            `❌ API with auth failed (callId: ${callId}):`,
-            authErr
-          );
-
-          // Nếu lỗi 403, có thể do CORS hoặc security config
           if (authErr.response?.status === 403) {
             setError("Không có quyền truy cập. Vui lòng đăng nhập lại.");
           } else {
             setError("Không thể tải danh sách hóa đơn");
           }
-
           setInvoices([]);
         }
       } else {
         setError("Không có token xác thực. Vui lòng đăng nhập lại.");
         setInvoices([]);
       }
-    } catch (err) {
-      console.error(`❌ Lỗi khi lấy hóa đơn (callId: ${callId}):`, err);
+    } catch {
       setError("Có lỗi xảy ra. Vui lòng thử lại sau.");
       setInvoices([]);
     } finally {
-      console.log(`🏁 fetchPatientInvoices COMPLETED (callId: ${callId})`);
       setLoading(false);
     }
   };
@@ -179,10 +119,7 @@ const InvoiceHistory = () => {
   };
 
   const viewInvoiceDetail = (invoiceNumber) => {
-    if (!invoiceNumber) {
-      console.error("❌ Không có invoiceNumber để xem chi tiết");
-      return;
-    }
+    if (!invoiceNumber) return;
     navigate(`/invoice/${invoiceNumber}`);
   };
 
@@ -269,9 +206,7 @@ const InvoiceHistory = () => {
           </div>
           <div class="info-row">
             <span class="info-label">Ngày thanh toán:</span>
-            <span>${formatDate(
-              invoice.paymentDate || invoice.invoiceDate
-            )}</span>
+            <span>${formatDate(invoice.paymentDate || invoice.invoiceDate)}</span>
           </div>
         </div>
         
@@ -288,17 +223,11 @@ const InvoiceHistory = () => {
   };
 
   const handleRefresh = () => {
-    console.log("🔄 Người dùng yêu cầu refresh invoices");
     if (userInfo) {
-      // Reset để có thể gọi lại
       hasFetched.current = false;
       fetchPatientInvoices(userInfo);
     }
   };
-
-  const renderCount = useRef(0);
-  renderCount.current += 1;
-  console.log(`🎨 InvoiceHistory rendered ${renderCount.current} times`);
 
   if (loading) {
     return (
@@ -307,7 +236,6 @@ const InvoiceHistory = () => {
           <div className="loading-spinner"></div>
           <h2>Đang tải thông tin hóa đơn...</h2>
           <p>Vui lòng chờ trong giây lát</p>
-          <p className="debug-info">Render count: {renderCount.current}</p>
         </div>
       </div>
     );
@@ -316,13 +244,12 @@ const InvoiceHistory = () => {
   return (
     <div className="invoice-history-container">
       <div className="invoice-header">
-        <h1>📋 Lịch sử hóa đơn</h1>
+        <h1>Lịch sử hóa đơn</h1>
         <p>Danh sách hóa đơn của bạn</p>
       </div>
 
       {error && (
         <div className="error-section">
-          <div className="error-icon">⚠️</div>
           <h3>{error}</h3>
           <div className="error-actions">
             <button className="btn-primary" onClick={handleRefresh}>
@@ -331,7 +258,6 @@ const InvoiceHistory = () => {
             <button
               className="btn-secondary"
               onClick={() => navigate("/patient/appointments")}
-              style={{ marginLeft: "10px" }}
             >
               Quay lại lịch hẹn
             </button>
@@ -341,7 +267,6 @@ const InvoiceHistory = () => {
 
       {!error && invoices.length === 0 ? (
         <div className="empty-state">
-          <div className="empty-icon">📄</div>
           <h3>Chưa có hóa đơn nào</h3>
           <p>Bạn chưa có hóa đơn thanh toán nào trong hệ thống</p>
           <div className="empty-actions">
@@ -349,14 +274,13 @@ const InvoiceHistory = () => {
               className="btn-primary"
               onClick={() => navigate("/patient/appointments")}
             >
-              📅 Đặt lịch khám ngay
+              Đặt lịch khám ngay
             </button>
             <button
               className="btn-secondary"
               onClick={() => navigate("/payment-result")}
-              style={{ marginLeft: "10px" }}
             >
-              🔄 Kiểm tra thanh toán
+              Kiểm tra thanh toán
             </button>
           </div>
         </div>
@@ -367,11 +291,6 @@ const InvoiceHistory = () => {
               <p>
                 Tìm thấy <strong>{invoices.length}</strong> hóa đơn
               </p>
-              {/* <button
-                className="btn-refresh"
-                onClick={handleRefresh}
-                title="Làm mới danh sách" 
-              ></button> */}
             </div>
             <p>
               Tổng số tiền đã thanh toán:{" "}
@@ -379,8 +298,8 @@ const InvoiceHistory = () => {
                 {formatCurrency(
                   invoices.reduce(
                     (sum, inv) => sum + (parseFloat(inv.amount) || 0),
-                    0
-                  )
+                    0,
+                  ),
                 )}
               </strong>
             </p>
@@ -446,13 +365,13 @@ const InvoiceHistory = () => {
                       viewInvoiceDetail(invoice.invoiceNumber || invoice.id)
                     }
                   >
-                    👁️ Xem chi tiết
+                    Xem chi tiết
                   </button>
                   <button
                     className="btn-print"
                     onClick={() => printInvoice(invoice)}
                   >
-                    🖨️ In hóa đơn
+                    In hóa đơn
                   </button>
                 </div>
               </div>
@@ -463,20 +382,16 @@ const InvoiceHistory = () => {
 
       <div className="action-buttons">
         <button className="btn-secondary" onClick={() => navigate("/")}>
-          🏠 Về trang chủ
+          Về trang chủ
         </button>
         <button
           className="btn-secondary"
           onClick={() => navigate("/patient/appointments")}
         >
-          📅 Lịch hẹn của tôi
+          Lịch hẹn của tôi
         </button>
-        <button
-          className="btn-primary"
-          onClick={() => navigate("/payment")}
-          style={{ background: "linear-gradient(135deg, #27ae60, #219653)" }}
-        >
-          💳 Thanh toán mới
+        <button className="btn-primary" onClick={() => navigate("/payment")}>
+          Thanh toán mới
         </button>
       </div>
     </div>

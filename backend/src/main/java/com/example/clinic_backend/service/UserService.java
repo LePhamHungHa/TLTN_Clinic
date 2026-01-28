@@ -23,31 +23,29 @@ public class UserService {
 
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
-    // ========== CÁC PHƯƠNG THỨC QUẢN LÝ NGƯỜI DÙNG ==========
-    
-    // Lấy tất cả người dùng
+    // Lấy tất cả user
     public List<User> getAllUsers() {
         return userRepository.findAll();
     }
     
-    // Lấy người dùng theo ID
+    // Tìm user theo id
     public Optional<User> getUserById(Long userId) {
         return userRepository.findById(userId);
     }
     
-    // Tạo người dùng mới
+    // Tạo user mới
     public User createUser(User user) {
-        // Kiểm tra username đã tồn tại chưa
+        // Kiểm tra xem username đã có ai dùng chưa
         if (userRepository.existsByUsername(user.getUsername())) {
             throw new RuntimeException("Username đã tồn tại");
         }
         
-        // Mã hóa password nếu có
+        // Mã hóa password
         if (user.getPassword() != null && !user.getPassword().isEmpty()) {
             user.setPassword(passwordEncoder.encode(user.getPassword()));
         }
         
-        // Đảm bảo role không null
+        // Mặc định là bệnh nhân nếu không có role
         if (user.getRole() == null || user.getRole().isEmpty()) {
             user.setRole("PATIENT");
         }
@@ -55,22 +53,24 @@ public class UserService {
         return userRepository.save(user);
     }
     
-    // Cập nhật người dùng
+    // Cập nhật thông tin user
     @Transactional
     public User updateUser(Long userId, User userDetails) {
+        // Tìm user cần update
         User user = userRepository.findById(userId)
-            .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng với ID: " + userId));
+            .orElseThrow(() -> new RuntimeException("Không tìm thấy user ID: " + userId));
         
-        // Cập nhật các trường (chỉ cập nhật các trường không null)
+        // Update username nếu có
         if (userDetails.getUsername() != null && !userDetails.getUsername().isEmpty()) {
-            // Kiểm tra username mới không trùng với người dùng khác
+            // Check xem username mới có trùng không
             Optional<User> existingUser = userRepository.findByUsername(userDetails.getUsername());
             if (existingUser.isPresent() && !existingUser.get().getId().equals(userId)) {
-                throw new RuntimeException("Username đã được sử dụng bởi người dùng khác");
+                throw new RuntimeException("Username đã có người khác dùng");
             }
             user.setUsername(userDetails.getUsername());
         }
         
+        // Update các trường khác
         if (userDetails.getEmail() != null) {
             user.setEmail(userDetails.getEmail());
         }
@@ -94,79 +94,77 @@ public class UserService {
         return userRepository.save(user);
     }
     
-    // Xóa người dùng
+    // Xóa user
     @Transactional
     public void deleteUser(Long userId) {
         if (!userRepository.existsById(userId)) {
-            throw new RuntimeException("Không tìm thấy người dùng với ID: " + userId);
+            throw new RuntimeException("Không tìm thấy user ID: " + userId);
         }
         userRepository.deleteById(userId);
     }
     
-    // Tìm người dùng theo username
+    // Tìm user theo username
     public Optional<User> findByUsername(String username) {
         return userRepository.findByUsername(username);
     }
     
-    // ========== CÁC PHƯƠNG THỨC TÌM KIẾM & LỌC ==========
-    
-    // Tìm người dùng theo role
+    // Lấy user theo role
     public List<User> getUsersByRole(String role) {
         return userRepository.findByRole(role);
     }
     
-    // Tìm kiếm người dùng
+    // Tìm kiếm user
     public List<User> searchUsers(String keyword) {
         return userRepository.searchUsers(keyword);
     }
     
-    // Lấy người dùng theo tên
+    // Tìm user theo tên
     public List<User> findByFullNameContaining(String name) {
         return userRepository.findByFullNameContaining(name);
     }
     
-    // ========== CÁC PHƯƠNG THỨC XÁC THỰC ==========
-    
-    // Method authenticate for login
+    // Đăng nhập
     public User authenticate(String usernameOrPhone, String password) {
-        log.info("🔐 Authenticating user: {}", usernameOrPhone);
+        log.info("Đăng nhập user: {}", usernameOrPhone);
         
+        // Tìm user bằng username hoặc phone
         Optional<User> userOpt = userRepository.findByUsernameOrPhone(usernameOrPhone, usernameOrPhone);
         if (userOpt.isEmpty()) {
-            log.error("❌ User not found: {}", usernameOrPhone);
+            log.error("Không tìm thấy user: {}", usernameOrPhone);
             throw new RuntimeException("Sai username hoặc password");
         }
         
         User user = userOpt.get();
         
-        // Kiểm tra mật khẩu
+        // Kiểm tra password
         if (user.getPassword() != null && !user.getPassword().isEmpty()) {
             if (!passwordEncoder.matches(password, user.getPassword())) {
-                log.error("❌ Incorrect password for user: {}", usernameOrPhone);
+                log.error("Password sai: {}", usernameOrPhone);
                 throw new RuntimeException("Sai username hoặc password");
             }
         } else {
-            // Social login user không có password
-            log.warn("⚠️ User has no password (social login): {}", usernameOrPhone);
+            // User social login không có password
+            log.warn("User social login không có password: {}", usernameOrPhone);
         }
         
-        // Đảm bảo có role
+        // Gán role PATIENT nếu chưa có
         if (user.getRole() == null || user.getRole().isEmpty()) {
             user.setRole("PATIENT");
             user = save(user);
-            log.info("✅ Auto-assigned PATIENT role to: {}", usernameOrPhone);
+            log.info("Gán role PATIENT cho: {}", usernameOrPhone);
         }
         
-        log.info("✅ Authentication successful: {}", usernameOrPhone);
+        log.info("Đăng nhập thành công: {}", usernameOrPhone);
         return user;
     }
 
-    // Đăng ký người dùng mới
+    // Đăng ký user mới
     public User registerUser(RegisterRequest request) {
         if (userRepository.existsByUsername(request.getUsername())) {
             throw new RuntimeException("Username đã tồn tại");
         }
         
+        // Mã hóa password
         String encodedPassword = request.getPassword() != null && !request.getPassword().isEmpty()
                 ? passwordEncoder.encode(request.getPassword())
                 : "";
@@ -185,36 +183,35 @@ public class UserService {
     // Đổi mật khẩu
     @Transactional
     public void changePassword(String username, String currentPassword, String newPassword) {
-        log.info("🔐 CHANGE PASSWORD for user: {}", username);
+        log.info("Đổi password cho user: {}", username);
         
         // Tìm user
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("Người dùng không tồn tại"));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy user"));
 
-        // Kiểm tra mật khẩu hiện tại
+        // Check password hiện tại
         if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
-            throw new RuntimeException("Mật khẩu hiện tại không đúng");
+            throw new RuntimeException("Mật khẩu hiện tại sai");
         }
 
-        // Kiểm tra mật khẩu mới không trùng với mật khẩu cũ
+        // Check password mới có giống cũ không
         if (passwordEncoder.matches(newPassword, user.getPassword())) {
-            throw new RuntimeException("Mật khẩu mới không được trùng với mật khẩu cũ");
+            throw new RuntimeException("Mật khẩu mới không được giống cũ");
         }
 
-        // Kiểm tra độ dài mật khẩu mới
+        // Check độ dài password mới
         if (newPassword.length() < 6) {
-            throw new RuntimeException("Mật khẩu mới phải có ít nhất 6 ký tự");
+            throw new RuntimeException("Mật khẩu mới phải >= 6 ký tự");
         }
 
-        // Mã hóa và lưu mật khẩu mới
+        // Lưu password mới
         user.setPassword(passwordEncoder.encode(newPassword));
         userRepository.save(user);
         
-        log.info("✅ PASSWORD CHANGED SUCCESSFULLY for user: {}", username);
+        log.info("Đổi password thành công: {}", username);
     }
 
-    // ========== CÁC PHƯƠNG THỨC TÌM KIẾM ==========
-    
+    // Tìm user bằng số điện thoại
     public User findByPhoneNumber(String phone) {
         return userRepository.findByPhone(phone).orElse(null);
     }
@@ -223,10 +220,12 @@ public class UserService {
         return userRepository.findByUsername(username);
     }
 
+    // Tìm user bằng email
     public Optional<User> findByEmail(String email) {
         return userRepository.findByEmail(email);
     }
 
+    // Tìm user bằng Google ID
     public Optional<User> findByGoogleId(String googleId) {
         if (googleId == null || googleId.trim().isEmpty()) {
             return Optional.empty();
@@ -234,6 +233,7 @@ public class UserService {
         return userRepository.findByGoogleId(googleId);
     }
 
+    // Tìm user bằng Facebook ID
     public Optional<User> findByFacebookId(String facebookId) {
         if (facebookId == null || facebookId.trim().isEmpty()) {
             return Optional.empty();
@@ -241,66 +241,68 @@ public class UserService {
         return userRepository.findByFacebookId(facebookId);
     }
 
+    // Lưu user
     public User save(User user) {
         return userRepository.save(user);
     }
     
-    // Kiểm tra username đã tồn tại
+    // Check username đã tồn tại chưa
     public boolean usernameExists(String username) {
         return userRepository.existsByUsername(username);
     }
     
-    // Kiểm tra email đã tồn tại
+    // Check email đã tồn tại chưa
     public boolean emailExists(String email) {
         return userRepository.existsByEmail(email);
     }
     
-    // Kiểm tra số điện thoại đã tồn tại
+    // Check phone đã tồn tại chưa
     public boolean phoneExists(String phone) {
         return userRepository.existsByPhone(phone);
     }
 
-    // ========== CÁC PHƯƠNG THỨC SOCIAL LOGIN ==========
-    
+    // Tạo hoặc update user từ Google login
+    // Nếu đã có user với Google ID thì lấy ra
+    // Nếu chưa có thì tạo mới
     @Transactional
     public User createOrUpdateUserFromGoogle(String email, String name, String uid, String picture) {
-        log.info("🔧 createOrUpdateUserFromGoogle: email={}, name={}, uid={}", email, name, uid);
+        log.info("Google login: email={}, name={}", email, name);
         
-        // Kiểm tra email null hoặc rỗng
+        // Check email
         if (email == null || email.trim().isEmpty()) {
-            log.error("❌ ERROR: Email is null or empty");
-            throw new IllegalArgumentException("Email không được để trống");
+            log.error("Email bị trống");
+            throw new IllegalArgumentException("Email không được trống");
         }
 
         try {
-            // 1. Tìm theo Google ID trước
+            // 1. Tìm bằng Google ID trước
             if (uid != null && !uid.trim().isEmpty()) {
                 Optional<User> existingByGoogleId = findByGoogleId(uid);
                 if (existingByGoogleId.isPresent()) {
                     User user = existingByGoogleId.get();
-                    log.info("✅ Found existing user by Google ID: {}", user.getId());
+                    log.info("Tìm thấy user bằng Google ID: {}", user.getId());
                     return user;
                 }
             }
             
-            // 2. Tìm theo Email
+            // 2. Tìm bằng email
             Optional<User> existingByEmail = findByEmail(email);
             if (existingByEmail.isPresent()) {
                 User user = existingByEmail.get();
-                log.info("✅ Found existing user by email: {}", user.getId());
+                log.info("Tìm thấy user bằng email: {}", user.getId());
                 
-                // Cập nhật Google ID nếu chưa có
+                // Update Google ID nếu chưa có
                 if (uid != null && !uid.trim().isEmpty() && 
                     (user.getGoogleId() == null || user.getGoogleId().isEmpty())) {
                     user.setGoogleId(uid);
                     user = save(user);
-                    log.info("✅ Updated Google ID for user: {}", user.getId());
+                    log.info("Đã thêm Google ID cho user: {}", user.getId());
                 }
                 return user;
             }
             
             // 3. Tạo user mới
-            log.info("🆕 Creating new Google user");
+            log.info("Tạo user Google mới");
             User user = new User();
             user.setUsername(email);
             user.setEmail(email);
@@ -308,81 +310,81 @@ public class UserService {
             user.setGoogleId(uid != null && !uid.trim().isEmpty() ? uid : null);
             user.setAvatar(picture != null && !picture.trim().isEmpty() ? picture : null);
             user.setRole("PATIENT");
-            user.setPassword("");
+            user.setPassword(""); // Google login không cần password
             
             User savedUser = save(user);
-            log.info("✅ Created new Google user: {}", savedUser.getId());
+            log.info("Đã tạo user mới: {}", savedUser.getId());
             return savedUser;
             
         } catch (Exception e) {
-            log.error("❌ GOOGLE SERVICE ERROR: {}", e.getMessage(), e);
-            throw new RuntimeException("Lỗi khi tạo hoặc cập nhật người dùng Google: " + e.getMessage());
+            log.error("Lỗi Google login: {}", e.getMessage(), e);
+            throw new RuntimeException("Lỗi Google login: " + e.getMessage());
         }
     }
 
+    // Tạo hoặc update user từ Facebook login
     @Transactional
     public User createOrUpdateUserFromFacebook(String email, String name, String uid) {
-        log.info("🔧 createOrUpdateUserFromFacebook: email={}, name={}, uid={}", email, name, uid);
+        log.info("Facebook login: email={}, name={}", email, name);
         
-        // Kiểm tra email null hoặc rỗng
         if (email == null || email.trim().isEmpty()) {
-            log.error("❌ ERROR: Email is null or empty");
-            throw new IllegalArgumentException("Email không được để trống");
+            log.error("Email bị trống");
+            throw new IllegalArgumentException("Email không được trống");
         }
 
         try {
-            // 1. Tìm theo Facebook ID trước
+            // 1. Tìm bằng Facebook ID
             if (uid != null && !uid.trim().isEmpty()) {
                 Optional<User> existingByFbId = findByFacebookId(uid);
                 if (existingByFbId.isPresent()) {
                     User user = existingByFbId.get();
-                    log.info("✅ Found existing user by Facebook ID: {}", user.getId());
+                    log.info("Tìm thấy user bằng Facebook ID: {}", user.getId());
                     return user;
                 }
             }
             
-            // 2. Tìm theo Email
+            // 2. Tìm bằng email
             Optional<User> existingByEmail = findByEmail(email);
             if (existingByEmail.isPresent()) {
                 User user = existingByEmail.get();
-                log.info("✅ Found existing user by email: {}", user.getId());
+                log.info("Tìm thấy user bằng email: {}", user.getId());
                 
-                // Cập nhật Facebook ID nếu chưa có
+                // Update Facebook ID nếu chưa có
                 if (uid != null && !uid.trim().isEmpty() && 
                     (user.getFacebookId() == null || user.getFacebookId().isEmpty())) {
                     user.setFacebookId(uid);
                     user = save(user);
-                    log.info("✅ Updated Facebook ID for user: {}", user.getId());
+                    log.info("Đã thêm Facebook ID cho user: {}", user.getId());
                 }
                 return user;
             }
             
             // 3. Tạo user mới
-            log.info("🆕 Creating new Facebook user");
+            log.info("Tạo user Facebook mới");
             User user = new User();
             user.setUsername(email);
             user.setEmail(email);
             user.setFullName(name != null && !name.trim().isEmpty() ? name : "Facebook User");
             user.setFacebookId(uid != null && !uid.trim().isEmpty() ? uid : null);
             user.setRole("PATIENT");
-            user.setPassword("");
+            user.setPassword(""); // Facebook login không cần password
             
             User savedUser = save(user);
-            log.info("✅ Created new Facebook user: {}", savedUser.getId());
+            log.info("Đã tạo user mới: {}", savedUser.getId());
             return savedUser;
             
         } catch (Exception e) {
-            log.error("❌ FACEBOOK SERVICE ERROR: {}", e.getMessage(), e);
-            throw new RuntimeException("Lỗi khi tạo hoặc cập nhật người dùng Facebook: " + e.getMessage());
+            log.error("Lỗi Facebook login: {}", e.getMessage(), e);
+            throw new RuntimeException("Lỗi Facebook login: " + e.getMessage());
         }
     }
     
-    // ========== CÁC PHƯƠNG THỨC THỐNG KÊ ==========
-    
+    // Đếm tổng số user
     public long countUsers() {
         return userRepository.count();
     }
     
+    // Đếm số user theo role
     public long countUsersByRole(String role) {
         return userRepository.findByRole(role).size();
     }

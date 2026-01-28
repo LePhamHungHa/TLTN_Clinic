@@ -27,7 +27,6 @@ public interface InvoiceRepository extends JpaRepository<Invoice, Long> {
     
     List<Invoice> findByStatus(String status);
 
-// Và method này (có thể đã có nhưng cần xác nhận)
     @Query("SELECT i FROM Invoice i ORDER BY i.invoiceDate DESC")
     List<Invoice> findAllOrderByInvoiceDateDesc();
 }

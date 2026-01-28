@@ -108,7 +108,7 @@ const AdminUsers = () => {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
-        }
+        },
       );
 
       if (response.ok) {
@@ -132,7 +132,7 @@ const AdminUsers = () => {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
-        }
+        },
       );
 
       if (response.ok) {
@@ -158,7 +158,7 @@ const AdminUsers = () => {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
-        }
+        },
       );
 
       if (response.ok) {
@@ -410,7 +410,7 @@ const AdminUsers = () => {
         {
           method: "DELETE",
           headers: { Authorization: `Bearer ${token}` },
-        }
+        },
       );
 
       if (response.ok) {
@@ -820,8 +820,8 @@ const AdminUsers = () => {
                     {activeTab === "users"
                       ? "người dùng"
                       : activeTab === "patients"
-                      ? "bệnh nhân"
-                      : "bác sĩ"}
+                        ? "bệnh nhân"
+                        : "bác sĩ"}
                   </div>
                 )}
               </div>
@@ -1131,15 +1131,15 @@ const AdminUsers = () => {
                             activeTab === "users"
                               ? "người dùng"
                               : activeTab === "patients"
-                              ? "bệnh nhân"
-                              : "bác sĩ"
+                                ? "bệnh nhân"
+                                : "bác sĩ"
                           } nào với từ khóa: "${searchTerm}"`
                         : `Không có ${
                             activeTab === "users"
                               ? "người dùng"
                               : activeTab === "patients"
-                              ? "bệnh nhân"
-                              : "bác sĩ"
+                                ? "bệnh nhân"
+                                : "bác sĩ"
                           } nào`}
                     </p>
                     {searchTerm && (

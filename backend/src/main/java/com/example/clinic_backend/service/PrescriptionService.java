@@ -39,25 +39,25 @@ public class PrescriptionService {
         this.jdbcTemplate = jdbcTemplate;
     }
     
-    // THAY THẾ CÁC METHOD KHÔNG TỒN TẠI BẰNG CÁCH XỬ LÝ TRONG JAVA
+    // Tìm kiếm thuốc
     public Map<String, Object> searchMedicines(String keyword) {
         Map<String, Object> response = new HashMap<>();
         
         try {
-            logger.info("🔍 Searching medicines with keyword: {}", keyword);
+            logger.info("Tìm kiếm thuốc với từ khóa: {}", keyword);
             
-            // Lấy tất cả thuốc và filter trong Java
+            // Lấy tất cả thuốc từ database
             List<Medicine> allMedicines = medicineRepository.findAll();
             List<Medicine> filteredMedicines = new ArrayList<>();
             
             if (keyword == null || keyword.trim().isEmpty()) {
-                // Nếu không có keyword, lấy tất cả thuốc còn hàng và active
+                // Nếu không có keyword, chỉ lấy thuốc còn hàng và đang hoạt động
                 filteredMedicines = allMedicines.stream()
                     .filter(m -> "ACTIVE".equals(m.getStatus()) && m.getStockQuantity() > 0)
                     .collect(Collectors.toList());
             } else {
                 String lowerKeyword = keyword.toLowerCase().trim();
-                // Tìm kiếm theo tên thuốc, mã thuốc, hoạt chất, danh mục
+                // Tìm theo tên thuốc, mã thuốc, hoạt chất, danh mục
                 filteredMedicines = allMedicines.stream()
                     .filter(m -> "ACTIVE".equals(m.getStatus()) && m.getStockQuantity() > 0)
                     .filter(m -> 
@@ -73,10 +73,10 @@ public class PrescriptionService {
             response.put("medicines", filteredMedicines);
             response.put("count", filteredMedicines.size());
             
-            logger.info("✅ Found {} medicines for keyword: {}", filteredMedicines.size(), keyword);
+            logger.info("Tìm thấy {} thuốc với từ khóa: {}", filteredMedicines.size(), keyword);
             
         } catch (Exception e) {
-            logger.error("💥 Error searching medicines: {}", e.getMessage(), e);
+            logger.error("Lỗi khi tìm kiếm thuốc: {}", e.getMessage(), e);
             response.put("success", false);
             response.put("message", "Lỗi khi tìm kiếm thuốc: " + e.getMessage());
         }
@@ -84,13 +84,14 @@ public class PrescriptionService {
         return response;
     }
     
+    // Lấy tất cả thuốc đang hoạt động
     public Map<String, Object> getActiveMedicines() {
         Map<String, Object> response = new HashMap<>();
         
         try {
-            logger.info("📊 Getting all active medicines");
+            logger.info("Lấy tất cả thuốc đang hoạt động");
             
-            // Lấy tất cả thuốc và filter trong Java
+            // Lọc thuốc còn hàng và đang active
             List<Medicine> allMedicines = medicineRepository.findAll();
             List<Medicine> activeMedicines = allMedicines.stream()
                 .filter(m -> "ACTIVE".equals(m.getStatus()) && m.getStockQuantity() > 0)
@@ -100,10 +101,10 @@ public class PrescriptionService {
             response.put("medicines", activeMedicines);
             response.put("count", activeMedicines.size());
             
-            logger.info("✅ Found {} active medicines", activeMedicines.size());
+            logger.info("Tìm thấy {} thuốc đang hoạt động", activeMedicines.size());
             
         } catch (Exception e) {
-            logger.error("💥 Error getting active medicines: {}", e.getMessage(), e);
+            logger.error("Lỗi khi lấy danh sách thuốc: {}", e.getMessage(), e);
             response.put("success", false);
             response.put("message", "Lỗi khi lấy danh sách thuốc: " + e.getMessage());
         }
@@ -111,18 +112,19 @@ public class PrescriptionService {
         return response;
     }
     
+    // Lấy thuốc theo danh mục
     public Map<String, Object> getMedicinesByCategory(String category) {
         Map<String, Object> response = new HashMap<>();
         
         try {
-            logger.info("📊 Getting medicines by category: {}", category);
+            logger.info("Lấy thuốc theo danh mục: {}", category);
             
+            // Nếu là "Tất cả" thì lấy tất cả thuốc đang hoạt động
             if ("Tất cả".equals(category) || category == null || category.trim().isEmpty()) {
-                // Lấy tất cả thuốc còn hàng
                 return getActiveMedicines();
             }
             
-            // Lấy theo category
+            // Lọc theo danh mục
             List<Medicine> medicines = medicineRepository.findAll().stream()
                 .filter(m -> category.equals(m.getCategory()) && 
                            "ACTIVE".equals(m.getStatus()) && 
@@ -133,10 +135,10 @@ public class PrescriptionService {
             response.put("medicines", medicines);
             response.put("count", medicines.size());
             
-            logger.info("✅ Found {} medicines in category {}", medicines.size(), category);
+            logger.info("Tìm thấy {} thuốc trong danh mục {}", medicines.size(), category);
             
         } catch (Exception e) {
-            logger.error("💥 Error getting medicines by category: {}", e.getMessage(), e);
+            logger.error("Lỗi khi lấy thuốc theo danh mục: {}", e.getMessage(), e);
             response.put("success", false);
             response.put("message", "Lỗi khi lấy thuốc theo danh mục: " + e.getMessage());
         }
@@ -144,13 +146,14 @@ public class PrescriptionService {
         return response;
     }
     
+    // Lấy tất cả danh mục thuốc
     public Map<String, Object> getMedicineCategories() {
         Map<String, Object> response = new HashMap<>();
         
         try {
-            logger.info("📊 Getting medicine categories");
+            logger.info("Lấy danh mục thuốc");
             
-            // Lấy tất cả thuốc còn hàng và active
+            // Lấy tất cả danh mục từ thuốc đang hoạt động
             List<Medicine> allMedicines = medicineRepository.findAll();
             List<String> categories = allMedicines.stream()
                 .filter(m -> "ACTIVE".equals(m.getStatus()) && m.getStockQuantity() > 0)
@@ -169,10 +172,10 @@ public class PrescriptionService {
             response.put("categories", allCategories);
             response.put("count", allCategories.size());
             
-            logger.info("✅ Found {} categories", allCategories.size());
+            logger.info("Tìm thấy {} danh mục thuốc", allCategories.size());
             
         } catch (Exception e) {
-            logger.error("💥 Error getting medicine categories: {}", e.getMessage(), e);
+            logger.error("Lỗi khi lấy danh mục thuốc: {}", e.getMessage(), e);
             response.put("success", false);
             response.put("message", "Lỗi khi lấy danh mục thuốc: " + e.getMessage());
         }
@@ -180,23 +183,23 @@ public class PrescriptionService {
         return response;
     }
     
-    // CÁC METHOD CŨ GIỮ NGUYÊN
+    // Lấy đơn thuốc theo medical record
     public Map<String, Object> getPrescriptionByMedicalRecord(Long medicalRecordId) {
         Map<String, Object> response = new HashMap<>();
         
         try {
-            logger.info("📋 Getting prescription for medical record {}", medicalRecordId);
+            logger.info("Lấy đơn thuốc cho medical record {}", medicalRecordId);
             
-            // 1. Lấy tất cả prescription details
+            // 1. Lấy chi tiết đơn thuốc từ database
             List<PrescriptionDetail> prescriptionDetails = 
                 prescriptionDetailRepository.findByMedicalRecordId(medicalRecordId);
             
-            // 2. Chuyển đổi sang DTO để tránh lỗi JSON serialization
+            // 2. Chuyển sang DTO
             List<PrescriptionDetailDTO> prescriptionDTOs = prescriptionDetails.stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
             
-            // 3. Tính tổng tiền
+            // 3. Tính tổng tiền của đơn thuốc
             Double totalAmount = prescriptionDetailRepository.getTotalPrescriptionPrice(medicalRecordId);
             
             response.put("success", true);
@@ -204,11 +207,10 @@ public class PrescriptionService {
             response.put("totalAmount", totalAmount != null ? totalAmount : 0.0);
             response.put("itemCount", prescriptionDTOs.size());
             
-            logger.info("✅ Found {} prescription items for medical record {}", 
-                       prescriptionDTOs.size(), medicalRecordId);
+            logger.info("Tìm thấy {} loại thuốc trong đơn", prescriptionDTOs.size());
             
         } catch (Exception e) {
-            logger.error("💥 Error getting prescription: {}", e.getMessage(), e);
+            logger.error("Lỗi khi lấy đơn thuốc: {}", e.getMessage(), e);
             response.put("success", false);
             response.put("message", "Lỗi khi lấy thông tin đơn thuốc: " + e.getMessage());
         }
@@ -216,14 +218,14 @@ public class PrescriptionService {
         return response;
     }
     
-    // Lấy lịch sử sử dụng thuốc của bệnh nhân
+    // Lấy lịch sử sử dụng thuốc theo medical record
     public Map<String, Object> getMedicationHistoryByMedicalRecord(Long medicalRecordId) {
         Map<String, Object> response = new HashMap<>();
         
         try {
-            logger.info("📊 Getting medication history for medical record {}", medicalRecordId);
+            logger.info("Lấy lịch sử thuốc cho medical record {}", medicalRecordId);
             
-            // Cách 1: Sử dụng query đơn giản hơn nếu không có quan hệ đầy đủ
+            // Dùng SQL query để lấy dữ liệu kết hợp từ nhiều bảng
             String sql = """
                 SELECT pd.*, 
                        mr.examination_date,
@@ -237,10 +239,12 @@ public class PrescriptionService {
                 ORDER BY pd.created_at DESC
                 """;
             
+            // Thực thi query và map kết quả
             List<MedicationHistoryDTO> history = jdbcTemplate.query(sql, new RowMapper<MedicationHistoryDTO>() {
                 @Override
                 public MedicationHistoryDTO mapRow(ResultSet rs, int rowNum) throws SQLException {
                     MedicationHistoryDTO dto = new MedicationHistoryDTO();
+                    // Map tất cả các trường từ ResultSet sang DTO
                     dto.setId(rs.getLong("id"));
                     dto.setMedicalRecordId(rs.getLong("medical_record_id"));
                     dto.setMedicineId(rs.getLong("medicine_id"));
@@ -254,11 +258,12 @@ public class PrescriptionService {
                     dto.setInstructions(rs.getString("instructions"));
                     dto.setNotes(rs.getString("notes"));
                     
-                    // Convert timestamp to LocalDateTime
+                    // Chuyển timestamp sang LocalDateTime
                     if (rs.getTimestamp("created_at") != null) {
                         dto.setCreatedAt(rs.getTimestamp("created_at").toLocalDateTime());
                     }
                     
+                    // Lấy thêm thông tin từ các bảng khác
                     dto.setExaminationDate(rs.getDate("examination_date"));
                     dto.setUnit(rs.getString("unit"));
                     dto.setStrength(rs.getString("strength"));
@@ -268,7 +273,7 @@ public class PrescriptionService {
                 }
             }, medicalRecordId);
             
-            // Tính tổng số tiền
+            // Tính tổng tiền và đếm số lượng
             BigDecimal totalAmount = BigDecimal.ZERO;
             int totalItems = 0;
             
@@ -285,11 +290,10 @@ public class PrescriptionService {
             response.put("totalAmount", totalAmount);
             response.put("totalItems", totalItems);
             
-            logger.info("✅ Found {} medication history records for medical record {}", 
-                       history.size(), medicalRecordId);
+            logger.info("Tìm thấy {} bản ghi lịch sử thuốc", history.size());
             
         } catch (Exception e) {
-            logger.error("💥 Error getting medication history by medical record: {}", e.getMessage(), e);
+            logger.error("Lỗi khi lấy lịch sử thuốc: {}", e.getMessage(), e);
             response.put("success", false);
             response.put("message", "Lỗi khi lấy lịch sử sử dụng thuốc: " + e.getMessage());
         }
@@ -297,16 +301,17 @@ public class PrescriptionService {
         return response;
     }
     
-    /**
-     * Lấy lịch sử sử dụng thuốc của bệnh nhân
-     */
+    
+    //  Lấy lịch sử sử dụng thuốc của bệnh nhân
+    //  Dùng để xem bệnh nhân đã dùng những loại thuốc nào trước đây
+     
     public Map<String, Object> getPatientMedicationHistory(Long patientId) {
         Map<String, Object> response = new HashMap<>();
         
         try {
-            logger.info("📊 Getting medication history for patient {}", patientId);
+            logger.info("Lấy lịch sử thuốc của bệnh nhân {}", patientId);
             
-            // Cách đơn giản hơn - chỉ lấy thông tin cơ bản
+            // Query SQL để lấy lịch sử thuốc của bệnh nhân
             String sql = """
                 SELECT pd.*, 
                        mr.examination_date,
@@ -326,6 +331,7 @@ public class PrescriptionService {
                 @Override
                 public MedicationHistoryDTO mapRow(ResultSet rs, int rowNum) throws SQLException {
                     MedicationHistoryDTO dto = new MedicationHistoryDTO();
+                    // Map dữ liệu từ ResultSet
                     dto.setId(rs.getLong("id"));
                     dto.setMedicalRecordId(rs.getLong("medical_record_id"));
                     dto.setMedicineId(rs.getLong("medicine_id"));
@@ -339,7 +345,7 @@ public class PrescriptionService {
                     dto.setInstructions(rs.getString("instructions"));
                     dto.setNotes(rs.getString("notes"));
                     
-                    // Convert timestamp to LocalDateTime
+                    // Chuyển đổi thời gian
                     if (rs.getTimestamp("created_at") != null) {
                         dto.setCreatedAt(rs.getTimestamp("created_at").toLocalDateTime());
                     }
@@ -354,26 +360,28 @@ public class PrescriptionService {
                 }
             }, patientId);
             
-            // Tính tổng số tiền và thống kê
+            // Tính toán thống kê
             BigDecimal totalAmount = BigDecimal.ZERO;
             int totalItems = 0;
             Map<String, Integer> medicineUsage = new HashMap<>();
             
             for (MedicationHistoryDTO item : history) {
+                // Tính tổng tiền
                 if (item.getTotalPrice() != null) {
                     totalAmount = totalAmount.add(item.getTotalPrice());
                 }
                 totalItems++;
                 
-                // Thống kê sử dụng thuốc
+                // Đếm số lần sử dụng mỗi loại thuốc
                 String medicineKey = item.getMedicineName();
                 medicineUsage.put(medicineKey, medicineUsage.getOrDefault(medicineKey, 0) + 1);
             }
             
-            // Sắp xếp thuốc được sử dụng nhiều nhất
+            // Sắp xếp thuốc theo số lần sử dụng (nhiều nhất trước)
             List<Map.Entry<String, Integer>> sortedUsage = new ArrayList<>(medicineUsage.entrySet());
             sortedUsage.sort((a, b) -> b.getValue().compareTo(a.getValue()));
             
+            // Lấy top 5 thuốc dùng nhiều nhất
             List<Map<String, Object>> topMedicines = new ArrayList<>();
             for (int i = 0; i < Math.min(5, sortedUsage.size()); i++) {
                 Map<String, Object> medicineStat = new HashMap<>();
@@ -382,6 +390,7 @@ public class PrescriptionService {
                 topMedicines.add(medicineStat);
             }
             
+            // Trả về kết quả
             response.put("success", true);
             response.put("history", history);
             response.put("count", history.size());
@@ -390,11 +399,10 @@ public class PrescriptionService {
             response.put("topMedicines", topMedicines);
             response.put("medicineUsage", medicineUsage);
             
-            logger.info("✅ Found {} medication history records for patient {}", 
-                       history.size(), patientId);
+            logger.info("Tìm thấy {} bản ghi lịch sử thuốc của bệnh nhân", history.size());
             
         } catch (Exception e) {
-            logger.error("💥 Error getting patient medication history: {}", e.getMessage(), e);
+            logger.error("Lỗi khi lấy lịch sử thuốc bệnh nhân: {}", e.getMessage(), e);
             response.put("success", false);
             response.put("message", "Lỗi khi lấy lịch sử sử dụng thuốc: " + e.getMessage());
         }
@@ -402,12 +410,12 @@ public class PrescriptionService {
         return response;
     }
     
-    /**
-     * Helper method: Chuyển PrescriptionDetail sang DTO
-     */
+    // Chuyển PrescriptionDetail sang DTO
+   
     private PrescriptionDetailDTO convertToDTO(PrescriptionDetail prescriptionDetail) {
         PrescriptionDetailDTO dto = new PrescriptionDetailDTO();
         
+        // Copy tất cả các trường từ entity sang DTO
         dto.setId(prescriptionDetail.getId());
         dto.setMedicalRecordId(prescriptionDetail.getMedicalRecordId());
         dto.setMedicineId(prescriptionDetail.getMedicineId());
@@ -425,14 +433,17 @@ public class PrescriptionService {
         return dto;
     }
     
+    // Tạo đơn thuốc mới
+   
     @Transactional
     public Map<String, Object> createPrescription(Long medicalRecordId, List<Map<String, Object>> prescriptionItems) {
         Map<String, Object> response = new HashMap<>();
         
         try {
-            logger.info("💊 Creating prescription for medical record {}", medicalRecordId);
-            logger.info("📦 Prescription items count: {}", prescriptionItems.size());
+            logger.info("Tạo đơn thuốc cho medical record {}", medicalRecordId);
+            logger.info("Số loại thuốc: {}", prescriptionItems.size());
             
+            // Kiểm tra đầu vào
             if (medicalRecordId == null) {
                 throw new IllegalArgumentException("Medical Record ID không được null");
             }
@@ -444,12 +455,13 @@ public class PrescriptionService {
             List<PrescriptionDetail> prescriptionDetails = new ArrayList<>();
             BigDecimal totalAmount = BigDecimal.ZERO;
             
+            // Xử lý từng loại thuốc trong đơn
             for (int i = 0; i < prescriptionItems.size(); i++) {
                 Map<String, Object> item = prescriptionItems.get(i);
-                logger.info("⚡ Processing medicine item {}: {}", i + 1, item);
+                logger.info("Xử lý thuốc thứ {}: {}", i + 1, item);
                 
                 try {
-                    // Parse data from request
+                    // Lấy dữ liệu từ request
                     Long medicineId = extractLong(item.get("medicineId"));
                     String medicineName = extractString(item.get("medicineName"));
                     String dosage = extractString(item.get("dosage"));
@@ -462,7 +474,7 @@ public class PrescriptionService {
                     String strength = extractString(item.get("strength"));
                     String unit = extractString(item.get("unit"));
                     
-                    // Validate required fields
+                    // Kiểm tra dữ liệu bắt buộc
                     if (medicineId == null) {
                         throw new IllegalArgumentException("Medicine ID không được null tại item " + (i + 1));
                     }
@@ -470,19 +482,20 @@ public class PrescriptionService {
                         throw new IllegalArgumentException("Số lượng không hợp lệ tại item " + (i + 1));
                     }
                     
-                    // Kiểm tra thuốc tồn tại và còn hàng
+                    // Tìm thuốc trong database
                     Medicine medicine = medicineRepository.findById(medicineId)
                         .orElseThrow(() -> new RuntimeException("Không tìm thấy thuốc với ID: " + medicineId));
                     
-                    logger.info("🔍 Medicine found: {} (Stock: {})", medicine.getMedicineName(), medicine.getStockQuantity());
+                    logger.info("Tìm thấy thuốc: {} (Tồn kho: {})", medicine.getMedicineName(), medicine.getStockQuantity());
                     
+                    // Kiểm tra tồn kho
                     if (medicine.getStockQuantity() < quantity) {
                         throw new RuntimeException("Không đủ tồn kho cho thuốc: " + medicine.getMedicineName() + 
                                                  ". Có sẵn: " + medicine.getStockQuantity() + 
                                                  ", Yêu cầu: " + quantity);
                     }
                     
-                    // Sử dụng unitPrice từ database nếu không có trong request
+                    // Sử dụng giá từ database nếu không có trong request
                     if (unitPrice == null) {
                         unitPrice = medicine.getUnitPrice();
                     }
@@ -495,10 +508,10 @@ public class PrescriptionService {
                     int newStock = medicine.getStockQuantity() - quantity;
                     medicine.setStockQuantity(newStock);
                     medicineRepository.save(medicine);
-                    logger.info("📉 Updated stock for {}: {} -> {}", medicine.getMedicineName(), 
+                    logger.info("Cập nhật tồn kho {}: {} -> {}", medicine.getMedicineName(), 
                               medicine.getStockQuantity() + quantity, newStock);
                     
-                    // Tạo prescription detail
+                    // Tạo chi tiết đơn thuốc
                     PrescriptionDetail prescriptionDetail = new PrescriptionDetail();
                     prescriptionDetail.setMedicalRecordId(medicalRecordId);
                     prescriptionDetail.setMedicineId(medicineId);
@@ -511,7 +524,7 @@ public class PrescriptionService {
                     prescriptionDetail.setInstructions(instructions);
                     prescriptionDetail.setNotes(notes);
                     
-                    // Tính total price
+                    // Tính tổng tiền cho loại thuốc này
                     BigDecimal itemTotal = unitPrice.multiply(BigDecimal.valueOf(quantity));
                     prescriptionDetail.setTotalPrice(itemTotal);
                     totalAmount = totalAmount.add(itemTotal);
@@ -519,15 +532,15 @@ public class PrescriptionService {
                     prescriptionDetails.add(prescriptionDetail);
                     
                 } catch (Exception e) {
-                    logger.error("❌ Error processing medicine item {}: {}", i + 1, e.getMessage(), e);
+                    logger.error("Lỗi xử lý thuốc thứ {}: {}", i + 1, e.getMessage(), e);
                     throw new RuntimeException("Lỗi xử lý thuốc thứ " + (i + 1) + ": " + e.getMessage());
                 }
             }
             
-            // Lưu tất cả prescription details
+            // Lưu tất cả chi tiết đơn thuốc vào database
             List<PrescriptionDetail> savedPrescription = prescriptionDetailRepository.saveAll(prescriptionDetails);
             
-            // Chuyển sang DTO
+            // Chuyển sang DTO để trả về
             List<PrescriptionDetailDTO> prescriptionDTOs = savedPrescription.stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
@@ -538,11 +551,11 @@ public class PrescriptionService {
             response.put("totalAmount", totalAmount);
             response.put("itemCount", savedPrescription.size());
             
-            logger.info("✅ Prescription created successfully with {} items, total amount: {}", 
+            logger.info("Tạo đơn thuốc thành công với {} loại thuốc, tổng tiền: {}", 
                        savedPrescription.size(), totalAmount);
             
         } catch (Exception e) {
-            logger.error("💥 Error creating prescription for medical record {}: {}", medicalRecordId, e.getMessage(), e);
+            logger.error("Lỗi khi tạo đơn thuốc: {}", e.getMessage(), e);
             response.put("success", false);
             response.put("message", "Lỗi khi tạo đơn thuốc: " + e.getMessage());
             response.put("error", e.getMessage());
@@ -551,7 +564,9 @@ public class PrescriptionService {
         return response;
     }
     
-    // Helper methods for safe data extraction
+    // Các hàm helper để lấy dữ liệu từ Map một cách an toàn
+    
+    // Lấy Long từ Object
     private Long extractLong(Object value) {
         if (value == null) return null;
         try {
@@ -569,11 +584,12 @@ public class PrescriptionService {
             }
             return null;
         } catch (Exception e) {
-            logger.warn("⚠️ Cannot convert {} to Long: {}", value, e.getMessage());
+            logger.warn("Không thể chuyển {} sang Long: {}", value, e.getMessage());
             return null;
         }
     }
     
+    // Lấy Integer từ Object
     private Integer extractInteger(Object value) {
         if (value == null) return null;
         try {
@@ -591,11 +607,12 @@ public class PrescriptionService {
             }
             return null;
         } catch (Exception e) {
-            logger.warn("⚠️ Cannot convert {} to Integer: {}", value, e.getMessage());
+            logger.warn("Không thể chuyển {} sang Integer: {}", value, e.getMessage());
             return null;
         }
     }
     
+    // Lấy BigDecimal từ Object
     private BigDecimal extractBigDecimal(Object value) {
         if (value == null) return null;
         try {
@@ -619,11 +636,12 @@ public class PrescriptionService {
             }
             return null;
         } catch (Exception e) {
-            logger.warn("⚠️ Cannot convert {} to BigDecimal: {}", value, e.getMessage());
+            logger.warn("Không thể chuyển {} sang BigDecimal: {}", value, e.getMessage());
             return null;
         }
     }
     
+    // Lấy String từ Object
     private String extractString(Object value) {
         if (value == null) return null;
         return value.toString();

@@ -35,7 +35,7 @@ public class MedicalRecordService {
         Map<String, Object> response = new HashMap<>();
         
         try {
-            logger.info("🔍 Starting examination for appointment {} by doctor {}", appointmentId, requestDoctorId);
+            logger.info("Starting examination for appointment {} by doctor {}", appointmentId, requestDoctorId);
             
             // Kiểm tra appointment tồn tại
             Optional<PatientRegistration> appointmentOpt = doctorAppointmentRepository.findById(appointmentId);
@@ -46,15 +46,15 @@ public class MedicalRecordService {
             }
             
             PatientRegistration appointment = appointmentOpt.get();
-            logger.info("✅ Found appointment: {} for patient: {}", appointmentId, appointment.getFullName());
-            logger.info("🎯 Appointment doctor_id: {}", appointment.getDoctorId());
-            logger.info("🎯 Request doctor_id: {}", requestDoctorId);
+            logger.info("Found appointment: {} for patient: {}", appointmentId, appointment.getFullName());
+            logger.info("Appointment doctor_id: {}", appointment.getDoctorId());
+            logger.info("Request doctor_id: {}", requestDoctorId);
             
-            // 🔥 SỬ DỤNG DOCTOR_ID TỪ PATIENT_REGISTRATIONS, KHÔNG PHẢI TỪ REQUEST
+            // Sử dụng doctor_id từ patient_registrations
             Long actualDoctorId = appointment.getDoctorId();
             
             if (actualDoctorId == null) {
-                logger.error("❌ Appointment does not have a doctor assigned");
+                logger.error("Appointment does not have a doctor assigned");
                 response.put("success", false);
                 response.put("message", "Lịch hẹn chưa được phân công cho bác sĩ");
                 return response;
@@ -62,14 +62,14 @@ public class MedicalRecordService {
             
             // Kiểm tra xem doctor có quyền truy cập appointment này không
             if (!actualDoctorId.equals(requestDoctorId)) {
-                logger.warn("⚠️ Doctor {} tried to access appointment {} assigned to doctor {}", 
+                logger.warn("Doctor {} tried to access appointment {} assigned to doctor {}", 
                            requestDoctorId, appointmentId, actualDoctorId);
                 response.put("success", false);
                 response.put("message", "Bạn không có quyền truy cập lịch hẹn này");
                 return response;
             }
             
-            // Kiểm tra xem đã có medical record chưa - SỬA: Dùng method mới
+            // Kiểm tra xem đã có medical record chưa
             Optional<MedicalRecord> existingRecordOpt = medicalRecordRepository.findFirstByAppointmentIdOrderByCreatedAtDesc(appointmentId);
             
             MedicalRecord medicalRecord;
@@ -78,20 +78,20 @@ public class MedicalRecordService {
                 MedicalRecord existingRecord = existingRecordOpt.get();
                 existingRecord.setExaminationStatus("IN_PROGRESS");
                 medicalRecord = medicalRecordRepository.save(existingRecord);
-                logger.info("✅ Continued existing examination record");
+                logger.info("Continued existing examination record");
             } else {
-                // Tạo record mới - SỬ DỤNG DOCTOR_ID TỪ APPOINTMENT
+                // Tạo record mới
                 medicalRecord = new MedicalRecord(appointmentId, actualDoctorId);
                 medicalRecord.setExaminationStatus("IN_PROGRESS");
                 medicalRecord = medicalRecordRepository.save(medicalRecord);
-                logger.info("✅ Created new examination record with doctor ID: {}", actualDoctorId);
+                logger.info("Created new examination record with doctor ID: {}", actualDoctorId);
             }
             
             // Cập nhật trạng thái appointment
             appointment.setExaminationStatus("IN_PROGRESS");
             doctorAppointmentRepository.save(appointment);
             
-            // Tạo response DTO thay vì trả về entity trực tiếp
+            // Tạo response DTO
             Map<String, Object> medicalRecordDTO = createMedicalRecordDTO(medicalRecord);
             Map<String, Object> appointmentDTO = createAppointmentDTO(appointment);
             
@@ -100,10 +100,10 @@ public class MedicalRecordService {
             response.put("medicalRecord", medicalRecordDTO);
             response.put("appointment", appointmentDTO);
             
-            logger.info("✅ Examination started successfully for appointment {}", appointmentId);
+            logger.info("Examination started successfully for appointment {}", appointmentId);
             
         } catch (Exception e) {
-            logger.error("💥 Error starting examination: {}", e.getMessage(), e);
+            logger.error("Error starting examination: {}", e.getMessage(), e);
             response.put("success", false);
             response.put("message", "Lỗi khi bắt đầu khám: " + e.getMessage());
         }
@@ -156,36 +156,36 @@ public class MedicalRecordService {
         dto.put("examinationFee", appointment.getExaminationFee());
         dto.put("paymentStatus", appointment.getPaymentStatus());
         dto.put("registrationNumber", appointment.getRegistrationNumber());
-        dto.put("doctorId", appointment.getDoctorId()); // THÊM DOCTOR_ID VÀO DTO
+        dto.put("doctorId", appointment.getDoctorId());
         dto.put("createdAt", appointment.getCreatedAt());
         return dto;
     }
     
-    // SỬA LẠI METHOD saveMedicalRecord để tránh tạo nhiều bản ghi
+    // Sửa lại method saveMedicalRecord để tránh tạo nhiều bản ghi
     public Map<String, Object> saveMedicalRecord(MedicalRecord medicalRecord) {
         Map<String, Object> response = new HashMap<>();
         
         try {
-            logger.info("💾 Saving medical record for appointment {}", medicalRecord.getAppointmentId());
+            logger.info("Saving medical record for appointment {}", medicalRecord.getAppointmentId());
             
-            // KIỂM TRA XEM ĐÃ CÓ MEDICAL RECORD CHƯA
+            // Kiểm tra xem đã có medical record chưa
             Optional<MedicalRecord> existingRecordOpt = medicalRecordRepository.findFirstByAppointmentIdOrderByCreatedAtDesc(medicalRecord.getAppointmentId());
             
             MedicalRecord recordToSave;
             if (existingRecordOpt.isPresent()) {
-                // CẬP NHẬT RECORD HIỆN TẠI
+                // Cập nhật record hiện tại
                 recordToSave = existingRecordOpt.get();
                 updateMedicalRecordFields(recordToSave, medicalRecord);
-                logger.info("✅ Updated existing medical record");
+                logger.info("Updated existing medical record");
             } else {
-                // TẠO MỚI
+                // Tạo mới
                 recordToSave = medicalRecord;
-                logger.info("✅ Created new medical record");
+                logger.info("Created new medical record");
             }
             
             MedicalRecord savedRecord = medicalRecordRepository.save(recordToSave);
             
-            // NẾU LÀ COMPLETED, CẬP NHẬT CẢ APPOINTMENT
+            // Nếu là completed, cập nhật cả appointment
             if ("COMPLETED".equals(savedRecord.getExaminationStatus())) {
                 updateAppointmentStatus(savedRecord.getAppointmentId(), "COMPLETED", "COMPLETED");
             }
@@ -196,10 +196,10 @@ public class MedicalRecordService {
             response.put("message", "Đã lưu kết quả khám");
             response.put("medicalRecord", medicalRecordDTO);
             
-            logger.info("✅ Medical record saved successfully");
+            logger.info("Medical record saved successfully");
             
         } catch (Exception e) {
-            logger.error("💥 Error saving medical record: {}", e.getMessage(), e);
+            logger.error("Error saving medical record: {}", e.getMessage(), e);
             response.put("success", false);
             response.put("message", "Lỗi khi lưu kết quả khám: " + e.getMessage());
         }
@@ -207,7 +207,7 @@ public class MedicalRecordService {
         return response;
     }
 
-    // THÊM METHOD HELPER ĐỂ CẬP NHẬT TRƯỜNG
+    // Helper method để cập nhật trường
     private void updateMedicalRecordFields(MedicalRecord existing, MedicalRecord newData) {
         existing.setChiefComplaint(newData.getChiefComplaint());
         existing.setHistoryOfIllness(newData.getHistoryOfIllness());
@@ -224,7 +224,7 @@ public class MedicalRecordService {
         existing.setExaminationStatus(newData.getExaminationStatus());
     }
 
-    // THÊM METHOD HELPER ĐỂ CẬP NHẬT APPOINTMENT
+    // Helper method để cập nhật appointment
     private void updateAppointmentStatus(Long appointmentId, String examinationStatus, String status) {
         try {
             Optional<PatientRegistration> appointmentOpt = doctorAppointmentRepository.findById(appointmentId);
@@ -233,21 +233,21 @@ public class MedicalRecordService {
                 appointment.setExaminationStatus(examinationStatus);
                 appointment.setStatus(status);
                 doctorAppointmentRepository.save(appointment);
-                logger.info("✅ Updated appointment status to: {}", status);
+                logger.info("Updated appointment status to: {}", status);
             }
         } catch (Exception e) {
-            logger.error("❌ Error updating appointment status: {}", e.getMessage());
+            logger.error("Error updating appointment status: {}", e.getMessage());
         }
     }
     
-    // SỬA LẠI METHOD completeExamination
+    // Sửa lại method completeExamination
     public Map<String, Object> completeExamination(Long appointmentId) {
         Map<String, Object> response = new HashMap<>();
         
         try {
-            logger.info("✅ Completing examination for appointment {}", appointmentId);
+            logger.info("Completing examination for appointment {}", appointmentId);
             
-            // SỬA: Sử dụng method mới để lấy record mới nhất
+            // Sử dụng method để lấy record mới nhất
             Optional<MedicalRecord> medicalRecordOpt = medicalRecordRepository.findFirstByAppointmentIdOrderByCreatedAtDesc(appointmentId);
             if (medicalRecordOpt.isEmpty()) {
                 response.put("success", false);
@@ -269,10 +269,10 @@ public class MedicalRecordService {
             response.put("message", "Đã hoàn thành khám bệnh");
             response.put("medicalRecord", medicalRecordDTO);
             
-            logger.info("✅ Examination completed successfully");
+            logger.info("Examination completed successfully");
             
         } catch (Exception e) {
-            logger.error("💥 Error completing examination: {}", e.getMessage(), e);
+            logger.error("Error completing examination: {}", e.getMessage(), e);
             response.put("success", false);
             response.put("message", "Lỗi khi hoàn thành khám: " + e.getMessage());
         }
@@ -284,7 +284,7 @@ public class MedicalRecordService {
         Map<String, Object> response = new HashMap<>();
         
         try {
-            logger.info("🚫 Marking appointment {} as missed", appointmentId);
+            logger.info("Marking appointment {} as missed", appointmentId);
             
             Optional<PatientRegistration> appointmentOpt = doctorAppointmentRepository.findById(appointmentId);
             if (appointmentOpt.isEmpty()) {
@@ -305,10 +305,10 @@ public class MedicalRecordService {
             response.put("message", "Đã đánh dấu không đi khám");
             response.put("appointment", appointmentDTO);
             
-            logger.info("✅ Appointment marked as missed");
+            logger.info("Appointment marked as missed");
             
         } catch (Exception e) {
-            logger.error("💥 Error marking as missed: {}", e.getMessage(), e);
+            logger.error("Error marking as missed: {}", e.getMessage(), e);
             response.put("success", false);
             response.put("message", "Lỗi khi đánh dấu không đi khám: " + e.getMessage());
         }
@@ -316,12 +316,12 @@ public class MedicalRecordService {
         return response;
     }
     
-    // SỬA LẠI METHOD getExaminationDetail
+    // Sửa lại method getExaminationDetail
     public Map<String, Object> getExaminationDetail(Long appointmentId) {
         Map<String, Object> response = new HashMap<>();
         
         try {
-            logger.info("🔍 Getting examination detail for appointment {}", appointmentId);
+            logger.info("Getting examination detail for appointment {}", appointmentId);
             
             Optional<PatientRegistration> appointmentOpt = doctorAppointmentRepository.findById(appointmentId);
             if (appointmentOpt.isEmpty()) {
@@ -332,7 +332,7 @@ public class MedicalRecordService {
             
             PatientRegistration appointment = appointmentOpt.get();
             
-            // SỬA: Sử dụng method mới để lấy record mới nhất
+            // Sử dụng method để lấy record mới nhất
             Optional<MedicalRecord> medicalRecordOpt = medicalRecordRepository.findFirstByAppointmentIdOrderByCreatedAtDesc(appointmentId);
             
             // Sử dụng DTO
@@ -344,7 +344,7 @@ public class MedicalRecordService {
             response.put("medicalRecord", medicalRecordDTO);
             
         } catch (Exception e) {
-            logger.error("💥 Error getting examination detail: {}", e.getMessage(), e);
+            logger.error("Error getting examination detail: {}", e.getMessage(), e);
             response.put("success", false);
             response.put("message", "Lỗi khi lấy thông tin khám: " + e.getMessage());
         }
@@ -352,12 +352,12 @@ public class MedicalRecordService {
         return response;
     }
 
-    // THÊM METHOD MỚI: Lấy danh sách hồ sơ bệnh án theo doctor ID
+    // Lấy danh sách hồ sơ bệnh án theo doctor ID
     public Map<String, Object> getMedicalRecordsByDoctor(Long doctorId, int page, int size) {
         Map<String, Object> response = new HashMap<>();
         
         try {
-            logger.info("🔍 Getting medical records for doctor ID: {}, page: {}, size: {}", doctorId, page, size);
+            logger.info("Getting medical records for doctor ID: {}, page: {}, size: {}", doctorId, page, size);
             
             Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "examinationDate"));
             Page<MedicalRecord> medicalRecordsPage = medicalRecordRepository.findByDoctorId(doctorId, pageable);
@@ -373,10 +373,10 @@ public class MedicalRecordService {
             response.put("totalPages", medicalRecordsPage.getTotalPages());
             response.put("totalItems", medicalRecordsPage.getTotalElements());
             
-            logger.info("✅ Found {} medical records for doctor {}", medicalRecordsDTO.size(), doctorId);
+            logger.info("Found {} medical records for doctor {}", medicalRecordsDTO.size(), doctorId);
             
         } catch (Exception e) {
-            logger.error("💥 Error getting medical records: {}", e.getMessage(), e);
+            logger.error("Error getting medical records: {}", e.getMessage(), e);
             response.put("success", false);
             response.put("message", "Lỗi khi lấy danh sách hồ sơ bệnh án: " + e.getMessage());
         }
@@ -384,7 +384,7 @@ public class MedicalRecordService {
         return response;
     }
 
-    // THÊM METHOD MỚI: Tạo DTO với thông tin patient
+    // Tạo DTO với thông tin patient
     private Map<String, Object> createMedicalRecordWithPatientDTO(MedicalRecord medicalRecord) {
         Map<String, Object> dto = createMedicalRecordDTO(medicalRecord);
         
@@ -402,35 +402,104 @@ public class MedicalRecordService {
                 dto.put("symptoms", appointment.getSymptoms());
             }
         } catch (Exception e) {
-            logger.warn("⚠️ Could not load patient info for medical record {}: {}", medicalRecord.getId(), e.getMessage());
+            logger.warn("Could not load patient info for medical record {}: {}", medicalRecord.getId(), e.getMessage());
         }
         
         return dto;
     }
 
-    // Thêm vào MedicalRecordService
-public Map<String, Object> checkPaymentStatus(Long appointmentId) {
-    Map<String, Object> response = new HashMap<>();
-    
-    try {
-        Optional<PatientRegistration> appointmentOpt = doctorAppointmentRepository.findById(appointmentId);
-        if (appointmentOpt.isPresent()) {
-            PatientRegistration appointment = appointmentOpt.get();
-            boolean isPaid = "PAID".equals(appointment.getPaymentStatus());
-            
-            response.put("success", true);
-            response.put("isPaid", isPaid);
-            response.put("paymentStatus", appointment.getPaymentStatus());
-        } else {
+    // Kiểm tra trạng thái thanh toán
+    public Map<String, Object> checkPaymentStatus(Long appointmentId) {
+        Map<String, Object> response = new HashMap<>();
+        
+        try {
+            Optional<PatientRegistration> appointmentOpt = doctorAppointmentRepository.findById(appointmentId);
+            if (appointmentOpt.isPresent()) {
+                PatientRegistration appointment = appointmentOpt.get();
+                boolean isPaid = "PAID".equals(appointment.getPaymentStatus());
+                
+                response.put("success", true);
+                response.put("isPaid", isPaid);
+                response.put("paymentStatus", appointment.getPaymentStatus());
+            } else {
+                response.put("success", false);
+                response.put("message", "Không tìm thấy lịch hẹn");
+            }
+        } catch (Exception e) {
+            logger.error("Error checking payment status: {}", e.getMessage(), e);
             response.put("success", false);
-            response.put("message", "Không tìm thấy lịch hẹn");
+            response.put("message", "Lỗi khi kiểm tra trạng thái thanh toán");
         }
-    } catch (Exception e) {
-        logger.error("💥 Error checking payment status: {}", e.getMessage(), e);
-        response.put("success", false);
-        response.put("message", "Lỗi khi kiểm tra trạng thái thanh toán");
+        
+        return response;
     }
     
-    return response;
-}
+    // Thêm method lấy tất cả medical records (đơn giản)
+    public Map<String, Object> getAllMedicalRecords() {
+        Map<String, Object> response = new HashMap<>();
+        
+        try {
+            List<MedicalRecord> medicalRecords = medicalRecordRepository.findAll();
+            List<Map<String, Object>> medicalRecordsDTO = medicalRecords.stream()
+                    .map(this::createMedicalRecordWithPatientDTO)
+                    .collect(Collectors.toList());
+            
+            response.put("success", true);
+            response.put("medicalRecords", medicalRecordsDTO);
+            response.put("total", medicalRecordsDTO.size());
+            
+        } catch (Exception e) {
+            logger.error("Error getting all medical records: {}", e.getMessage());
+            response.put("success", false);
+            response.put("message", "Lỗi khi lấy danh sách hồ sơ");
+        }
+        
+        return response;
+    }
+    
+    // Tìm kiếm medical record
+    public Map<String, Object> searchMedicalRecords(String keyword) {
+        Map<String, Object> response = new HashMap<>();
+        
+        try {
+            if (keyword == null || keyword.trim().isEmpty()) {
+                return getAllMedicalRecords();
+            }
+            
+            // Tìm kiếm đơn giản
+            List<MedicalRecord> medicalRecords = medicalRecordRepository.findAll();
+            List<Map<String, Object>> filteredRecords = medicalRecords.stream()
+                    .filter(record -> {
+                        try {
+                            Optional<PatientRegistration> appointmentOpt = doctorAppointmentRepository.findById(record.getAppointmentId());
+                            if (appointmentOpt.isPresent()) {
+                                PatientRegistration appointment = appointmentOpt.get();
+                                String patientName = appointment.getFullName();
+                                String phone = appointment.getPhone();
+                                String recordId = record.getId().toString();
+                                
+                                return patientName.toLowerCase().contains(keyword.toLowerCase()) ||
+                                       phone.contains(keyword) ||
+                                       recordId.contains(keyword);
+                            }
+                            return false;
+                        } catch (Exception e) {
+                            return false;
+                        }
+                    })
+                    .map(this::createMedicalRecordWithPatientDTO)
+                    .collect(Collectors.toList());
+            
+            response.put("success", true);
+            response.put("medicalRecords", filteredRecords);
+            response.put("total", filteredRecords.size());
+            
+        } catch (Exception e) {
+            logger.error("Error searching medical records: {}", e.getMessage());
+            response.put("success", false);
+            response.put("message", "Lỗi khi tìm kiếm hồ sơ");
+        }
+        
+        return response;
+    }
 }

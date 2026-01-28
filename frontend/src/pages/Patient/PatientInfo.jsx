@@ -4,172 +4,170 @@ import { useToast } from "../../hooks/useToast";
 import "../../css/PatientInfo.css";
 
 const PatientInfo = () => {
-  const [patient, setPatient] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showChangePassword, setShowChangePassword] = useState(false);
-  const [passwordForm, setPasswordForm] = useState({
-    currentPassword: "",
+  const [patientData, setPatientData] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [showPasswordForm, setShowPasswordForm] = useState(false);
+  const [passwordData, setPasswordData] = useState({
+    oldPassword: "",
     newPassword: "",
-    confirmPassword: "",
+    confirmNewPassword: "",
   });
-  const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
   const toast = useToast();
-  const hasFetched = useRef(false);
+  const hasLoaded = useRef(false);
 
   useEffect(() => {
-    if (hasFetched.current) return;
-    hasFetched.current = true;
+    if (hasLoaded.current) return;
+    hasLoaded.current = true;
 
-    const fetchPatient = async () => {
+    const loadPatientData = async () => {
       try {
-        const token = localStorage.getItem("token");
-        const response = await axios.get(
+        const userToken = localStorage.getItem("token");
+        const result = await axios.get(
           "http://localhost:8080/api/patients/me",
           {
-            headers: { Authorization: `Bearer ${token}` },
-          }
+            headers: { Authorization: `Bearer ${userToken}` },
+          },
         );
-        setPatient(response.data);
-        toast.success("Tải thông tin bệnh nhân thành công!");
-      } catch (error) {
-        console.error("Lỗi khi tải thông tin bệnh nhân:", error);
-        toast.error("Không thể tải thông tin bệnh nhân. Vui lòng thử lại!");
+        setPatientData(result.data);
+        toast.success("Đã tải thông tin bệnh nhân!");
+      } catch (err) {
+        console.log("Có lỗi khi tải thông tin:", err);
+        toast.error("Không thể tải thông tin. Vui lòng thử lại!");
       } finally {
-        setLoading(false);
+        setIsLoading(false);
       }
     };
-    fetchPatient();
+    loadPatientData();
   }, []);
 
-  const handleChange = (e) => {
+  const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setPatient({ ...patient, [name]: value });
+    setPatientData({ ...patientData, [name]: value });
   };
 
-  const handlePasswordChange = (e) => {
+  const handlePasswordInputChange = (e) => {
     const { name, value } = e.target;
-    setPasswordForm({ ...passwordForm, [name]: value });
+    setPasswordData({ ...passwordData, [name]: value });
   };
 
-  const handleSubmit = async (e) => {
+  const handleFormSubmit = async (e) => {
     e.preventDefault();
-    if (!patient || !patient.id) {
-      toast.error("Thông tin bệnh nhân không hợp lệ!");
+    if (!patientData || !patientData.id) {
+      toast.error("Dữ liệu bệnh nhân không hợp lệ!");
       return;
     }
 
-    setIsSubmitting(true);
-    const loadingToast = toast.loading("Đang cập nhật thông tin...");
+    setIsSaving(true);
+    const loadingMsg = toast.loading("Đang lưu thông tin...");
 
     try {
-      const token = localStorage.getItem("token");
+      const userToken = localStorage.getItem("token");
       await axios.put(
-        `http://localhost:8080/api/patients/${patient.id}`,
-        patient,
-        { headers: { Authorization: `Bearer ${token}` } }
+        `http://localhost:8080/api/patients/${patientData.id}`,
+        patientData,
+        { headers: { Authorization: `Bearer ${userToken}` } },
       );
 
-      toast.dismiss(loadingToast);
-      toast.success(" Cập nhật thông tin thành công!");
-    } catch (error) {
-      console.error("Lỗi khi cập nhật:", error);
-      toast.dismiss(loadingToast);
-      toast.error("Cập nhật thông tin thất bại!");
+      toast.dismiss(loadingMsg);
+      toast.success("Đã cập nhật thông tin!");
+    } catch (err) {
+      console.log("Lỗi khi cập nhật:", err);
+      toast.dismiss(loadingMsg);
+      toast.error("Không thể cập nhật thông tin!");
     } finally {
-      setIsSubmitting(false);
+      setIsSaving(false);
     }
   };
 
-  const handleChangePassword = async (e) => {
+  const handlePasswordUpdate = async (e) => {
     e.preventDefault();
 
-    // Xác thực
-    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-      toast.error("Mật khẩu mới và xác nhận mật khẩu không khớp!");
+    if (passwordData.newPassword !== passwordData.confirmNewPassword) {
+      toast.error("Mật khẩu mới không khớp!");
       return;
     }
 
-    if (passwordForm.newPassword.length < 6) {
-      toast.error("Mật khẩu mới phải có ít nhất 6 ký tự!");
+    if (passwordData.newPassword.length < 6) {
+      toast.error("Mật khẩu phải có ít nhất 6 ký tự!");
       return;
     }
 
-    setIsChangingPassword(true);
-    const loadingToast = toast.loading("Đang đổi mật khẩu...");
+    setIsUpdatingPassword(true);
+    const loadingMsg = toast.loading("Đang thay đổi mật khẩu...");
 
     try {
-      const token = localStorage.getItem("token");
+      const userToken = localStorage.getItem("token");
       await axios.put(
         "http://localhost:8080/api/users/change-password",
         {
-          currentPassword: passwordForm.currentPassword,
-          newPassword: passwordForm.newPassword,
+          currentPassword: passwordData.oldPassword,
+          newPassword: passwordData.newPassword,
         },
-        { headers: { Authorization: `Bearer ${token}` } }
+        { headers: { Authorization: `Bearer ${userToken}` } },
       );
 
-      toast.dismiss(loadingToast);
-      toast.success("Đổi mật khẩu thành công!");
+      toast.dismiss(loadingMsg);
+      toast.success("Đã đổi mật khẩu!");
 
-      // reset form
-      setPasswordForm({
-        currentPassword: "",
+      setPasswordData({
+        oldPassword: "",
         newPassword: "",
-        confirmPassword: "",
+        confirmNewPassword: "",
       });
-      setShowChangePassword(false);
-    } catch (error) {
-      console.error("Lỗi khi đổi mật khẩu:", error);
-      toast.dismiss(loadingToast);
+      setShowPasswordForm(false);
+    } catch (err) {
+      console.log("Lỗi khi đổi mật khẩu:", err);
+      toast.dismiss(loadingMsg);
 
-      if (error.response?.status === 400) {
-        toast.error("Mật khẩu hiện tại không đúng!");
+      if (err.response && err.response.status === 400) {
+        toast.error("Mật khẩu cũ không đúng!");
       } else {
-        toast.error("Đổi mật khẩu thất bại!");
+        toast.error("Không thể đổi mật khẩu!");
       }
     } finally {
-      setIsChangingPassword(false);
+      setIsUpdatingPassword(false);
     }
   };
 
-  const handleRetry = () => {
-    setLoading(true);
-    hasFetched.current = false;
-    const fetchPatient = async () => {
+  const handleReload = () => {
+    setIsLoading(true);
+    hasLoaded.current = false;
+    const loadPatientData = async () => {
       try {
-        const token = localStorage.getItem("token");
-        const response = await axios.get(
+        const userToken = localStorage.getItem("token");
+        const result = await axios.get(
           "http://localhost:8080/api/patients/me",
           {
-            headers: { Authorization: `Bearer ${token}` },
-          }
+            headers: { Authorization: `Bearer ${userToken}` },
+          },
         );
-        setPatient(response.data);
-        toast.success("Tải thông tin bệnh nhân thành công!");
-      } catch (error) {
-        console.error("Lỗi khi tải thông tin bệnh nhân:", error);
-        toast.error("Không thể tải thông tin bệnh nhân. Vui lòng thử lại!");
+        setPatientData(result.data);
+        toast.success("Đã tải thông tin bệnh nhân!");
+      } catch (err) {
+        console.log("Có lỗi khi tải thông tin:", err);
+        toast.error("Không thể tải thông tin. Vui lòng thử lại!");
       } finally {
-        setLoading(false);
+        setIsLoading(false);
       }
     };
-    fetchPatient();
+    loadPatientData();
   };
 
-  if (loading)
+  if (isLoading)
     return (
       <div className="loading">
-        <p>Đang tải dữ liệu...</p>
+        <p>Đang tải...</p>
       </div>
     );
 
-  if (!patient)
+  if (!patientData)
     return (
       <div className="error-message">
-        <p>Không tìm thấy thông tin bệnh nhân.</p>
-        <button className="retry-button" onClick={handleRetry}>
-          Thử lại
+        <p>Không có thông tin bệnh nhân.</p>
+        <button className="retry-button" onClick={handleReload}>
+          Tải lại
         </button>
       </div>
     );
@@ -178,22 +176,21 @@ const PatientInfo = () => {
     <div className="patient-info-container">
       <div className="patient-info-header">
         <h2>Thông tin bệnh nhân</h2>
-        <p>Quản lý và cập nhật thông tin cá nhân của bạn</p>
+        <p>Quản lý thông tin cá nhân</p>
       </div>
 
       <div className="patient-card">
-        <form onSubmit={handleSubmit} className="patient-form">
-          {/* Thông tin cá nhân */}
+        <form onSubmit={handleFormSubmit} className="patient-form">
           <div className="form-section">
             <h3>Thông tin cá nhân</h3>
             <div className="form-row">
               <div className="form-group">
-                <label>Họ và tên *</label>
+                <label>Họ tên *</label>
                 <input
                   type="text"
                   name="fullName"
-                  value={patient.fullName || ""}
-                  onChange={handleChange}
+                  value={patientData.fullName || ""}
+                  onChange={handleInputChange}
                   required
                 />
               </div>
@@ -203,8 +200,8 @@ const PatientInfo = () => {
                 <input
                   type="date"
                   name="dob"
-                  value={patient.dob || ""}
-                  onChange={handleChange}
+                  value={patientData.dob || ""}
+                  onChange={handleInputChange}
                 />
               </div>
             </div>
@@ -215,8 +212,8 @@ const PatientInfo = () => {
                 <input
                   type="text"
                   name="phone"
-                  value={patient.phone || ""}
-                  onChange={handleChange}
+                  value={patientData.phone || ""}
+                  onChange={handleInputChange}
                 />
               </div>
 
@@ -225,8 +222,8 @@ const PatientInfo = () => {
                 <input
                   type="email"
                   name="email"
-                  value={patient.email || ""}
-                  onChange={handleChange}
+                  value={patientData.email || ""}
+                  onChange={handleInputChange}
                 />
               </div>
             </div>
@@ -236,13 +233,12 @@ const PatientInfo = () => {
               <input
                 type="text"
                 name="address"
-                value={patient.address || ""}
-                onChange={handleChange}
+                value={patientData.address || ""}
+                onChange={handleInputChange}
               />
             </div>
           </div>
 
-          {/* Thông tin y tế */}
           <div className="form-section">
             <h3>Thông tin y tế</h3>
             <div className="form-row">
@@ -251,8 +247,8 @@ const PatientInfo = () => {
                 <input
                   type="text"
                   name="symptoms"
-                  value={patient.symptoms || ""}
-                  onChange={handleChange}
+                  value={patientData.symptoms || ""}
+                  onChange={handleInputChange}
                 />
               </div>
 
@@ -261,49 +257,48 @@ const PatientInfo = () => {
                 <input
                   type="text"
                   name="bhyt"
-                  value={patient.bhyt || ""}
-                  onChange={handleChange}
+                  value={patientData.bhyt || ""}
+                  onChange={handleInputChange}
                 />
               </div>
             </div>
           </div>
 
-          {/* Thông tin người nhà */}
           <div className="form-section">
             <h3>Thông tin người nhà</h3>
             <div className="form-row">
               <div className="form-group">
-                <label>Họ tên người nhà</label>
+                <label>Tên người nhà</label>
                 <input
                   type="text"
                   name="relativeName"
-                  value={patient.relativeName || ""}
-                  onChange={handleChange}
-                  placeholder="Nhập họ tên người nhà"
+                  value={patientData.relativeName || ""}
+                  onChange={handleInputChange}
+                  placeholder="Nhập tên người nhà"
                 />
               </div>
 
               <div className="form-group">
-                <label>Số điện thoại người nhà</label>
+                <label>Điện thoại người nhà</label>
                 <input
                   type="text"
                   name="relativePhone"
-                  value={patient.relativePhone || ""}
-                  onChange={handleChange}
-                  placeholder="Nhập số điện thoại liên hệ"
+                  value={patientData.relativePhone || ""}
+                  onChange={handleInputChange}
+                  placeholder="Nhập số điện thoại"
                 />
               </div>
             </div>
 
             <div className="form-row">
               <div className="form-group">
-                <label>Mối quan hệ</label>
+                <label>Quan hệ</label>
                 <select
                   name="relativeRelationship"
-                  value={patient.relativeRelationship || ""}
-                  onChange={handleChange}
+                  value={patientData.relativeRelationship || ""}
+                  onChange={handleInputChange}
                 >
-                  <option value="">Chọn mối quan hệ</option>
+                  <option value="">Chọn quan hệ</option>
                   <option value="Vợ/Chồng">Vợ/Chồng</option>
                   <option value="Cha/Mẹ">Cha/Mẹ</option>
                   <option value="Con cái">Con cái</option>
@@ -318,48 +313,47 @@ const PatientInfo = () => {
                 <input
                   type="text"
                   name="relativeAddress"
-                  value={patient.relativeAddress || ""}
-                  onChange={handleChange}
-                  placeholder="Nhập địa chỉ người nhà"
+                  value={patientData.relativeAddress || ""}
+                  onChange={handleInputChange}
+                  placeholder="Nhập địa chỉ"
                 />
               </div>
             </div>
           </div>
 
           <div className="form-actions">
-            <button type="submit" className="save-btn" disabled={isSubmitting}>
-              {isSubmitting ? "Đang cập nhật..." : "Lưu thay đổi"}
+            <button type="submit" className="save-btn" disabled={isSaving}>
+              {isSaving ? "Đang lưu..." : "Lưu thay đổi"}
             </button>
           </div>
         </form>
       </div>
 
-      {/* Phần đổi mật khẩu */}
       <div className="password-section">
         <div className="section-header">
-          <h3>Quản lý mật khẩu</h3>
+          <h3>Mật khẩu</h3>
           <button
             type="button"
             className="change-password-btn"
-            onClick={() => setShowChangePassword(!showChangePassword)}
+            onClick={() => setShowPasswordForm(!showPasswordForm)}
           >
-            {showChangePassword ? "Ẩn" : "Đổi mật khẩu"}
+            {showPasswordForm ? "Ẩn" : "Đổi mật khẩu"}
           </button>
         </div>
 
-        {showChangePassword && (
+        {showPasswordForm && (
           <div className="password-form-card">
-            <form onSubmit={handleChangePassword}>
+            <form onSubmit={handlePasswordUpdate}>
               <div className="form-row">
                 <div className="form-group">
                   <label>Mật khẩu hiện tại *</label>
                   <input
                     type="password"
-                    name="currentPassword"
-                    value={passwordForm.currentPassword}
-                    onChange={handlePasswordChange}
+                    name="oldPassword"
+                    value={passwordData.oldPassword}
+                    onChange={handlePasswordInputChange}
                     required
-                    placeholder="Nhập mật khẩu hiện tại"
+                    placeholder="Mật khẩu hiện tại"
                   />
                 </div>
               </div>
@@ -370,23 +364,23 @@ const PatientInfo = () => {
                   <input
                     type="password"
                     name="newPassword"
-                    value={passwordForm.newPassword}
-                    onChange={handlePasswordChange}
+                    value={passwordData.newPassword}
+                    onChange={handlePasswordInputChange}
                     required
-                    placeholder="Nhập mật khẩu mới (ít nhất 6 ký tự)"
+                    placeholder="Mật khẩu mới (6 ký tự)"
                     minLength="6"
                   />
                 </div>
 
                 <div className="form-group">
-                  <label>Xác nhận mật khẩu mới *</label>
+                  <label>Xác nhận mật khẩu *</label>
                   <input
                     type="password"
-                    name="confirmPassword"
-                    value={passwordForm.confirmPassword}
-                    onChange={handlePasswordChange}
+                    name="confirmNewPassword"
+                    value={passwordData.confirmNewPassword}
+                    onChange={handlePasswordInputChange}
                     required
-                    placeholder="Nhập lại mật khẩu mới"
+                    placeholder="Nhập lại mật khẩu"
                   />
                 </div>
               </div>
@@ -395,19 +389,19 @@ const PatientInfo = () => {
                 <button
                   type="submit"
                   className="save-btn"
-                  disabled={isChangingPassword}
+                  disabled={isUpdatingPassword}
                 >
-                  {isChangingPassword ? "Đang đổi..." : "Đổi mật khẩu"}
+                  {isUpdatingPassword ? "Đang xử lý..." : "Đổi mật khẩu"}
                 </button>
                 <button
                   type="button"
                   className="cancel-btn"
                   onClick={() => {
-                    setShowChangePassword(false);
-                    setPasswordForm({
-                      currentPassword: "",
+                    setShowPasswordForm(false);
+                    setPasswordData({
+                      oldPassword: "",
                       newPassword: "",
-                      confirmPassword: "",
+                      confirmNewPassword: "",
                     });
                   }}
                 >

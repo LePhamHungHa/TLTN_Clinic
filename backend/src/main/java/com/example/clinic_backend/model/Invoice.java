@@ -36,10 +36,10 @@ public class Invoice {
     @Column(name = "payment_method")
     private String paymentMethod;
     
-    @Column(name = "transaction_no") // TransactionNo của chúng ta
+    @Column(name = "transaction_no") 
     private String transactionNo;
     
-    @Column(name = "vnp_transaction_no") // TransactionNo từ VNPay (nếu cần)
+    @Column(name = "vnp_transaction_no")
     private String vnpTransactionNo;
     
     @Column(name = "bank_code")

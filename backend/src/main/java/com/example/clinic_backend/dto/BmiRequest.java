@@ -10,10 +10,10 @@ public class BmiRequest {
     private String bmiCategory;
     private LocalDate measurementDate;
     
-    // Default constructor
+    // constructor
     public BmiRequest() {}
     
-    // Getters and Setters
+    // getter setter
     public Double getHeight() {
         return height;
     }

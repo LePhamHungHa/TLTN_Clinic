@@ -3,23 +3,23 @@ import { Link, useNavigate } from "react-router-dom";
 import "../css/Header.css";
 
 const Header = () => {
-  const [user, setUser] = useState(null);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [user, setUser] = useState(null); // Lưu thông tin user
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false); // Trạng thái menu mobile
   const navigate = useNavigate();
 
-  // Đọc localStorage khi component mount
+  // Load user từ localStorage khi component mount
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
-    console.log("🔍 HEADER - localStorage.user:", storedUser);
+    console.log("Header - user trong localStorage:", storedUser);
 
     if (storedUser) {
       try {
         const parsedUser = JSON.parse(storedUser);
-        console.log("HEADER - Parsed user:", parsedUser);
+        console.log("Header - parsed user:", parsedUser);
         setUser(parsedUser);
       } catch (e) {
-        console.error("Header parse error:", e);
-        localStorage.removeItem("user");
+        console.error("Lỗi parse user:", e);
+        localStorage.removeItem("user"); // Xóa nếu lỗi
         setUser(null);
       }
     } else {
@@ -27,11 +27,11 @@ const Header = () => {
     }
   }, []);
 
-  // Lắng nghe sự kiện storage
+  // Lắng nghe sự kiện thay đổi localStorage (khi login/logout ở tab khác)
   useEffect(() => {
     const handleStorageChange = () => {
       const storedUser = localStorage.getItem("user");
-      console.log("STORAGE CHANGE:", storedUser);
+      console.log("Storage thay đổi:", storedUser);
       if (storedUser) {
         try {
           setUser(JSON.parse(storedUser));
@@ -47,6 +47,7 @@ const Header = () => {
     return () => window.removeEventListener("storage", handleStorageChange);
   }, []);
 
+  // Xử lý logout
   const handleLogout = () => {
     localStorage.removeItem("user");
     localStorage.removeItem("token");
@@ -55,17 +56,18 @@ const Header = () => {
     navigate("/login");
   };
 
+  // Mở/đóng menu mobile
   const toggleMobileMenu = () => {
     setIsMobileMenuOpen(!isMobileMenuOpen);
   };
 
-  // Menu theo role
+  // Tạo menu theo role của user
   const renderMenu = (isMobile = false) => {
     const linkClass = isMobile ? "mobile-nav-link" : "nav-link";
-    const links = [];
+    const links = []; // Mảng chứa các link menu
 
+    // Nếu chưa login (guest)
     if (!user || !user.role) {
-      // GUEST MENU
       links.push(
         <a
           key="about"
@@ -122,10 +124,10 @@ const Header = () => {
           onClick={isMobile ? toggleMobileMenu : undefined}
         >
           LIÊN HỆ
-        </a>
+        </a>,
       );
 
-      // Menu patient
+      // Menu cho bệnh nhân
     } else if (user.role === "PATIENT") {
       links.push(
         <Link
@@ -183,10 +185,10 @@ const Header = () => {
           onClick={isMobile ? toggleMobileMenu : undefined}
         >
           Thông tin cá nhân
-        </Link>
+        </Link>,
       );
 
-      // Menu doctor
+      // Menu cho bác sĩ
     } else if (user.role === "DOCTOR") {
       links.push(
         <Link
@@ -220,10 +222,10 @@ const Header = () => {
           onClick={isMobile ? toggleMobileMenu : undefined}
         >
           Thống kê cá nhân
-        </Link>
+        </Link>,
       );
 
-      // Menu admin
+      // Menu cho admin
     } else if (user.role === "ADMIN") {
       links.push(
         <Link
@@ -257,7 +259,7 @@ const Header = () => {
           onClick={isMobile ? toggleMobileMenu : undefined}
         >
           Quản lý dữ liệu hệ thống
-        </Link>
+        </Link>,
       );
     }
 
@@ -267,14 +269,17 @@ const Header = () => {
   return (
     <header className="header">
       <div className="container">
+        {/* Logo */}
         <div className="logo-section">
           <img src="/img/logo.png" alt="Logo" />
         </div>
 
+        {/* Menu desktop */}
         <nav className={`nav-desktop ${isMobileMenuOpen ? "mobile-open" : ""}`}>
           {renderMenu(false)}
         </nav>
 
+        {/* Nút đăng nhập/đăng xuất desktop */}
         <div className="auth-buttons">
           {user ? (
             <>
@@ -295,10 +300,12 @@ const Header = () => {
           )}
         </div>
 
+        {/* Nút menu mobile */}
         <button className="mobile-menu-btn" onClick={toggleMobileMenu}>
           <i className={`fas ${isMobileMenuOpen ? "fa-times" : "fa-bars"}`}></i>
         </button>
 
+        {/* Menu mobile */}
         <div className={`mobile-menu ${isMobileMenuOpen ? "open" : ""}`}>
           {renderMenu(true)}
           <div className="mobile-auth-buttons">

@@ -273,7 +273,6 @@ public class MedicineService {
                     medicines.add(medicine);
                 } catch (Exception e) {
                     System.err.println("Lỗi khi xử lý dòng " + (i + 1) + ": " + e.getMessage());
-                    // Tiếp tục với các dòng khác
                 }
             }
             
@@ -457,7 +456,6 @@ public class MedicineService {
                 return cell.getNumericCellValue() == 1;
             }
         } catch (Exception e) {
-            // Nếu có lỗi, trả về giá trị mặc định
         }
         
         return defaultValue;

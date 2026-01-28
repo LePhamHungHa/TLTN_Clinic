@@ -22,60 +22,96 @@ public class AdminStructureController {
     @Autowired
     private DoctorSlotService doctorSlotService;
     
+    
     // ========== DOCTOR SLOT MANAGEMENT ==========
     
+    // lay tat ca slot
     @GetMapping("/slots")
     public ResponseEntity<List<DoctorSlot>> getAllSlots() {
-        return ResponseEntity.ok(doctorSlotService.getAllSlots());
+    List<DoctorSlot> slots = doctorSlotService.getAllSlots();
+    return ResponseEntity.ok(slots);
     }
     
+    // lay slot theo bac si
     @GetMapping("/slots/doctor/{doctorId}")
     public ResponseEntity<List<DoctorSlot>> getSlotsByDoctor(@PathVariable Long doctorId) {
-        return ResponseEntity.ok(doctorSlotService.getSlotsByDoctor(doctorId));
+    List<DoctorSlot> slots = doctorSlotService.getSlotsByDoctor(doctorId);
+    return ResponseEntity.ok(slots);
     }
     
+    // lay slot sap toi
     @GetMapping("/slots/upcoming")
     public ResponseEntity<List<DoctorSlot>> getUpcomingSlots() {
-        return ResponseEntity.ok(doctorSlotService.getUpcomingSlots());
+    List<DoctorSlot> slots = doctorSlotService.getUpcomingSlots();
+    return ResponseEntity.ok(slots);
     }
     
+    // lay slot theo id
     @GetMapping("/slots/{id}")
     public ResponseEntity<DoctorSlot> getSlotById(@PathVariable Long id) {
-        return ResponseEntity.ok(doctorSlotService.getSlotById(id));
+    DoctorSlot slot = doctorSlotService.getSlotById(id);
+    return ResponseEntity.ok(slot);
     }
     
+    // tao slot moi
     @PostMapping("/slots")
     public ResponseEntity<DoctorSlot> createSlot(@RequestBody DoctorSlot slot) {
-        return ResponseEntity.ok(doctorSlotService.createSlot(slot));
+    DoctorSlot newSlot = doctorSlotService.createSlot(slot);
+    return ResponseEntity.ok(newSlot);
     }
     
+    // cap nhat slot
     @PutMapping("/slots/{id}")
     public ResponseEntity<DoctorSlot> updateSlot(@PathVariable Long id, @RequestBody DoctorSlot slotDetails) {
-        return ResponseEntity.ok(doctorSlotService.updateSlot(id, slotDetails));
+    DoctorSlot updated = doctorSlotService.updateSlot(id, slotDetails);
+    return ResponseEntity.ok(updated);
     }
     
+    // cap nhat so benh nhan toi da
     @PatchMapping("/slots/{id}/max-patients")
     public ResponseEntity<DoctorSlot> updateMaxPatients(@PathVariable Long id, @RequestBody Map<String, Integer> request) {
-        Integer maxPatients = request.get("maxPatients");
-        return ResponseEntity.ok(doctorSlotService.updateMaxPatients(id, maxPatients));
+    Integer maxPatients = request.get("maxPatients");
+    DoctorSlot updated = doctorSlotService.updateMaxPatients(id, maxPatients);
+    return ResponseEntity.ok(updated);
     }
     
+    // cap nhat hang loat so benh nhan
     @PatchMapping("/slots/bulk-max-patients")
     public ResponseEntity<Map<String, String>> bulkUpdateMaxPatients(@RequestBody Map<String, Integer> request) {
-        Integer maxPatients = request.get("maxPatients");
-        doctorSlotService.bulkUpdateMaxPatients(maxPatients);
-        
-        Map<String, String> response = new HashMap<>();
-        response.put("message", "Cập nhật thành công cho tất cả slot");
-        return ResponseEntity.ok(response);
+    Integer maxPatients = request.get("maxPatients");
+    doctorSlotService.bulkUpdateMaxPatients(maxPatients);
+    
+    Map<String, String> response = new HashMap<>();
+    response.put("message", "Da cap nhat thanh cong cho tat ca slot");
+    return ResponseEntity.ok(response);
     }
     
+    // xoa slot
     @DeleteMapping("/slots/{id}")
     public ResponseEntity<Map<String, String>> deleteSlot(@PathVariable Long id) {
-        doctorSlotService.deleteSlot(id);
-        
-        Map<String, String> response = new HashMap<>();
-        response.put("message", "Xóa slot thành công");
-        return ResponseEntity.ok(response);
+    doctorSlotService.deleteSlot(id);
+    
+    Map<String, String> response = new HashMap<>();
+    response.put("message", "Xoa slot thanh cong");
+    return ResponseEntity.ok(response);
+    }
+    
+    
+    // them mot vai method don gian de test
+    @GetMapping("/test")
+    public ResponseEntity<Map<String, String>> test() {
+    Map<String, String> result = new HashMap<>();
+    result.put("status", "ok");
+    result.put("message", "api dang chay");
+    return ResponseEntity.ok(result);
+    }
+    
+    // lay so luong slot
+    @GetMapping("/slots/count")
+    public ResponseEntity<Map<String, Integer>> countSlots() {
+    List<DoctorSlot> all = doctorSlotService.getAllSlots();
+    Map<String, Integer> result = new HashMap<>();
+    result.put("count", all.size());
+    return ResponseEntity.ok(result);
     }
 }

@@ -2,20 +2,22 @@ import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import "../../css/DoctorExamination.css";
 
-const DoctorExamination = () => {
+function DoctorExamination() {
   const { appointmentId } = useParams();
   const navigate = useNavigate();
+
+  // Khai báo state
   const [appointment, setAppointment] = useState(null);
   const [medicalRecord, setMedicalRecord] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [saving, setSaving] = useState(false);
-  const [paymentStatus, setPaymentStatus] = useState(null);
-  const [showPaymentAlert, setShowPaymentAlert] = useState(false);
-  const [examinationCompleted, setExaminationCompleted] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
+  const [paymentInfo, setPaymentInfo] = useState(null);
+  const [showPaymentNotice, setShowPaymentNotice] = useState(false);
+  const [isExamFinished, setIsExamFinished] = useState(false);
 
-  // Form data
-  const [formData, setFormData] = useState({
+  // State cho form dữ liệu
+  const [formValues, setFormValues] = useState({
     chiefComplaint: "",
     historyOfIllness: "",
     physicalExamination: "",
@@ -37,53 +39,50 @@ const DoctorExamination = () => {
     followUpNotes: "",
   });
 
-  // Kiểm tra trạng thái thanh toán
-  const checkPaymentStatus = async () => {
+  // Hàm kiểm tra trạng thái thanh toán
+  const getPaymentStatus = async () => {
     try {
-      const user = JSON.parse(localStorage.getItem("user"));
-      const response = await fetch(
-        `http://localhost:8080/api/doctor/medical-records/${appointmentId}/payment-status`,
-        {
-          headers: {
-            Authorization: `Bearer ${user.token}`,
-          },
-        }
-      );
+      const userData = JSON.parse(localStorage.getItem("user"));
+      const url = `http://localhost:8080/api/doctor/medical-records/${appointmentId}/payment-status`;
 
-      if (response.ok) {
-        const result = await response.json();
-        if (result.success) {
-          setPaymentStatus(result);
-          return result;
+      const response = await fetch(url, {
+        headers: {
+          Authorization: "Bearer " + userData.token,
+        },
+      });
+
+      if (response.status === 200) {
+        const data = await response.json();
+        if (data.success) {
+          setPaymentInfo(data);
+          return data;
         }
       }
       return null;
-    } catch (error) {
-      console.error("Lỗi kiểm tra thanh toán:", error);
+    } catch (err) {
+      console.log("Lỗi khi kiểm tra thanh toán:", err);
       return null;
     }
   };
 
-  // Lấy thông tin khám bệnh
+  // Lấy thông tin cuộc hẹn và hồ sơ bệnh án
   useEffect(() => {
-    const fetchExaminationData = async () => {
+    async function getExaminationData() {
       try {
         setLoading(true);
-        const user = JSON.parse(localStorage.getItem("user"));
+        const userData = JSON.parse(localStorage.getItem("user"));
+        const url = `http://localhost:8080/api/doctor/medical-records/${appointmentId}`;
 
-        const response = await fetch(
-          `http://localhost:8080/api/doctor/medical-records/${appointmentId}`,
-          {
-            method: "GET",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${user.token}`,
-            },
-          }
-        );
+        const response = await fetch(url, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: "Bearer " + userData.token,
+          },
+        });
 
-        if (!response.ok) {
-          throw new Error("Không thể tải thông tin khám bệnh");
+        if (response.status !== 200) {
+          throw new Error("Không tải được thông tin khám bệnh");
         }
 
         const result = await response.json();
@@ -91,26 +90,39 @@ const DoctorExamination = () => {
         if (result.success) {
           setAppointment(result.appointment);
           setMedicalRecord(result.medicalRecord);
-          setExaminationCompleted(
-            result.medicalRecord?.examinationStatus === "COMPLETED"
-          );
 
-          // Nếu có medical record, điền dữ liệu vào form
+          let finished = false;
+          if (
+            result.medicalRecord &&
+            result.medicalRecord.examinationStatus === "COMPLETED"
+          ) {
+            finished = true;
+          }
+          setIsExamFinished(finished);
+
+          // Nếu có dữ liệu hồ sơ, điền vào form
           if (result.medicalRecord) {
-            setFormData({
+            let vitalData = result.medicalRecord.vitalSigns || {};
+            if (typeof vitalData === "string") {
+              try {
+                vitalData = JSON.parse(vitalData);
+              } catch {
+                vitalData = {};
+              }
+            }
+
+            setFormValues({
               chiefComplaint: result.medicalRecord.chiefComplaint || "",
               historyOfIllness: result.medicalRecord.historyOfIllness || "",
               physicalExamination:
                 result.medicalRecord.physicalExamination || "",
               vitalSigns: {
-                bloodPressure:
-                  result.medicalRecord.vitalSigns?.bloodPressure || "",
-                heartRate: result.medicalRecord.vitalSigns?.heartRate || "",
-                temperature: result.medicalRecord.vitalSigns?.temperature || "",
-                respiratoryRate:
-                  result.medicalRecord.vitalSigns?.respiratoryRate || "",
-                height: result.medicalRecord.vitalSigns?.height || "",
-                weight: result.medicalRecord.vitalSigns?.weight || "",
+                bloodPressure: vitalData.bloodPressure || "",
+                heartRate: vitalData.heartRate || "",
+                temperature: vitalData.temperature || "",
+                respiratoryRate: vitalData.respiratoryRate || "",
+                height: vitalData.height || "",
+                weight: vitalData.weight || "",
               },
               preliminaryDiagnosis:
                 result.medicalRecord.preliminaryDiagnosis || "",
@@ -125,218 +137,204 @@ const DoctorExamination = () => {
           }
 
           // Kiểm tra thanh toán
-          const paymentResult = await checkPaymentStatus();
+          const paymentData = await getPaymentStatus();
           if (
-            paymentResult &&
-            !paymentResult.isPaid &&
-            result.medicalRecord?.examinationStatus === "COMPLETED"
+            paymentData &&
+            !paymentData.isPaid &&
+            result.medicalRecord &&
+            result.medicalRecord.examinationStatus === "COMPLETED"
           ) {
-            setShowPaymentAlert(true);
+            setShowPaymentNotice(true);
           }
         } else {
-          throw new Error(
-            result.message || "Không tìm thấy thông tin khám bệnh"
-          );
+          throw new Error(result.message || "Không tìm thấy thông tin khám");
         }
       } catch (err) {
-        console.error("❌ Lỗi tải thông tin khám:", err);
-        setError(err.message);
+        console.log("Lỗi khi lấy dữ liệu khám:", err);
+        setErrorMessage(err.message);
       } finally {
         setLoading(false);
       }
-    };
+    }
 
-    fetchExaminationData();
+    getExaminationData();
   }, [appointmentId]);
 
-  // Xử lý thay đổi form
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
+  // Xử lý thay đổi input
+  const handleChange = (e) => {
+    const fieldName = e.target.name;
+    const fieldValue = e.target.value;
+    setFormValues((prev) => ({
       ...prev,
-      [name]: value,
+      [fieldName]: fieldValue,
     }));
   };
 
-  // Xử lý thay đổi vital signs
-  const handleVitalSignsChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
+  // Xử lý thay đổi dấu hiệu sinh tồn
+  const handleVitalChange = (e) => {
+    const fieldName = e.target.name;
+    const fieldValue = e.target.value;
+    setFormValues((prev) => ({
       ...prev,
       vitalSigns: {
         ...prev.vitalSigns,
-        [name]: value,
+        [fieldName]: fieldValue,
       },
     }));
   };
 
-  // Lưu kết quả khám (không chuyển trang ngay)
-  const handleSaveExamination = async () => {
+  // Lưu kết quả khám tạm thời
+  const saveExamination = async () => {
     if (
       !window.confirm(
-        "Xác nhận lưu kết quả khám? Bạn vẫn có thể chỉnh sửa sau khi lưu."
+        "Xác nhận lưu kết quả khám? Bạn vẫn có thể chỉnh sửa sau.",
       )
     ) {
       return;
     }
 
     try {
-      setSaving(true);
-      const user = JSON.parse(localStorage.getItem("user"));
+      setIsSaving(true);
+      const userData = JSON.parse(localStorage.getItem("user"));
 
-      // Chuẩn bị dữ liệu medical record
-      const medicalRecordData = {
+      // Chuẩn bị dữ liệu gửi lên server
+      const requestData = {
         appointmentId: parseInt(appointmentId),
         doctorId: appointment.doctorId,
-        chiefComplaint: formData.chiefComplaint,
-        historyOfIllness: formData.historyOfIllness,
-        physicalExamination: formData.physicalExamination,
-        vitalSigns: JSON.stringify(formData.vitalSigns),
-        preliminaryDiagnosis: formData.preliminaryDiagnosis,
-        finalDiagnosis: formData.finalDiagnosis,
-        treatmentPlan: formData.treatmentPlan,
-        medications: JSON.stringify(formData.medications),
-        labTests: JSON.stringify(formData.labTests),
-        advice: formData.advice,
-        followUpDate: formData.followUpDate,
-        followUpNotes: formData.followUpNotes,
-        examinationStatus: "IN_PROGRESS", // Vẫn đang khám
+        chiefComplaint: formValues.chiefComplaint,
+        historyOfIllness: formValues.historyOfIllness,
+        physicalExamination: formValues.physicalExamination,
+        vitalSigns: JSON.stringify(formValues.vitalSigns),
+        preliminaryDiagnosis: formValues.preliminaryDiagnosis,
+        finalDiagnosis: formValues.finalDiagnosis,
+        treatmentPlan: formValues.treatmentPlan,
+        medications: JSON.stringify(formValues.medications),
+        labTests: JSON.stringify(formValues.labTests),
+        advice: formValues.advice,
+        followUpDate: formValues.followUpDate,
+        followUpNotes: formValues.followUpNotes,
+        examinationStatus: "IN_PROGRESS",
       };
 
-      // Gọi API để lưu medical record
-      const response = await fetch(
-        `http://localhost:8080/api/doctor/medical-records/${appointmentId}`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${user.token}`,
-          },
-          body: JSON.stringify(medicalRecordData),
-        }
-      );
+      const url = `http://localhost:8080/api/doctor/medical-records/${appointmentId}`;
+      const response = await fetch(url, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer " + userData.token,
+        },
+        body: JSON.stringify(requestData),
+      });
 
-      if (!response.ok) {
+      if (response.status !== 200) {
         const errorText = await response.text();
-        throw new Error(`HTTP ${response.status}: ${errorText}`);
+        throw new Error("HTTP " + response.status + ": " + errorText);
       }
 
       const result = await response.json();
 
       if (result.success) {
-        alert("✅ Đã lưu kết quả khám!");
+        alert("Đã lưu kết quả khám!");
         setMedicalRecord(result.medicalRecord);
       } else {
-        throw new Error(result.message || "Lỗi khi lưu kết quả khám");
+        throw new Error(result.message || "Lỗi khi lưu kết quả");
       }
     } catch (err) {
-      console.error("❌ Lỗi lưu kết quả khám:", err);
-      alert(`❌ Lỗi: ${err.message}`);
+      console.log("Lỗi khi lưu kết quả:", err);
+      alert("Lỗi: " + err.message);
     } finally {
-      setSaving(false);
+      setIsSaving(false);
     }
   };
 
-  // Hoàn thành khám và kiểm tra thanh toán
-  const handleCompleteExamination = async () => {
+  // Hoàn thành khám bệnh
+  const finishExamination = async () => {
     if (
       !window.confirm(
-        "Xác nhận hoàn thành khám? Sau khi hoàn thành không thể sửa đổi."
+        "Xác nhận hoàn thành khám? Sau khi hoàn thành không thể sửa.",
       )
     ) {
       return;
     }
 
     try {
-      setSaving(true);
-      const user = JSON.parse(localStorage.getItem("user"));
+      setIsSaving(true);
+      const userData = JSON.parse(localStorage.getItem("user"));
 
-      // Chuẩn bị dữ liệu medical record
-      const medicalRecordData = {
+      const requestData = {
         appointmentId: parseInt(appointmentId),
         doctorId: appointment.doctorId,
-        chiefComplaint: formData.chiefComplaint,
-        historyOfIllness: formData.historyOfIllness,
-        physicalExamination: formData.physicalExamination,
-        vitalSigns: JSON.stringify(formData.vitalSigns),
-        preliminaryDiagnosis: formData.preliminaryDiagnosis,
-        finalDiagnosis: formData.finalDiagnosis,
-        treatmentPlan: formData.treatmentPlan,
-        medications: JSON.stringify(formData.medications),
-        labTests: JSON.stringify(formData.labTests),
-        advice: formData.advice,
-        followUpDate: formData.followUpDate,
-        followUpNotes: formData.followUpNotes,
+        chiefComplaint: formValues.chiefComplaint,
+        historyOfIllness: formValues.historyOfIllness,
+        physicalExamination: formValues.physicalExamination,
+        vitalSigns: JSON.stringify(formValues.vitalSigns),
+        preliminaryDiagnosis: formValues.preliminaryDiagnosis,
+        finalDiagnosis: formValues.finalDiagnosis,
+        treatmentPlan: formValues.treatmentPlan,
+        medications: JSON.stringify(formValues.medications),
+        labTests: JSON.stringify(formValues.labTests),
+        advice: formValues.advice,
+        followUpDate: formValues.followUpDate,
+        followUpNotes: formValues.followUpNotes,
         examinationStatus: "COMPLETED",
       };
 
-      // Gọi API để lưu medical record
-      const response = await fetch(
-        `http://localhost:8080/api/doctor/medical-records/${appointmentId}`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${user.token}`,
-          },
-          body: JSON.stringify(medicalRecordData),
-        }
-      );
+      const url = `http://localhost:8080/api/doctor/medical-records/${appointmentId}`;
+      const response = await fetch(url, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer " + userData.token,
+        },
+        body: JSON.stringify(requestData),
+      });
 
-      if (!response.ok) {
+      if (response.status !== 200) {
         const errorText = await response.text();
-        throw new Error(`HTTP ${response.status}: ${errorText}`);
+        throw new Error("HTTP " + response.status + ": " + errorText);
       }
 
       const result = await response.json();
 
       if (result.success) {
         setMedicalRecord(result.medicalRecord);
-        setExaminationCompleted(true);
+        setIsExamFinished(true);
 
         // Kiểm tra thanh toán
-        const paymentResult = await checkPaymentStatus();
+        const paymentData = await getPaymentStatus();
 
-        if (paymentResult && paymentResult.isPaid) {
-          // ĐÃ THANH TOÁN → CHUYỂN ĐẾN KÊ ĐƠN THUỐC
-          alert("✅ Đã hoàn thành khám! Chuyển đến kê đơn thuốc...");
+        if (paymentData && paymentData.isPaid) {
+          alert("Đã hoàn thành khám! Chuyển đến kê đơn thuốc...");
           navigate(
-            `/doctor/prescription/${appointmentId}/${result.medicalRecord.id}`
+            `/doctor/prescription/${appointmentId}/${result.medicalRecord.id}`,
           );
         } else {
-          // CHƯA THANH TOÁN → HIỂN THỊ THÔNG BÁO
-          alert("✅ Đã hoàn thành khám! Đang chờ thanh toán...");
-          setShowPaymentAlert(true);
+          alert("Đã hoàn thành khám! Đang chờ thanh toán...");
+          setShowPaymentNotice(true);
         }
       } else {
         throw new Error(result.message || "Lỗi khi hoàn thành khám");
       }
     } catch (err) {
-      console.error("❌ Lỗi hoàn thành khám:", err);
-      alert(`❌ Lỗi: ${err.message}`);
+      console.log("Lỗi khi hoàn thành khám:", err);
+      alert("Lỗi: " + err.message);
     } finally {
-      setSaving(false);
+      setIsSaving(false);
     }
   };
-
-  // Chuyển đến trang kê đơn thuốc
-  // const handleGoToPrescription = () => {
-  //   if (medicalRecord) {
-  //     navigate(`/doctor/prescription/${appointmentId}/${medicalRecord.id}`);
-  //   }
-  // };
 
   // Kiểm tra lại thanh toán
-  const handleCheckPaymentAgain = async () => {
-    const paymentResult = await checkPaymentStatus();
-    if (paymentResult && paymentResult.isPaid) {
-      alert("✅ Bệnh nhân đã thanh toán! Có thể kê đơn thuốc.");
-      setShowPaymentAlert(false);
+  const checkPaymentAgain = async () => {
+    const paymentData = await getPaymentStatus();
+    if (paymentData && paymentData.isPaid) {
+      alert("Bệnh nhân đã thanh toán! Có thể kê đơn thuốc.");
+      setShowPaymentNotice(false);
     } else {
-      alert("❌ Bệnh nhân chưa thanh toán. Vui lòng chờ...");
+      alert("Bệnh nhân chưa thanh toán. Vui lòng chờ...");
     }
   };
 
+  // Hiển thị loading
   if (loading) {
     return (
       <div className="doctor-examination-container">
@@ -350,16 +348,16 @@ const DoctorExamination = () => {
     );
   }
 
-  if (error) {
+  // Hiển thị lỗi
+  if (errorMessage) {
     return (
       <div className="doctor-examination-container">
         <div className="examination-content-wrapper">
           <div className="examination-error">
-            <div className="error-icon">❌</div>
             <h3>Lỗi</h3>
-            <p>{error}</p>
+            <p>{errorMessage}</p>
             <button onClick={() => navigate("/doctor/appointments")}>
-              ← Quay lại danh sách
+              Quay lại danh sách
             </button>
           </div>
         </div>
@@ -370,24 +368,33 @@ const DoctorExamination = () => {
   return (
     <div className="doctor-examination-container">
       <div className="examination-content-wrapper">
-        {/* Header */}
+        {/* Phần header */}
         <div className="examination-header">
           <button
-            className="btn-back"
+            className="back-button"
             onClick={() => navigate("/doctor/appointments")}
           >
-            ← Quay lại
+            Quay lại
           </button>
-          <h1>🩺 Khám Bệnh</h1>
+          <h1>Khám Bệnh</h1>
           <div className="patient-info-header">
-            <h2>{appointment?.fullName}</h2>
+            <h2>{appointment ? appointment.fullName : ""}</h2>
             <div className="patient-meta">
-              <span>Mã BN: {appointment?.registrationNumber}</span>
-              <span>Số thứ tự: #{appointment?.queueNumber}</span>
-              <span>Phòng: {appointment?.roomNumber}</span>
+              <span>
+                Mã BN: {appointment ? appointment.registrationNumber : ""}
+              </span>
+              <span>
+                Số thứ tự: #{appointment ? appointment.queueNumber : ""}
+              </span>
+              <span>Phòng: {appointment ? appointment.roomNumber : ""}</span>
               {medicalRecord && (
                 <span
-                  className={`status-${medicalRecord.examinationStatus?.toLowerCase()}`}
+                  className={
+                    "status-" +
+                    (medicalRecord.examinationStatus
+                      ? medicalRecord.examinationStatus.toLowerCase()
+                      : "")
+                  }
                 >
                   Trạng thái:{" "}
                   {medicalRecord.examinationStatus === "COMPLETED"
@@ -395,30 +402,27 @@ const DoctorExamination = () => {
                     : "ĐANG KHÁM"}
                 </span>
               )}
-              {paymentStatus && (
+              {paymentInfo && (
                 <span
-                  className={`payment-status ${
-                    paymentStatus.isPaid ? "paid" : "unpaid"
-                  }`}
+                  className={
+                    "payment-status " + (paymentInfo.isPaid ? "paid" : "unpaid")
+                  }
                 >
                   Thanh toán:{" "}
-                  {paymentStatus.isPaid
-                    ? "✅ ĐÃ THANH TOÁN"
-                    : "❌ CHƯA THANH TOÁN"}
+                  {paymentInfo.isPaid ? "ĐÃ THANH TOÁN" : "CHƯA THANH TOÁN"}
                 </span>
               )}
             </div>
           </div>
         </div>
 
-        {/* Thông báo chờ thanh toán - CHỈ HIỆN KHI ĐÃ HOÀN THÀNH KHÁM VÀ CHƯA THANH TOÁN */}
-        {showPaymentAlert &&
-          examinationCompleted &&
-          paymentStatus &&
-          !paymentStatus.isPaid && (
+        {/* Thông báo chờ thanh toán */}
+        {showPaymentNotice &&
+          isExamFinished &&
+          paymentInfo &&
+          !paymentInfo.isPaid && (
             <div className="payment-alert">
               <div className="alert-content">
-                <div className="alert-icon">💳</div>
                 <div className="alert-text">
                   <h3>Chờ Thanh Toán</h3>
                   <p>
@@ -427,13 +431,14 @@ const DoctorExamination = () => {
                   <div className="payment-details">
                     <p>
                       <strong>Mã hóa đơn:</strong>{" "}
-                      {paymentStatus.invoiceCode || `INV-${appointmentId}`}
+                      {paymentInfo.invoiceCode || "INV-" + appointmentId}
                     </p>
                     <p>
                       <strong>Số tiền:</strong>{" "}
-                      {appointment?.examinationFee?.toLocaleString() ||
-                        "200,000"}{" "}
-                      VNĐ
+                      {appointment && appointment.examinationFee
+                        ? appointment.examinationFee.toLocaleString()
+                        : "200,000"}{" "}
+                      VND
                     </p>
                     <p>
                       <strong>Trạng thái:</strong>{" "}
@@ -444,44 +449,23 @@ const DoctorExamination = () => {
               </div>
               <div className="alert-actions">
                 <button
-                  className="btn-check-payment"
-                  onClick={handleCheckPaymentAgain}
+                  className="check-payment-button"
+                  onClick={checkPaymentAgain}
                 >
-                  🔄 Kiểm tra lại thanh toán
+                  Kiểm tra lại thanh toán
                 </button>
               </div>
             </div>
           )}
 
-        {/* Nút kê đơn thuốc - CHỈ HIỆN KHI ĐÃ THANH TOÁN VÀ HOÀN THÀNH KHÁM */}
-        {/* {examinationCompleted && paymentStatus?.isPaid && (
-          <div className="prescription-ready-alert">
-            <div className="ready-content">
-              <div className="ready-icon">✅</div>
-              <div className="ready-text">
-                <h3>Đã Sẵn Sàng Kê Đơn</h3>
-                <p>
-                  Bệnh nhân đã thanh toán. Bạn có thể kê đơn thuốc ngay bây giờ.
-                </p>
-              </div>
-            </div>
-            <button
-              className="btn-go-prescription-main"
-              onClick={handleGoToPrescription}
-            >
-              💊 Kê Đơn Thuốc Ngay
-            </button>
-          </div>
-        )} */}
-
         {/* Thông tin bệnh nhân */}
         <div className="patient-info-card">
-          <h3>📋 Thông Tin Bệnh Nhân</h3>
+          <h3>Thông Tin Bệnh Nhân</h3>
           <div className="info-grid">
             <div className="info-item">
               <label>Tuổi:</label>
               <span>
-                {appointment?.dob
+                {appointment && appointment.dob
                   ? new Date().getFullYear() -
                     new Date(appointment.dob).getFullYear() +
                     " tuổi"
@@ -490,16 +474,18 @@ const DoctorExamination = () => {
             </div>
             <div className="info-item">
               <label>Giới tính:</label>
-              <span>{appointment?.gender}</span>
+              <span>{appointment ? appointment.gender : ""}</span>
             </div>
             <div className="info-item">
-              <label>SĐT:</label>
-              <span>{appointment?.phone}</span>
+              <label>Số điện thoại:</label>
+              <span>{appointment ? appointment.phone : ""}</span>
             </div>
             <div className="info-item">
               <label>Triệu chứng:</label>
               <span className="symptoms">
-                {appointment?.symptoms || "Chưa có"}
+                {appointment && appointment.symptoms
+                  ? appointment.symptoms
+                  : "Chưa có"}
               </span>
             </div>
           </div>
@@ -507,15 +493,15 @@ const DoctorExamination = () => {
 
         {/* Form khám bệnh */}
         <div className="examination-form">
-          {/* Lý Do Khám & Tiền Sử */}
+          {/* Lý do khám & Tiền sử */}
           <div className="form-section">
-            <h3>📝 Lý Do Khám & Tiền Sử</h3>
+            <h3>Lý Do Khám & Tiền Sử</h3>
             <div className="form-group">
               <label>Lý do khám chính:</label>
               <textarea
                 name="chiefComplaint"
-                value={formData.chiefComplaint}
-                onChange={handleInputChange}
+                value={formValues.chiefComplaint}
+                onChange={handleChange}
                 placeholder="Mô tả lý do khám chính..."
                 rows="3"
               />
@@ -524,25 +510,25 @@ const DoctorExamination = () => {
               <label>Tiền sử bệnh:</label>
               <textarea
                 name="historyOfIllness"
-                value={formData.historyOfIllness}
-                onChange={handleInputChange}
+                value={formValues.historyOfIllness}
+                onChange={handleChange}
                 placeholder="Mô tả tiền sử bệnh..."
                 rows="3"
               />
             </div>
           </div>
 
-          {/* Dấu Hiệu Sinh Tồn */}
+          {/* Dấu hiệu sinh tồn */}
           <div className="form-section">
-            <h3>📊 Dấu Hiệu Sinh Tồn</h3>
+            <h3>Dấu Hiệu Sinh Tồn</h3>
             <div className="vital-signs-grid">
               <div className="form-group">
                 <label>Huyết áp (mmHg):</label>
                 <input
                   type="text"
                   name="bloodPressure"
-                  value={formData.vitalSigns.bloodPressure}
-                  onChange={handleVitalSignsChange}
+                  value={formValues.vitalSigns.bloodPressure}
+                  onChange={handleVitalChange}
                   placeholder="120/80"
                 />
               </div>
@@ -551,8 +537,8 @@ const DoctorExamination = () => {
                 <input
                   type="number"
                   name="heartRate"
-                  value={formData.vitalSigns.heartRate}
-                  onChange={handleVitalSignsChange}
+                  value={formValues.vitalSigns.heartRate}
+                  onChange={handleVitalChange}
                   placeholder="72"
                 />
               </div>
@@ -561,8 +547,8 @@ const DoctorExamination = () => {
                 <input
                   type="number"
                   name="temperature"
-                  value={formData.vitalSigns.temperature}
-                  onChange={handleVitalSignsChange}
+                  value={formValues.vitalSigns.temperature}
+                  onChange={handleVitalChange}
                   placeholder="37.0"
                   step="0.1"
                 />
@@ -572,8 +558,8 @@ const DoctorExamination = () => {
                 <input
                   type="number"
                   name="respiratoryRate"
-                  value={formData.vitalSigns.respiratoryRate}
-                  onChange={handleVitalSignsChange}
+                  value={formValues.vitalSigns.respiratoryRate}
+                  onChange={handleVitalChange}
                   placeholder="16"
                 />
               </div>
@@ -582,8 +568,8 @@ const DoctorExamination = () => {
                 <input
                   type="number"
                   name="height"
-                  value={formData.vitalSigns.height}
-                  onChange={handleVitalSignsChange}
+                  value={formValues.vitalSigns.height}
+                  onChange={handleVitalChange}
                   placeholder="170"
                 />
               </div>
@@ -592,8 +578,8 @@ const DoctorExamination = () => {
                 <input
                   type="number"
                   name="weight"
-                  value={formData.vitalSigns.weight}
-                  onChange={handleVitalSignsChange}
+                  value={formValues.vitalSigns.weight}
+                  onChange={handleVitalChange}
                   placeholder="65"
                   step="0.1"
                 />
@@ -601,30 +587,30 @@ const DoctorExamination = () => {
             </div>
           </div>
 
-          {/* Khám Lâm Sàng */}
+          {/* Khám lâm sàng */}
           <div className="form-section">
-            <h3>🔍 Khám Lâm Sàng</h3>
+            <h3>Khám Lâm Sàng</h3>
             <div className="form-group">
               <label>Khám thực thể:</label>
               <textarea
                 name="physicalExamination"
-                value={formData.physicalExamination}
-                onChange={handleInputChange}
+                value={formValues.physicalExamination}
+                onChange={handleChange}
                 placeholder="Kết quả khám thực thể..."
                 rows="4"
               />
             </div>
           </div>
 
-          {/* Chẩn Đoán */}
+          {/* Chẩn đoán */}
           <div className="form-section">
-            <h3>🏥 Chẩn Đoán</h3>
+            <h3>Chẩn Đoán</h3>
             <div className="form-group">
               <label>Chẩn đoán sơ bộ:</label>
               <textarea
                 name="preliminaryDiagnosis"
-                value={formData.preliminaryDiagnosis}
-                onChange={handleInputChange}
+                value={formValues.preliminaryDiagnosis}
+                onChange={handleChange}
                 placeholder="Chẩn đoán sơ bộ..."
                 rows="3"
               />
@@ -633,38 +619,38 @@ const DoctorExamination = () => {
               <label>Chẩn đoán xác định:</label>
               <textarea
                 name="finalDiagnosis"
-                value={formData.finalDiagnosis}
-                onChange={handleInputChange}
+                value={formValues.finalDiagnosis}
+                onChange={handleChange}
                 placeholder="Chẩn đoán xác định..."
                 rows="3"
               />
             </div>
           </div>
 
-          {/* Điều Trị */}
+          {/* Điều trị */}
           <div className="form-section">
-            <h3>💊 Điều Trị</h3>
+            <h3>Điều Trị</h3>
             <div className="form-group">
               <label>Kế hoạch điều trị:</label>
               <textarea
                 name="treatmentPlan"
-                value={formData.treatmentPlan}
-                onChange={handleInputChange}
+                value={formValues.treatmentPlan}
+                onChange={handleChange}
                 placeholder="Kế hoạch điều trị..."
                 rows="4"
               />
             </div>
           </div>
 
-          {/* Tư Vấn & Theo Dõi */}
+          {/* Tư vấn & Theo dõi */}
           <div className="form-section">
-            <h3>💡 Tư Vấn & Theo Dõi</h3>
+            <h3>Tư Vấn & Theo Dõi</h3>
             <div className="form-group">
               <label>Lời khuyên:</label>
               <textarea
                 name="advice"
-                value={formData.advice}
-                onChange={handleInputChange}
+                value={formValues.advice}
+                onChange={handleChange}
                 placeholder="Lời khuyên cho bệnh nhân..."
                 rows="3"
               />
@@ -674,59 +660,60 @@ const DoctorExamination = () => {
               <input
                 type="date"
                 name="followUpDate"
-                value={formData.followUpDate}
-                onChange={handleInputChange}
+                value={formValues.followUpDate}
+                onChange={handleChange}
               />
             </div>
             <div className="form-group">
               <label>Ghi chú tái khám:</label>
               <textarea
                 name="followUpNotes"
-                value={formData.followUpNotes}
-                onChange={handleInputChange}
+                value={formValues.followUpNotes}
+                onChange={handleChange}
                 placeholder="Ghi chú cho lần tái khám..."
                 rows="2"
               />
             </div>
           </div>
 
-          {/* NÚT HÀNH ĐỘNG */}
+          {/* Nút hành động */}
           <div className="examination-actions">
             <button
-              className="btn-save"
-              onClick={handleSaveExamination}
-              disabled={saving || examinationCompleted}
+              className="save-button"
+              onClick={saveExamination}
+              disabled={isSaving || isExamFinished}
             >
-              {saving ? "⏳ Đang lưu..." : "💾 Lưu Kết Quả"}
+              {isSaving ? "Đang lưu..." : "Lưu Kết Quả"}
             </button>
 
             <button
-              className="btn-complete"
-              onClick={handleCompleteExamination}
-              disabled={saving || examinationCompleted}
+              className="complete-button"
+              onClick={finishExamination}
+              disabled={isSaving || isExamFinished}
             >
-              {saving
-                ? "⏳ Đang xử lý..."
-                : examinationCompleted
-                ? "✅ Đã Hoàn Thành"
-                : "✅ Hoàn Thành Khám"}
+              {isSaving
+                ? "Đang xử lý..."
+                : isExamFinished
+                  ? "Đã Hoàn Thành"
+                  : "Hoàn Thành Khám"}
             </button>
           </div>
 
-          {/* Thông báo lỗi duplicate */}
-          {error && error.includes("Query did not return a unique result") && (
-            <div className="error-message">
-              <h4>⚠️ Cảnh báo: Lỗi dữ liệu trùng lặp</h4>
-              <p>
-                Có nhiều hồ sơ khám cho lịch hẹn này. Vui lòng liên hệ quản trị
-                viên.
-              </p>
-            </div>
-          )}
+          {/* Thông báo lỗi nếu có */}
+          {errorMessage &&
+            errorMessage.includes("Query did not return a unique result") && (
+              <div className="error-message">
+                <h4>Cảnh báo: Lỗi dữ liệu trùng lặp</h4>
+                <p>
+                  Có nhiều hơn một hồ sơ khám cho lịch hẹn này. Vui lòng liên hệ
+                  quản trị viên.
+                </p>
+              </div>
+            )}
         </div>
       </div>
     </div>
   );
-};
+}
 
 export default DoctorExamination;

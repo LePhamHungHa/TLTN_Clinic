@@ -33,7 +33,7 @@ public class PatientRegistrationService {
     @Autowired
     private WebSocketService webSocketService;
 
-    // Thêm constant
+    // Số lượng bệnh nhân tối đa cho mỗi slot
     private static final int MAX_PATIENTS_PER_SLOT = 10;
 
     public PatientRegistrationService(PatientRegistrationRepository repository,
@@ -45,47 +45,49 @@ public class PatientRegistrationService {
     }
 
     public List<PatientRegistration> getAll() {
-        log.debug("🔄 Lấy tất cả đơn đăng ký");
+        log.debug("Lấy tất cả đơn đăng ký");
         return repository.findAll();
     }
 
     public List<PatientRegistration> getAllWithDoctor() {
-        log.debug("🔍 Lấy tất cả đơn đăng ký với thông tin bác sĩ");
+        log.debug("Lấy tất cả đơn đăng ký với thông tin bác sĩ");
         List<PatientRegistration> result = repository.findAllWithDoctor();
-        log.info("✅ Đã tìm thấy {} đơn đăng ký với thông tin bác sĩ", result.size());
+        log.info("Đã tìm thấy {} đơn đăng ký với thông tin bác sĩ", result.size());
         return result;
     }
 
     public Optional<PatientRegistration> getById(Long id) {
-        log.debug("🔍 Tìm đơn đăng ký với ID: {}", id);
+        log.debug("Tìm đơn đăng ký với ID: {}", id);
         return repository.findById(id);
     }
 
     public List<PatientRegistration> getByEmail(String email) {
         try {
-            log.info("🔄 Đang tìm lịch hẹn với thông tin bác sĩ cho email: {}", email);
+            log.info("Đang tìm lịch hẹn với thông tin bác sĩ cho email: {}", email);
             
             List<PatientRegistration> result = repository.findByEmailWithDoctor(email);
             
             if (!result.isEmpty()) {
-                log.info("✅ Đã tìm thấy {} lịch hẹn với thông tin bác sĩ", result.size());
+                log.info("Đã tìm thấy {} lịch hẹn với thông tin bác sĩ", result.size());
                 return result;
             }
             
-            log.debug("⚠️ Không có kết quả với join, thử truy vấn thông thường");
+            log.debug("Không có kết quả với join, thử truy vấn thông thường");
             result = repository.findByEmail(email);
-            log.info("✅ Đã tìm thấy {} lịch hẹn bằng truy vấn thông thường", result.size());
+            log.info("Đã tìm thấy {} lịch hẹn bằng truy vấn thông thường", result.size());
             return result;
             
         } catch (Exception e) {
-            log.error("❌ Truy vấn với join thất bại: {}", e.getMessage(), e);
+            log.error("Truy vấn với join thất bại: {}", e.getMessage(), e);
             return repository.findByEmail(email);
         }
     }
 
+    // Tạo đơn đăng ký mới và xử lý tự động
+
     @Transactional
     public PatientRegistration createRegistration(PatientRegistration registration) {
-        log.info("🔵 Bắt đầu quy trình đăng ký cho: {}", registration.getFullName());
+        log.info("Bắt đầu quy trình đăng ký cho: {}", registration.getFullName());
         log.info("   - Email: {}", registration.getEmail());
         log.info("   - Phone: {}", registration.getPhone());
         log.info("   - Department: {}", registration.getDepartment());
@@ -95,16 +97,16 @@ public class PatientRegistrationService {
         try {
             // TRƯỜNG HỢP 1: Không chọn bác sĩ
             if (registration.getDoctorId() == null) {
-                log.info("⚡ Không chọn bác sĩ - đánh dấu cần xử lý thủ công");
+                log.info("Không chọn bác sĩ - đánh dấu cần xử lý thủ công");
                 registration.setStatus("NEEDS_MANUAL_REVIEW");
                 
-                // ĐẢM BẢO CÓ REGISTRATION NUMBER
+                // Đảm bảo có số đăng ký
                 if (registration.getRegistrationNumber() == null || registration.getRegistrationNumber().isEmpty()) {
                     registration.setRegistrationNumber(generateRegistrationNumber());
                 }
                 
                 PatientRegistration savedRegistration = repository.save(registration);
-                log.info("✅ Đã lưu đơn đăng ký không có bác sĩ: ID={}", savedRegistration.getId());
+                log.info("Đã lưu đơn đăng ký không có bác sĩ: ID={}", savedRegistration.getId());
                 
                 // Gửi thông báo qua WebSocket (async)
                 sendWebSocketNotification(savedRegistration);
@@ -121,16 +123,16 @@ public class PatientRegistrationService {
                 );
                 
                 if (!slotAvailable) {
-                    log.info("⏳ Không có slot khả dụng, đánh dấu cần xử lý thủ công");
+                    log.info("Không có slot khả dụng, đánh dấu cần xử lý thủ công");
                     registration.setStatus("NEEDS_MANUAL_REVIEW");
                     
-                    // ĐẢM BẢO CÓ REGISTRATION NUMBER
+                    // Đảm bảo có số đăng ký
                     if (registration.getRegistrationNumber() == null || registration.getRegistrationNumber().isEmpty()) {
                         registration.setRegistrationNumber(generateRegistrationNumber());
                     }
                     
                     PatientRegistration savedRegistration = repository.save(registration);
-                    log.info("✅ Đã lưu đơn đăng ký (slot đầy): ID={}", savedRegistration.getId());
+                    log.info("Đã lưu đơn đăng ký (slot đầy): ID={}", savedRegistration.getId());
                     
                     // Gửi thông báo qua WebSocket (async)
                     sendWebSocketNotification(savedRegistration);
@@ -140,17 +142,17 @@ public class PatientRegistrationService {
             }
             
             // TRƯỜNG HỢP 3: Có slot khả dụng, xử lý tự động
-            log.info("🔄 Xử lý đăng ký tự động...");
+            log.info("Xử lý đăng ký tự động...");
             PatientRegistration processedRegistration = autoApprovalService.processNewRegistration(registration);
             
-            // ĐẢM BẢO CÓ REGISTRATION NUMBER
+            // Đảm bảo có số đăng ký
             if (processedRegistration.getRegistrationNumber() == null || 
                 processedRegistration.getRegistrationNumber().isEmpty()) {
                 processedRegistration.setRegistrationNumber(generateRegistrationNumber());
                 processedRegistration = repository.save(processedRegistration);
             }
             
-            log.info("✅ Quá trình đăng ký hoàn tất! ID={}, Status={}", 
+            log.info("Quá trình đăng ký hoàn tất! ID={}, Status={}", 
                 processedRegistration.getId(), processedRegistration.getStatus());
             
             // Gửi thông báo qua WebSocket (async)
@@ -159,35 +161,38 @@ public class PatientRegistrationService {
             return processedRegistration;
             
         } catch (Exception e) {
-            log.error("❌ Lỗi khi xử lý đăng ký: {}", e.getMessage(), e);
+            log.error("Lỗi khi xử lý đăng ký: {}", e.getMessage(), e);
             throw new RuntimeException("Lỗi xử lý đăng ký: " + e.getMessage(), e);
         }
     }
     
+    // Gửi thông báo WebSocket về đơn đăng ký mới
+
     private void sendWebSocketNotification(PatientRegistration registration) {
         new Thread(() -> {
             try {
                 Thread.sleep(1000); // Delay 1 giây để đảm bảo transaction committed
                 webSocketService.notifyNewAppointment(registration);
-                log.info("📢 Đã gửi thông báo WebSocket cho đơn đăng ký: ID={}", registration.getId());
+                log.info("Đã gửi thông báo WebSocket cho đơn đăng ký: ID={}", registration.getId());
             } catch (Exception e) {
-                log.error("❌ Lỗi khi gửi thông báo WebSocket: {}", e.getMessage());
+                log.error("Lỗi khi gửi thông báo WebSocket: {}", e.getMessage());
             }
         }).start();
     }
 
     public List<PatientRegistration> getRegistrationsNeedingManualReview() {
-        log.debug("🔍 Lấy các đơn đăng ký cần xử lý thủ công");
+        log.debug("Lấy các đơn đăng ký cần xử lý thủ công");
         return repository.findByStatusOrderByCreatedAtAsc("NEEDS_MANUAL_REVIEW");
     }
 
+    //Thử duyệt đơn đăng ký thủ công
     @Transactional
     public PatientRegistration tryApproveRegistration(Long registrationId) {
-        log.info("🔄 Thử duyệt thủ công đơn đăng ký ID: {}", registrationId);
+        log.info("Thử duyệt thủ công đơn đăng ký ID: {}", registrationId);
         
         Optional<PatientRegistration> registrationOpt = repository.findById(registrationId);
         if (registrationOpt.isEmpty()) {
-            log.error("❌ Không tìm thấy đơn đăng ký với ID: {}", registrationId);
+            log.error("Không tìm thấy đơn đăng ký với ID: {}", registrationId);
             throw new RuntimeException("Không tìm thấy đơn đăng ký với ID: " + registrationId);
         }
 
@@ -202,13 +207,13 @@ public class PatientRegistrationService {
             );
 
             if (!hasSlot) {
-                log.error("❌ Không có slot khả dụng cho doctorId={}, date={}, session={}", 
+                log.error("Không có slot khả dụng cho doctorId={}, date={}, session={}", 
                     registration.getDoctorId(), registration.getAppointmentDate(), registration.getAssignedSession());
                 throw new RuntimeException("Không có slot khả dụng cho buổi khám này");
             }
         }
         
-        log.info("🔄 Duyệt thủ công - Gọi AutoApprovalService xử lý");
+        log.info("Duyệt thủ công - Gọi AutoApprovalService xử lý");
         PatientRegistration approvedRegistration = autoApprovalService.autoApproveRegistration(
             registration, 
             registration.getAssignedSession()
@@ -217,14 +222,14 @@ public class PatientRegistrationService {
         if ("APPROVED".equals(approvedRegistration.getStatus())) {
             try {
                 emailService.sendApprovalEmail(approvedRegistration);
-                log.info("📧 Đã gửi email duyệt đơn cho: {}", approvedRegistration.getEmail());
+                log.info("Đã gửi email duyệt đơn cho: {}", approvedRegistration.getEmail());
             } catch (Exception e) {
-                log.error("❌ Lỗi gửi email duyệt đơn: {}", e.getMessage());
+                log.error("Lỗi gửi email duyệt đơn: {}", e.getMessage());
                 // Không throw exception vì đơn vẫn được duyệt thành công
             }
         }
         
-        log.info("✅ Đã duyệt đơn thành công: ID={}, Status={}", 
+        log.info("Đã duyệt đơn thành công: ID={}, Status={}", 
             approvedRegistration.getId(), approvedRegistration.getStatus());
         
         return approvedRegistration;
@@ -232,30 +237,31 @@ public class PatientRegistrationService {
 
     @Transactional
     public PatientRegistration rejectRegistration(Long registrationId, String reason) {
-        log.info("🔄 Từ chối đơn đăng ký ID: {}, Lý do: {}", 
+        log.info("Từ chối đơn đăng ký ID: {}, Lý do: {}", 
             registrationId, (reason != null ? reason : "Không có lý do"));
         
         Optional<PatientRegistration> registrationOpt = repository.findById(registrationId);
         if (registrationOpt.isEmpty()) {
-            log.error("❌ Không tìm thấy đơn đăng ký với ID: {}", registrationId);
+            log.error("Không tìm thấy đơn đăng ký với ID: {}", registrationId);
             throw new RuntimeException("Không tìm thấy đơn đăng ký với ID: " + registrationId);
         }
 
         PatientRegistration registration = registrationOpt.get();
         registration.setStatus("REJECTED");
         
-        log.info("✅ Đã từ chối đơn đăng ký: ID={}", registrationId);
+        log.info("Đã từ chối đơn đăng ký: ID={}", registrationId);
         return repository.save(registration);
     }
 
+    // Xử lý thanh toán thành công
     @Transactional
     public PatientRegistration processPaymentSuccess(Long registrationId, String transactionNumber, BigDecimal amount) {
-        log.info("💳 Xử lý thanh toán thành công: ID={}, Transaction={}, Amount={}", 
+        log.info("Xử lý thanh toán thành công: ID={}, Transaction={}, Amount={}", 
             registrationId, transactionNumber, amount);
         
         Optional<PatientRegistration> registrationOpt = repository.findById(registrationId);
         if (registrationOpt.isEmpty()) {
-            log.error("❌ Không tìm thấy đơn đăng ký với ID: {}", registrationId);
+            log.error("Không tìm thấy đơn đăng ký với ID: {}", registrationId);
             throw new RuntimeException("Không tìm thấy đơn đăng ký với ID: " + registrationId);
         }
 
@@ -267,13 +273,13 @@ public class PatientRegistrationService {
         registration.setPaidAt(LocalDateTime.now());
 
         PatientRegistration savedRegistration = repository.save(registration);
-        log.info("✅ Đã cập nhật trạng thái thanh toán: ID={}", registrationId);
+        log.info("Đã cập nhật trạng thái thanh toán: ID={}", registrationId);
 
         try {
             emailService.sendPaymentSuccessEmail(savedRegistration);
-            log.info("📧 Đã gửi email thanh toán thành công cho: {}", savedRegistration.getEmail());
+            log.info("Đã gửi email thanh toán thành công cho: {}", savedRegistration.getEmail());
         } catch (Exception e) {
-            log.error("❌ Lỗi gửi email thanh toán: {}", e.getMessage());
+            log.error("Lỗi gửi email thanh toán: {}", e.getMessage());
             // Không throw exception vì thanh toán đã được xử lý thành công
         }
 
@@ -286,15 +292,16 @@ public class PatientRegistrationService {
         return processPaymentSuccess(registrationId, transactionNumber, bigDecimalAmount);
     }
 
+//  Kiểm tra slot khả dụng cho bác sĩ
     public boolean checkAvailableSlots(Long doctorId, LocalDate appointmentDate, String assignedSession) {
         try {
-            log.debug("🔍 Kiểm tra slot khả dụng:");
+            log.debug("Kiểm tra slot khả dụng:");
             log.debug("   - ID Bác sĩ: {}", doctorId);
             log.debug("   - Ngày: {}", appointmentDate);
             log.debug("   - Buổi: {}", assignedSession);
             
             if (doctorId == null || appointmentDate == null || assignedSession == null) {
-                log.warn("⚠️ Thiếu tham số bắt buộc để kiểm tra slot");
+                log.warn("Thiếu tham số bắt buộc để kiểm tra slot");
                 return false;
             }
             
@@ -306,7 +313,7 @@ public class PatientRegistrationService {
                 approvedCount = 0;
             }
             
-            log.debug("✅ Kiểm tra slot - {}: {}/{} đơn đã được duyệt", 
+            log.debug("Kiểm tra slot - {}: {}/{} đơn đã được duyệt", 
                 assignedSession, approvedCount, MAX_PATIENTS_PER_SLOT);
             
             boolean available = approvedCount < MAX_PATIENTS_PER_SLOT;
@@ -315,7 +322,7 @@ public class PatientRegistrationService {
             return available;
             
         } catch (Exception e) {
-            log.error("❌ Lỗi khi kiểm tra slot khả dụng: {}", e.getMessage(), e);
+            log.error("Lỗi khi kiểm tra slot khả dụng: {}", e.getMessage(), e);
             return false;
         }
     }
@@ -323,7 +330,7 @@ public class PatientRegistrationService {
     public Integer countByDoctorIdAndAppointmentDateAndAssignedSessionAndStatus(
         Long doctorId, LocalDate appointmentDate, String assignedSession, String status) {
         
-        log.debug("🔍 Đang đếm đơn đăng ký:");
+        log.debug("Đang đếm đơn đăng ký:");
         log.debug("   - ID Bác sĩ: {}", doctorId);
         log.debug("   - Ngày: {}", appointmentDate);
         log.debug("   - Buổi: {}", assignedSession);
@@ -334,29 +341,29 @@ public class PatientRegistrationService {
                 doctorId, appointmentDate, assignedSession, status
             );
             
-            log.debug("✅ Kết quả đếm: {}", count);
+            log.debug("Kết quả đếm: {}", count);
             return count != null ? count : 0;
             
         } catch (Exception e) {
-            log.error("❌ Lỗi khi đếm đơn đăng ký: {}", e.getMessage(), e);
+            log.error("Lỗi khi đếm đơn đăng ký: {}", e.getMessage(), e);
             return 0;
         }
     }
 
     public PatientRegistration save(PatientRegistration registration) {
-        log.debug("💾 Lưu đơn đăng ký: ID={}", registration.getId());
+        log.debug("Lưu đơn đăng ký: ID={}", registration.getId());
         return repository.save(registration);
     }
 
     public PatientRegistration update(PatientRegistration registration) {
-        log.debug("🔄 Cập nhật đơn đăng ký: ID={}", registration.getId());
+        log.debug("Cập nhật đơn đăng ký: ID={}", registration.getId());
         return repository.save(registration);
     }
 
     public void deleteById(Long id) {
-        log.info("🗑️ Xóa đơn đăng ký: ID={}", id);
+        log.info("Xóa đơn đăng ký: ID={}", id);
         repository.deleteById(id);
-        log.info("✅ Đã xóa đơn đăng ký: ID={}", id);
+        log.info("Đã xóa đơn đăng ký: ID={}", id);
     }
 
     public boolean existsById(Long id) {
@@ -364,12 +371,12 @@ public class PatientRegistrationService {
     }
 
     public List<PatientRegistration> getByPhone(String phone) {
-        log.debug("🔍 Tìm đơn đăng ký theo số điện thoại: {}", phone);
+        log.debug("Tìm đơn đăng ký theo số điện thoại: {}", phone);
         return repository.findByPhone(phone);
     }
 
     public List<PatientRegistration> getByStatus(String status) {
-        log.debug("🔍 Tìm đơn đăng ký theo trạng thái: {}", status);
+        log.debug("Tìm đơn đăng ký theo trạng thái: {}", status);
         return repository.findByStatus(status);
     }
 
@@ -379,8 +386,10 @@ public class PatientRegistrationService {
         return "REG-" + timestamp.substring(timestamp.length() - 8) + "-" + random;
     }
     
+    // Lấy thống kê tổng quan về đăng ký
+     
     public Map<String, Object> getRegistrationStatistics() {
-        log.info("📊 Tính toán thống kê đăng ký");
+        log.info("Tính toán thống kê đăng ký");
         Map<String, Object> statistics = new HashMap<>();
         
         try {
@@ -455,10 +464,10 @@ public class PatientRegistrationService {
             statistics.put("departmentStats", departmentStats);
             statistics.put("lastUpdated", LocalDateTime.now().toString());
             
-            log.info("✅ Đã tính toán thống kê thành công: {} appointments", totalAppointments);
+            log.info("Đã tính toán thống kê thành công: {} appointments", totalAppointments);
             
         } catch (Exception e) {
-            log.error("❌ Lỗi tính thống kê đăng ký: {}", e.getMessage(), e);
+            log.error("Lỗi tính thống kê đăng ký: {}", e.getMessage(), e);
             statistics.put("success", false);
             statistics.put("error", "Không thể tính thống kê đăng ký");
         }
@@ -466,6 +475,7 @@ public class PatientRegistrationService {
         return statistics;
     }
     
+    //Lấy thống kê đăng ký hàng ngày
     private Map<String, Object> getDailyRegistrationStats(int days) {
         Map<String, Object> dailyStats = new HashMap<>();
         List<Map<String, Object>> dailyData = new ArrayList<>();
@@ -525,20 +535,20 @@ public class PatientRegistrationService {
             dailyStats.put("data", dailyData);
             
         } catch (Exception e) {
-            log.error("❌ Lỗi lấy thống kê hàng ngày: {}", e.getMessage(), e);
+            log.error("Lỗi lấy thống kê hàng ngày: {}", e.getMessage(), e);
         }
         
         return dailyStats;
     }
     
     public List<PatientRegistration> getRegistrationsByPaymentStatus(String paymentStatus) {
-        log.debug("🔍 Tìm đơn đăng ký theo trạng thái thanh toán: {}", paymentStatus);
+        log.debug("Tìm đơn đăng ký theo trạng thái thanh toán: {}", paymentStatus);
         return repository.findByPaymentStatus(paymentStatus);
     }
     
-
+    //Lấy thống kê doanh thu theo khoảng thời gian
     public Map<String, Object> getRevenueStatistics(LocalDate startDate, LocalDate endDate) {
-        log.info("💰 Tính toán thống kê doanh thu từ {} đến {}", startDate, endDate);
+        log.info("Tính toán thống kê doanh thu từ {} đến {}", startDate, endDate);
         Map<String, Object> revenueStats = new HashMap<>();
         
         try {
@@ -586,11 +596,11 @@ public class PatientRegistrationService {
                 filteredRegistrations.size() > 0 ? 
                 (paidCount * 100.0 / filteredRegistrations.size()) : 0);
             
-            log.info("✅ Đã tính toán thống kê doanh thu: {} registrations, {} VND", 
+            log.info("Đã tính toán thống kê doanh thu: {} registrations, {} VND", 
                 filteredRegistrations.size(), totalRevenue);
             
         } catch (Exception e) {
-            log.error("❌ Lỗi tính thống kê doanh thu: {}", e.getMessage(), e);
+            log.error("Lỗi tính thống kê doanh thu: {}", e.getMessage(), e);
             revenueStats.put("success", false);
             revenueStats.put("error", "Không thể tính thống kê doanh thu");
         }

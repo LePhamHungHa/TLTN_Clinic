@@ -11,7 +11,7 @@ public class RegisterRequest {
     @NotBlank(message = "Password không được để trống")
     private String password;
 
-    private String role; // mặc định có thể là PATIENT
+    private String role; 
 
     // Thông tin bệnh nhân
     private String fullName;

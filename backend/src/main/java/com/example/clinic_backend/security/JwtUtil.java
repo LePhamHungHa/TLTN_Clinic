@@ -9,9 +9,9 @@ import java.util.Date;
 
 @Component
 public class JwtUtil {
-    // DÙNG LẠI SECRET KEY CŨ để token hiện tại vẫn hợp lệ
+    // secret key dung lai tu truoc
     private static final String SECRET_KEY = "this-is-a-very-secret-key-please-change-it-1234567890"; 
-    private static final long EXPIRATION_TIME = 86400000; // 24 giờ
+    private static final long EXPIRATION_TIME = 86400000; // 24 gio
 
     private final Key key = Keys.hmacShaKeyFor(SECRET_KEY.getBytes());
 
@@ -34,7 +34,7 @@ public class JwtUtil {
                     .getBody()
                     .getSubject();
         } catch (JwtException e) {
-            System.err.println("JWT extractUsername error: " + e.getMessage());
+            System.out.println("JWT extractUsername error: " + e.getMessage());
             throw e;
         }
     }
@@ -48,7 +48,7 @@ public class JwtUtil {
                     .getBody()
                     .get("role", String.class);
         } catch (JwtException e) {
-            System.err.println("JWT extractRole error: " + e.getMessage());
+            System.out.println("JWT extractRole error: " + e.getMessage());
             throw e;
         }
     }
@@ -59,19 +59,19 @@ public class JwtUtil {
                 .setSigningKey(key)
                 .build()
                 .parseClaimsJws(token);
-            System.out.println("✅ JWT Token validated successfully");
+            System.out.println("JWT Token validated");
             return true;
         } catch (ExpiredJwtException e) {
-            System.err.println("❌ JWT Token expired: " + e.getMessage());
+            System.out.println("JWT Token expired: " + e.getMessage());
             return false;
         } catch (MalformedJwtException e) {
-            System.err.println("❌ JWT Token malformed: " + e.getMessage());
+            System.out.println("JWT Token malformed: " + e.getMessage());
             return false;
         } catch (SecurityException e) {
-            System.err.println("❌ JWT Signature invalid: " + e.getMessage());
+            System.out.println("JWT Signature invalid: " + e.getMessage());
             return false;
         } catch (JwtException | IllegalArgumentException e) {
-            System.err.println("❌ JWT validation error: " + e.getMessage());
+            System.out.println("JWT validation error: " + e.getMessage());
             return false;
         }
     }

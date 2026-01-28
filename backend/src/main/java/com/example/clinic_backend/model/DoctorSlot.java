@@ -20,7 +20,7 @@ public class DoctorSlot {
     private String timeSlot;  // Format: "07:00-08:00", "08:00-09:00", etc.
 
     @Column(name = "max_patients")
-    private Integer maxPatients = 10;  // 👈 Số lượng tối đa có thể thay đổi
+    private Integer maxPatients = 10; 
 
     @Column(name = "is_active")
     private Boolean isActive = true;

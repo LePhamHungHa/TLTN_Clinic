@@ -49,14 +49,13 @@ public class VnPayController {
         this.walletRepository = walletRepository;
     }
 
-    // ==================== API PUBLIC ====================
-    
+    // API public lay trang thai thanh toan
     @GetMapping("/public/registrations/{registrationId}/payment-status")
-    public ResponseEntity<Map<String, Object>> getPaymentStatusByRegistrationId(
+    public ResponseEntity<?> getPaymentStatusByRegistrationId(
             @PathVariable Long registrationId) {
         
         try {
-            System.out.println("PUBLIC - Kiểm tra trạng thái thanh toán cho registration: " + registrationId);
+            System.out.println("Kiem tra thanh toan cho registration: " + registrationId);
             
             Optional<Payment> paymentOpt = paymentRepository.findByPatientRegistrationId(registrationId);
             
@@ -71,7 +70,7 @@ public class VnPayController {
                 result.put("transactionNo", payment.getTransactionNo());
                 result.put("patientRegistrationId", payment.getPatientRegistrationId());
                 
-                // Kiểm tra xem đã có hóa đơn chưa
+                // kiem tra da co hoa don chua
                 if ("Thành công".equals(payment.getStatus())) {
                     Optional<com.example.clinic_backend.model.Invoice> invoiceOpt = 
                         invoiceService.findInvoiceByRegistrationId(payment.getPatientRegistrationId());
@@ -81,86 +80,85 @@ public class VnPayController {
                         result.put("invoiceNumber", invoice.getInvoiceNumber());
                         result.put("invoiceDate", invoice.getInvoiceDate());
                         result.put("hasInvoice", true);
-                        System.out.println("Tìm thấy hóa đơn: " + invoice.getInvoiceNumber());
+                        System.out.println("Co hoa don: " + invoice.getInvoiceNumber());
                     } else {
                         result.put("hasInvoice", false);
-                        System.out.println("Không tìm thấy hóa đơn mặc dù đã thanh toán");
+                        System.out.println("Chua co hoa don");
                     }
                 }
                 
-                System.out.println("PUBLIC - Tìm thấy payment: " + payment.getStatus());
+                System.out.println("Tim thay payment: " + payment.getStatus());
             } else {
-                result.put("paymentStatus", "Chưa thanh toán");
+                result.put("paymentStatus", "Chua thanh toan");
                 result.put("amount", null);
                 result.put("paymentDate", null);
                 result.put("transactionNo", null);
                 result.put("patientRegistrationId", registrationId);
                 result.put("hasInvoice", false);
                 
-                System.out.println("PUBLIC - Không tìm thấy payment");
+                System.out.println("Khong tim thay payment");
             }
             
             return ResponseEntity.ok(result);
             
         } catch (Exception e) {
-            System.err.println("PUBLIC - Lỗi khi lấy trạng thái thanh toán: " + e.getMessage());
+            System.out.println("Loi lay trang thai thanh toan: " + e.getMessage());
             
             Map<String, Object> errorResult = new HashMap<>();
-            errorResult.put("paymentStatus", "Chưa thanh toán");
+            errorResult.put("paymentStatus", "Chua thanh toan");
             errorResult.put("amount", null);
             errorResult.put("paymentDate", null);
             errorResult.put("transactionNo", null);
             errorResult.put("patientRegistrationId", registrationId);
             errorResult.put("hasInvoice", false);
-            errorResult.put("error", "Lỗi hệ thống");
+            errorResult.put("error", "Loi he thong");
             
             return ResponseEntity.ok(errorResult);
         }
     }
 
-    // ==================== VNPAY TRANSACTION ENDPOINTS ====================
-
+    // tao thanh toan VNPay
     @PostMapping("/create-payment")
     public ResponseEntity<?> createPayment(@RequestBody Map<String, Object> req, HttpServletRequest request) {
         try {
-            System.out.println("Bắt đầu tạo thanh toán VNPAY");
-            System.out.println("Dữ liệu request: " + req);
+            System.out.println("Bat dau tao thanh toan VNPay");
+            System.out.println("Du lieu: " + req);
             
             long amount = ((Number) req.get("amount")).longValue() * 100;
             String orderInfo = (String) req.get("orderInfo");
             Long patientRegistrationId = req.get("patientRegistrationId") != null ? 
                 ((Number) req.get("patientRegistrationId")).longValue() : null;
 
-            System.out.println("Số tiền: " + amount + " (VNĐ x 100)");
-            System.out.println("Thông tin đơn: " + orderInfo);
+            System.out.println("So tien: " + amount);
+            System.out.println("Thong tin don: " + orderInfo);
             System.out.println("ID Registration: " + patientRegistrationId);
 
             if (patientRegistrationId == null) {
-                throw new Exception("patientRegistrationId là bắt buộc");
+                return ResponseEntity.badRequest().body("Can patientRegistrationId");
             }
 
-            // Kiểm tra xem đã có thanh toán thành công cho registration này chưa
+            // kiem tra da co thanh toan thanh cong chua
             Optional<Payment> existingPaymentOpt = paymentRepository.findByPatientRegistrationId(patientRegistrationId);
             if (existingPaymentOpt.isPresent()) {
                 Payment existingPayment = existingPaymentOpt.get();
                 if ("Thành công".equals(existingPayment.getStatus())) {
-                    System.out.println("Đã có thanh toán thành công cho registration này: " + patientRegistrationId);
+                    System.out.println("Da co thanh toan thanh cong cho registration nay: " + patientRegistrationId);
                     Map<String, Object> warning = new HashMap<>();
-                    warning.put("warning", "Đơn hàng đã được thanh toán thành công trước đó");
+                    warning.put("warning", "Don hang da duoc thanh toan thanh cong");
                     warning.put("existingTransactionNo", existingPayment.getTransactionNo());
                     warning.put("paymentStatus", existingPayment.getStatus());
                     return ResponseEntity.ok(warning);
                 }
             }
 
-            // Sinh mã giao dịch
+            // sinh ma giao dich
             String vnp_TxnRef = "VNPAY-" + System.currentTimeMillis() + "-" + patientRegistrationId;
             String vnp_IpAddr = getClientIpAddress(request);
             
             System.out.println("Transaction Ref: " + vnp_TxnRef);
             System.out.println("IP Address: " + vnp_IpAddr);
 
-            // Tạo map tham số
+            // tao tham so
             Map<String, String> vnp_Params = new HashMap<>();
             vnp_Params.put("vnp_Version", "2.1.0");
             vnp_Params.put("vnp_Command", "pay");
@@ -179,11 +177,11 @@ public class VnPayController {
             String createDate = formatter.format(cal.getTime());
             vnp_Params.put("vnp_CreateDate", createDate);
 
-            // Tạo URL thanh toán
+            // tao URL thanh toan
             String paymentUrl = createPaymentUrl(vnp_Params);
-            System.out.println("Payment URL đã tạo: " + paymentUrl);
+            System.out.println("Payment URL: " + paymentUrl);
 
-            // Lưu thông tin thanh toán vào database
+            // luu thong tin thanh toan
             Payment payment = new Payment();
             payment.setPatientRegistrationId(patientRegistrationId);
             payment.setAmount((double) amount / 100);
@@ -192,43 +190,43 @@ public class VnPayController {
             payment.setStatus("Đang chờ xử lý");
             
             Payment savedPayment = paymentService.savePayment(payment);
-            System.out.println("Đã lưu payment với ID: " + savedPayment.getId());
+            System.out.println("Da luu payment ID: " + savedPayment.getId());
 
             Map<String, String> result = new HashMap<>();
             result.put("paymentUrl", paymentUrl);
             result.put("transactionNo", vnp_TxnRef);
             
-            System.out.println("Tạo thanh toán thành công!");
+            System.out.println("Tao thanh toan thanh cong!");
             return ResponseEntity.ok(result);
 
         } catch (Exception e) {
-            System.err.println("Lỗi tạo thanh toán: " + e.getMessage());
-            e.printStackTrace();
+            System.out.println("Loi tao thanh toan: " + e.getMessage());
             Map<String, String> error = new HashMap<>();
-            error.put("error", "Không thể tạo giao dịch: " + e.getMessage());
+            error.put("error", "Khong the tao giao dich: " + e.getMessage());
             return ResponseEntity.badRequest().body(error);
         }
     }
 
+    // tao thanh toan nap vi
     @PostMapping("/create-wallet-payment")
     public ResponseEntity<?> createWalletPayment(@RequestBody Map<String, Object> req, HttpServletRequest request) {
         try {
-            System.out.println("Bắt đầu tạo thanh toán VNPAY (WALLET)");
-            System.out.println("Dữ liệu request (wallet): " + req);
+            System.out.println("Tao thanh toan VNPay (nap vi)");
+            System.out.println("Du lieu: " + req);
 
             long amount = ((Number) req.get("amount")).longValue() * 100;
             Long walletId = req.get("walletId") != null ? ((Number) req.get("walletId")).longValue() : null;
             String orderInfo = "WALLET_DEPOSIT:" + walletId;
 
             if (walletId == null) {
-                throw new Exception("walletId là bắt buộc cho nạp tiền ví");
+                return ResponseEntity.badRequest().body("Can walletId");
             }
 
-            // Sinh mã giao dịch
+            // sinh ma giao dich
             String vnp_TxnRef = "VNPAY-WALLET-" + System.currentTimeMillis() + "-" + walletId;
             String vnp_IpAddr = getClientIpAddress(request);
 
-            // Tạo map tham số
+            // tao tham so
             Map<String, String> vnp_Params = new HashMap<>();
             vnp_Params.put("vnp_Version", "2.1.0");
             vnp_Params.put("vnp_Command", "pay");
@@ -247,11 +245,11 @@ public class VnPayController {
             String createDate = formatter.format(cal.getTime());
             vnp_Params.put("vnp_CreateDate", createDate);
 
-            // Tạo URL thanh toán
+            // tao URL thanh toan
             String paymentUrl = createPaymentUrl(vnp_Params);
-            System.out.println("Payment URL (wallet) đã tạo: " + paymentUrl);
+            System.out.println("Payment URL (wallet): " + paymentUrl);
 
-            // Lưu thông tin thanh toán vào database
+            // luu thong tin thanh toan
             Payment payment = new Payment();
             payment.setPatientRegistrationId(null);
             payment.setAmount((double) amount / 100);
@@ -260,79 +258,78 @@ public class VnPayController {
             payment.setStatus("Đang chờ xử lý");
 
             Payment savedPayment = paymentService.savePayment(payment);
-            System.out.println("Đã lưu payment (wallet) với ID: " + savedPayment.getId());
+            System.out.println("Da luu payment (wallet) ID: " + savedPayment.getId());
 
             Map<String, String> result = new HashMap<>();
             result.put("paymentUrl", paymentUrl);
             result.put("transactionNo", vnp_TxnRef);
 
-            System.out.println("Tạo thanh toán ví thành công!");
+            System.out.println("Tao thanh toan vi thanh cong!");
             return ResponseEntity.ok(result);
 
         } catch (Exception e) {
-            System.err.println("Lỗi tạo thanh toán ví: " + e.getMessage());
-            e.printStackTrace();
+            System.out.println("Loi tao thanh toan vi: " + e.getMessage());
             Map<String, String> error = new HashMap<>();
-            error.put("error", "Không thể tạo giao dịch ví: " + e.getMessage());
+            error.put("error", "Khong the tao giao dich vi: " + e.getMessage());
             return ResponseEntity.badRequest().body(error);
         }
     }
 
+    // endpoint tra ve tu VNPay
     @GetMapping("/payment-return")
     @Transactional
     public ResponseEntity<Map<String, String>> paymentReturn(@RequestParam Map<String, String> params) {
-        System.out.println("VNPAY RETURN URL - Bắt đầu");
-        System.out.println("Tham số return từ VNPay: " + params);
+        System.out.println("VNPAY RETURN URL");
+        System.out.println("Tham so tu VNPay: " + params);
         
         String vnp_ResponseCode = params.get("vnp_ResponseCode");
-        String vnp_TransactionNo = params.get("vnp_TransactionNo"); // TransactionNo từ VNPay
-        String vnp_TxnRef = params.get("vnp_TxnRef"); // TransactionNo của chúng ta
+        String vnp_TransactionNo = params.get("vnp_TransactionNo");
+        String vnp_TxnRef = params.get("vnp_TxnRef");
         String vnp_Amount = params.get("vnp_Amount");
         String vnp_BankCode = params.get("vnp_BankCode");
         String vnp_PayDate = params.get("vnp_PayDate");
         String vnp_BankTranNo = params.get("vnp_BankTranNo");
         
-        System.out.println("Thông tin giao dịch:");
-        System.out.println("   Response Code: " + vnp_ResponseCode);
-        System.out.println("   Transaction No (VNPay): " + vnp_TransactionNo);
-        System.out.println("   TxnRef (của chúng ta): " + vnp_TxnRef);
-        System.out.println("   Amount: " + vnp_Amount + " (đơn vị: VNĐ x 100)");
-        System.out.println("   Bank Code: " + vnp_BankCode);
-        System.out.println("   Pay Date: " + vnp_PayDate);
+        System.out.println("Thong tin giao dich:");
+        System.out.println("Response Code: " + vnp_ResponseCode);
+        System.out.println("Transaction No (VNPay): " + vnp_TransactionNo);
+        System.out.println("TxnRef (cua chung ta): " + vnp_TxnRef);
+        System.out.println("Amount: " + vnp_Amount);
+        System.out.println("Bank Code: " + vnp_BankCode);
         
         Map<String, String> result = new HashMap<>();
         
         if ("00".equals(vnp_ResponseCode)) {
-            System.out.println("Thanh toán thành công!");
+            System.out.println("Thanh toan thanh cong!");
             
             try {
-                // 1. Kiểm tra xem payment đã được xử lý chưa
-                System.out.println("Kiểm tra payment với TxnRef (của chúng ta): " + vnp_TxnRef);
+                // 1. kiem tra payment da xu ly chua
+                System.out.println("Kiem tra payment voi TxnRef: " + vnp_TxnRef);
                 Optional<Payment> paymentCheckOpt = paymentService.findByTransactionNo(vnp_TxnRef);
                 
                 if (!paymentCheckOpt.isPresent()) {
-                    System.err.println("Không tìm thấy payment với TxnRef: " + vnp_TxnRef);
+                    System.out.println("Khong tim thay payment voi TxnRef: " + vnp_TxnRef);
                     result.put("status", "error");
-                    result.put("message", "Không tìm thấy thông tin giao dịch");
+                    result.put("message", "Khong tim thay thong tin giao dich");
                     return ResponseEntity.ok(result);
                 }
                 
                 Payment existingPayment = paymentCheckOpt.get();
-                System.out.println("Payment hiện tại:");
-                System.out.println("   ID: " + existingPayment.getId());
-                System.out.println("   Status: " + existingPayment.getStatus());
-                System.out.println("   Registration ID: " + existingPayment.getPatientRegistrationId());
+                System.out.println("Payment hien tai:");
+                System.out.println("ID: " + existingPayment.getId());
+                System.out.println("Status: " + existingPayment.getStatus());
+                System.out.println("Registration ID: " + existingPayment.getPatientRegistrationId());
                 
-                // Nếu đã xử lý thành công rồi
+                // neu da xu ly thanh cong roi
                 if ("Thành công".equals(existingPayment.getStatus())) {
-                    System.out.println("Payment đã được xử lý thành công trước đó");
+                    System.out.println("Payment da duoc xu ly thanh cong truoc do");
                     
-                    // Kiểm tra hóa đơn
+                    // kiem tra hoa don
                     Optional<com.example.clinic_backend.model.Invoice> existingInvoiceOpt = 
                         invoiceService.findInvoiceByRegistrationId(existingPayment.getPatientRegistrationId());
                     
                     result.put("status", "success");
-                    result.put("message", "Thanh toán đã được xử lý thành công trước đó");
+                    result.put("message", "Thanh toan da duoc xu ly thanh cong");
                     result.put("amount", String.valueOf(existingPayment.getAmount()));
                     result.put("paymentStatus", "Thành công");
                     result.put("transactionNo", vnp_TransactionNo);
@@ -340,48 +337,45 @@ public class VnPayController {
                     if (existingInvoiceOpt.isPresent()) {
                         result.put("invoiceNumber", existingInvoiceOpt.get().getInvoiceNumber());
                         result.put("invoiceDate", existingInvoiceOpt.get().getInvoiceDate().toString());
-                        System.out.println("Đã có hóa đơn: " + existingInvoiceOpt.get().getInvoiceNumber());
+                        System.out.println("Da co hoa don: " + existingInvoiceOpt.get().getInvoiceNumber());
                     } else {
-                        System.out.println("Không tìm thấy hóa đơn mặc dù payment đã thành công");
+                        System.out.println("Chua co hoa don");
                     }
                     
                     return ResponseEntity.ok(result);
                 }
                 
-                // 2. Cập nhật trạng thái thanh toán
-                System.out.println("Cập nhật trạng thái payment...");
+                // 2. cap nhat trang thai thanh toan
+                System.out.println("Cap nhat trang thai payment...");
                 Payment updatedPayment = paymentService.updatePaymentStatus(vnp_TxnRef, "Thành công", vnp_ResponseCode);
                 
                 if (updatedPayment == null) {
-                    System.err.println("Không thể cập nhật payment");
-                    throw new Exception("Không thể cập nhật payment");
+                    System.out.println("Khong the cap nhat payment");
+                    return ResponseEntity.badRequest().body(Map.of("error", "Khong the cap nhat payment"));
                 }
                 
-                System.out.println("Đã cập nhật payment thành công");
-                System.out.println("Payment sau khi cập nhật:");
-                System.out.println("   Registration ID: " + updatedPayment.getPatientRegistrationId());
-                System.out.println("   Status: " + updatedPayment.getStatus());
-                System.out.println("   Updated At: " + updatedPayment.getUpdatedAt());
+                System.out.println("Da cap nhat payment thanh cong");
+                System.out.println("Payment sau khi cap nhat:");
+                System.out.println("Registration ID: " + updatedPayment.getPatientRegistrationId());
+                System.out.println("Status: " + updatedPayment.getStatus());
                 
-                // 3. Cập nhật PatientRegistration hoặc Wallet nếu là nạp tiền ví
+                // 3. cap nhat PatientRegistration hoac Wallet
                 if (updatedPayment.getPatientRegistrationId() != null) {
-                    System.out.println("Đang tìm PatientRegistration với ID: " + updatedPayment.getPatientRegistrationId());
+                    System.out.println("Tim PatientRegistration voi ID: " + updatedPayment.getPatientRegistrationId());
                     Optional<PatientRegistration> registrationOpt = patientRegistrationRepository
                         .findById(updatedPayment.getPatientRegistrationId());
                     
                     if (registrationOpt.isPresent()) {
                         PatientRegistration registration = registrationOpt.get();
                         
-                        System.out.println("Tìm thấy PatientRegistration:");
-                        System.out.println("   Tên: " + registration.getFullName());
-                        System.out.println("   Email: " + registration.getEmail());
-                        System.out.println("   Trạng thái thanh toán cũ: " + registration.getPaymentStatus());
+                        System.out.println("Tim thay PatientRegistration:");
+                        System.out.println("Ten: " + registration.getFullName());
+                        System.out.println("Email: " + registration.getEmail());
                         
-                        // Chỉ cập nhật nếu chưa PAID
+                        // chi cap nhat neu chua PAID
                         if (!"PAID".equals(registration.getPaymentStatus())) {
-                            System.out.println("Cập nhật PatientRegistration...");
+                            System.out.println("Cap nhat PatientRegistration...");
                             
-                            // Chuyển đổi amount từ VNPay (đã x100) sang VNĐ thực
                             double amountInVND = Double.parseDouble(vnp_Amount) / 100;
                             
                             registration.setPaymentStatus("PAID");
@@ -390,43 +384,41 @@ public class VnPayController {
                             registration.setPaidAt(LocalDateTime.now());
                             
                             PatientRegistration savedRegistration = patientRegistrationRepository.save(registration);
-                            System.out.println("Đã cập nhật PatientRegistration:");
-                            System.out.println("   Số tiền đã thanh toán: " + amountInVND);
-                            System.out.println("   Thời gian thanh toán: " + registration.getPaidAt());
-                            System.out.println("   Transaction No (VNPay): " + registration.getTransactionNumber());
+                            System.out.println("Da cap nhat PatientRegistration:");
+                            System.out.println("So tien: " + amountInVND);
+                            System.out.println("Thoi gian: " + registration.getPaidAt());
                             
-                            // 4. Gửi email thông báo
+                            // 4. gui email thong bao
                             try {
-                                System.out.println("Đang gửi email thông báo...");
+                                System.out.println("Dang gui email thong bao...");
                                 emailService.sendPaymentSuccessEmail(savedRegistration);
-                                System.out.println("Đã gửi email thành công cho: " + savedRegistration.getEmail());
+                                System.out.println("Da gui email cho: " + savedRegistration.getEmail());
                             } catch (Exception emailException) {
-                                System.err.println("Lỗi gửi email: " + emailException.getMessage());
+                                System.out.println("Loi gui email: " + emailException.getMessage());
                             }
                             
-                            // 5. TẠO HÓA ĐƠN - FIX LỖI QUAN TRỌNG: Dùng vnp_TxnRef thay vì vnp_TransactionNo
-                            System.out.println("Bắt đầu tạo hóa đơn...");
-                            System.out.println("Thông tin tạo hóa đơn:");
-                            System.out.println("   Registration ID: " + updatedPayment.getPatientRegistrationId());
-                            System.out.println("   Transaction No (của chúng ta): " + vnp_TxnRef);
-                            System.out.println("   Transaction No (VNPay): " + vnp_TransactionNo);
+                            // 5. tao hoa don
+                            System.out.println("Bat dau tao hoa don...");
+                            System.out.println("Thong tin tao hoa don:");
+                            System.out.println("Registration ID: " + updatedPayment.getPatientRegistrationId());
+                            System.out.println("Transaction No: " + vnp_TxnRef);
                             
                             try {
-                                // Kiểm tra trước xem đã có hóa đơn chưa
+                                // kiem tra truoc da co hoa don chua
                                 Optional<com.example.clinic_backend.model.Invoice> existingInvoiceCheck = 
                                     invoiceService.findInvoiceByRegistrationId(updatedPayment.getPatientRegistrationId());
                                 
                                 if (existingInvoiceCheck.isPresent()) {
-                                    System.out.println("Đã có hóa đơn cho registration này, không tạo mới");
+                                    System.out.println("Da co hoa don cho registration nay");
                                     com.example.clinic_backend.model.Invoice existingInvoice = existingInvoiceCheck.get();
                                     result.put("invoiceNumber", existingInvoice.getInvoiceNumber());
                                     result.put("invoiceDate", existingInvoice.getInvoiceDate().toString());
-                                    System.out.println("Số hóa đơn đã có: " + existingInvoice.getInvoiceNumber());
+                                    System.out.println("So hoa don da co: " + existingInvoice.getInvoiceNumber());
                                 } else {
-                                    // Tạo hóa đơn mới - Dùng vnp_TxnRef (transactionNo của chúng ta)
+                                    // tao hoa don moi
                                     com.example.clinic_backend.model.Invoice invoice = invoiceService.createInvoiceFromPayment(
                                         updatedPayment.getPatientRegistrationId(),
-                                        vnp_TxnRef, // FIX: Dùng transactionNo của chúng ta
+                                        vnp_TxnRef,
                                         vnp_BankCode,
                                         "VNPay"
                                     );
@@ -434,34 +426,31 @@ public class VnPayController {
                                     if (invoice != null) {
                                         result.put("invoiceNumber", invoice.getInvoiceNumber());
                                         result.put("invoiceDate", invoice.getInvoiceDate().toString());
-                                        System.out.println("Đã tạo hóa đơn thành công!");
-                                        System.out.println("   Số hóa đơn: " + invoice.getInvoiceNumber());
-                                        System.out.println("   Ngày hóa đơn: " + invoice.getInvoiceDate());
+                                        System.out.println("Da tao hoa don thanh cong!");
+                                        System.out.println("So hoa don: " + invoice.getInvoiceNumber());
                                     } else {
-                                        System.err.println("InvoiceService.createInvoiceFromPayment() trả về null!");
-                                        result.put("invoiceError", "Không thể tạo hóa đơn");
+                                        System.out.println("InvoiceService tra ve null!");
+                                        result.put("invoiceError", "Khong the tao hoa don");
                                     }
                                 }
                             } catch (Exception invoiceException) {
-                                System.err.println("Lỗi khi tạo hóa đơn: " + invoiceException.getMessage());
-                                invoiceException.printStackTrace();
-                                result.put("invoiceError", "Lỗi khi tạo hóa đơn: " + invoiceException.getMessage());
+                                System.out.println("Loi khi tao hoa don: " + invoiceException.getMessage());
+                                result.put("invoiceError", "Loi khi tao hoa don");
                             }
-                            
                         } else {
-                            System.out.println("Registration đã được thanh toán từ trước");
+                            System.out.println("Registration da duoc thanh toan tu truoc");
                         }
                     } else {
-                        System.err.println("Không tìm thấy PatientRegistration với ID: " + updatedPayment.getPatientRegistrationId());
+                        System.out.println("Khong tim thay PatientRegistration");
                     }
                 } else {
-                    // Có thể là giao dịch nạp tiền vào ví, kiểm tra orderInfo
+                    // co the la giao dich nap tien vao vi
                     String orderInfoStr = updatedPayment.getOrderInfo();
                     if (orderInfoStr != null && orderInfoStr.startsWith("WALLET_DEPOSIT:")) {
                         try {
                             String[] parts = orderInfoStr.split(":");
                             Long walletId = Long.parseLong(parts[1]);
-                            System.out.println("Đây là giao dịch nạp tiền ví, walletId=" + walletId);
+                            System.out.println("Day la giao dich nap tien vi, walletId=" + walletId);
 
                             Optional<Wallet> walletOpt = walletRepository.findById(walletId);
                             if (walletOpt.isPresent()) {
@@ -470,60 +459,58 @@ public class VnPayController {
                                 BigDecimal added = BigDecimal.valueOf(Double.parseDouble(vnp_Amount) / 100.0);
                                 wallet.setBalance(current.add(added));
                                 walletRepository.save(wallet);
-                                System.out.println("Đã cập nhật số dư ví: " + wallet.getBalance());
+                                System.out.println("Da cap nhat so du vi: " + wallet.getBalance());
                                 result.put("walletBalance", wallet.getBalance().toString());
                             } else {
-                                System.err.println("Không tìm thấy ví với ID: " + walletId);
+                                System.out.println("Khong tim thay vi: " + walletId);
                             }
                         } catch (Exception we) {
-                            System.err.println("Lỗi khi cập nhật ví: " + we.getMessage());
+                            System.out.println("Loi khi cap nhat vi: " + we.getMessage());
                         }
                     } else {
-                        System.err.println("Payment không có patientRegistrationId");
+                        System.out.println("Payment khong co patientRegistrationId");
                     }
                 }
                 
             } catch (Exception e) {
-                System.err.println("Lỗi khi xử lý thanh toán thành công: " + e.getMessage());
-                e.printStackTrace();
+                System.out.println("Loi khi xu ly thanh toan thanh cong: " + e.getMessage());
             }
             
             result.put("status", "success");
-            result.put("message", "Thanh toán thành công!");
+            result.put("message", "Thanh toan thanh cong!");
             result.put("amount", String.valueOf(Double.parseDouble(vnp_Amount) / 100));
             result.put("paymentStatus", "Thành công");
             result.put("transactionNo", vnp_TransactionNo);
             result.put("bankCode", vnp_BankCode);
             
-            System.out.println("Xử lý thanh toán hoàn tất!");
+            System.out.println("Xu ly thanh toan hoan tat!");
             
         } else {
-            // Thanh toán thất bại
-            System.out.println("Thanh toán thất bại! Mã lỗi: " + vnp_ResponseCode);
+            // thanh toan that bai
+            System.out.println("Thanh toan that bai! Ma loi: " + vnp_ResponseCode);
             
             try {
                 paymentService.updatePaymentStatus(vnp_TxnRef, "Thất bại", vnp_ResponseCode);
-                System.out.println("Đã cập nhật trạng thái payment thành 'Thất bại'");
+                System.out.println("Da cap nhat trang thai payment thanh 'That bai'");
             } catch (Exception e) {
-                System.err.println("Không thể cập nhật trạng thái payment thất bại: " + e.getMessage());
+                System.out.println("Khong the cap nhat trang thai payment that bai: " + e.getMessage());
             }
             
             result.put("status", "error");
-            result.put("message", "Thanh toán thất bại! Mã lỗi: " + vnp_ResponseCode);
+            result.put("message", "Thanh toan that bai! Ma loi: " + vnp_ResponseCode);
             result.put("paymentStatus", "Thất bại");
         }
         
-        System.out.println("Kết quả trả về: " + result);
+        System.out.println("Ket qua tra ve: " + result);
         return ResponseEntity.ok(result);
     }
 
-    // ==================== PAYMENT STATUS ENDPOINTS ====================
-
+    // kiem tra trang thai thanh toan
     @PostMapping("/check-payment-status")
     public ResponseEntity<?> checkPaymentStatus(@RequestBody Map<String, String> request) {
         try {
             String transactionNo = request.get("transactionNo");
-            System.out.println("Kiểm tra trạng thái thanh toán cho: " + transactionNo);
+            System.out.println("Kiem tra trang thai thanh toan: " + transactionNo);
             
             Optional<Payment> paymentOpt = paymentService.findByTransactionNo(transactionNo);
             if (paymentOpt.isPresent()) {
@@ -536,7 +523,7 @@ public class VnPayController {
                 result.put("patientRegistrationId", payment.getPatientRegistrationId());
                 result.put("updatedAt", payment.getUpdatedAt());
                 
-                // Thêm thông tin hóa đơn nếu có
+                // them thong tin hoa don neu co
                 if ("Thành công".equals(payment.getStatus())) {
                     Optional<com.example.clinic_backend.model.Invoice> invoiceOpt = 
                         invoiceService.findInvoiceByRegistrationId(payment.getPatientRegistrationId());
@@ -551,18 +538,19 @@ public class VnPayController {
                     }
                 }
                 
-                System.out.println("Trạng thái thanh toán: " + payment.getStatus());
+                System.out.println("Trang thai thanh toan: " + payment.getStatus());
                 return ResponseEntity.ok(result);
             } else {
-                System.out.println("Không tìm thấy giao dịch: " + transactionNo);
-                return ResponseEntity.status(404).body("Không tìm thấy giao dịch");
+                System.out.println("Khong tim thay giao dich: " + transactionNo);
+                return ResponseEntity.status(404).body("Khong tim thay giao dich");
             }
         } catch (Exception e) {
-            System.err.println("Lỗi kiểm tra trạng thái thanh toán: " + e.getMessage());
-            return ResponseEntity.badRequest().body("Lỗi khi kiểm tra trạng thái");
+            System.out.println("Loi kiem tra trang thai thanh toan: " + e.getMessage());
+            return ResponseEntity.badRequest().body("Loi khi kiem tra trang thai");
         }
     }
 
+    // lay trang thai thanh toan
     @GetMapping("/payment-status/{transactionNo}")
     public ResponseEntity<Map<String, String>> getPaymentStatus(@PathVariable String transactionNo) {
         Optional<Payment> paymentOpt = paymentService.findByTransactionNo(transactionNo);
@@ -576,7 +564,7 @@ public class VnPayController {
             result.put("createdAt", payment.getCreatedAt().toString());
             result.put("updatedAt", payment.getUpdatedAt().toString());
             
-            // Thêm thông tin hóa đơn nếu có
+            // them thong tin hoa don neu co
             if ("Thành công".equals(payment.getStatus())) {
                 Optional<com.example.clinic_backend.model.Invoice> invoiceOpt = 
                     invoiceService.findInvoiceByRegistrationId(payment.getPatientRegistrationId());
@@ -591,15 +579,14 @@ public class VnPayController {
                 }
             }
         } else {
-            result.put("status", "Không tìm thấy");
-            result.put("message", "Không tìm thấy thông tin giao dịch");
+            result.put("status", "Khong tim thay");
+            result.put("message", "Khong tim thay thong tin giao dich");
         }
         
         return ResponseEntity.ok(result);
     }
 
-    // ==================== ADMIN ENDPOINTS ====================
-
+    // admin cap nhat thu cong
     @PostMapping("/manual-update-payment")
     @Transactional
     public ResponseEntity<?> manualUpdatePayment(@RequestBody Map<String, String> request) {
@@ -608,44 +595,44 @@ public class VnPayController {
             String status = request.get("status");
             String vnpResponseCode = request.get("vnpResponseCode");
             
-            System.out.println("Cập nhật thủ công thanh toán: " + transactionNo + " -> " + status);
+            System.out.println("Cap nhat thu cong thanh toan: " + transactionNo + " -> " + status);
             
             Payment updatedPayment = paymentService.updatePaymentStatus(transactionNo, status, vnpResponseCode);
             
-            // Nếu cập nhật thành công và là trạng thái "Thành công", kiểm tra và tạo hóa đơn nếu cần
+            // neu cap nhat thanh cong va la trang thai "Thành công", kiem tra va tao hoa don
             if (updatedPayment != null && "Thành công".equals(status) && updatedPayment.getPatientRegistrationId() != null) {
                 try {
-                    // Kiểm tra xem đã có hóa đơn chưa
+                    // kiem tra xem da co hoa don chua
                     Optional<com.example.clinic_backend.model.Invoice> existingInvoiceOpt = 
                         invoiceService.findInvoiceByRegistrationId(updatedPayment.getPatientRegistrationId());
                     
                     if (!existingInvoiceOpt.isPresent()) {
-                        // Tạo hóa đơn mới
-                        System.out.println("Tạo hóa đơn thủ công...");
+                        // tao hoa don moi
+                        System.out.println("Tao hoa don thu cong...");
                         com.example.clinic_backend.model.Invoice invoice = invoiceService.createInvoiceFromPayment(
                             updatedPayment.getPatientRegistrationId(),
                             transactionNo,
                             "MANUAL",
-                            "Thủ công"
+                            "Thu cong"
                         );
                         
                         if (invoice != null) {
-                            System.out.println("Đã tạo hóa đơn thủ công: " + invoice.getInvoiceNumber());
+                            System.out.println("Da tao hoa don thu cong: " + invoice.getInvoiceNumber());
                         } else {
-                            System.err.println("Không thể tạo hóa đơn thủ công");
+                            System.out.println("Khong the tao hoa don thu cong");
                         }
                     } else {
-                        System.out.println("Đã có hóa đơn từ trước, không tạo mới");
+                        System.out.println("Da co hoa don tu truoc, khong tao moi");
                     }
                 } catch (Exception e) {
-                    System.err.println("Lỗi khi tạo hóa đơn thủ công: " + e.getMessage());
+                    System.out.println("Loi khi tao hoa don thu cong: " + e.getMessage());
                 }
             }
             
-            return ResponseEntity.ok("Cập nhật thành công");
+            return ResponseEntity.ok("Cap nhat thanh cong");
         } catch (Exception e) {
-            System.err.println("Lỗi cập nhật thủ công: " + e.getMessage());
-            return ResponseEntity.badRequest().body("Lỗi cập nhật");
+            System.out.println("Loi cap nhat thu cong: " + e.getMessage());
+            return ResponseEntity.badRequest().body("Loi cap nhat");
         }
     }
 

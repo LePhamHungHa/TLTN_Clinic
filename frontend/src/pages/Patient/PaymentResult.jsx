@@ -4,194 +4,132 @@ import axios from "axios";
 import "../../css/PaymentResult.css";
 
 const PaymentResult = () => {
-  const [searchParams] = useSearchParams();
+  // Khai báo state và hook
+  const [urlParams] = useSearchParams();
   const navigate = useNavigate();
-  const [result, setResult] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [paymentDetails, setPaymentDetails] = useState(null);
-  const [apiCallCount, setApiCallCount] = useState(0); // Theo dõi số lần gọi API
-  const [debugInfo, setDebugInfo] = useState([]); // Lưu debug info
+  const [paymentResult, setPaymentResult] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [transactionData, setTransactionData] = useState(null);
 
-  // Thêm debug log
-  const addDebugLog = (message) => {
-    const timestamp = new Date().toLocaleTimeString();
-    const log = `[${timestamp}] ${message}`;
-    console.log(log);
-    setDebugInfo((prev) => [...prev, log]);
+  // Đọc các tham số từ URL
+  const vnpResponseCode = urlParams.get("vnp_ResponseCode");
+  const vnpTransactionNo = urlParams.get("vnp_TransactionNo");
+  const vnpAmount = urlParams.get("vnp_Amount");
+  const vnpOrderInfo = urlParams.get("vnp_OrderInfo");
+  const vnpBankCode = urlParams.get("vnp_BankCode");
+  const vnpPayDate = urlParams.get("vnp_PayDate");
+  const vnpTxnRef = urlParams.get("vnp_TxnRef");
 
-    // Giới hạn số lượng log
-    if (debugInfo.length > 20) {
-      setDebugInfo((prev) => prev.slice(-20));
+  // Phương thức xử lý kết quả thanh toán
+  const handlePaymentResult = async () => {
+    try {
+      // Tạo đối tượng lưu thông tin giao dịch
+      const paymentInfo = {
+        responseCode: vnpResponseCode,
+        transactionNo: vnpTransactionNo,
+        amount: vnpAmount ? parseInt(vnpAmount) / 100 : null,
+        orderInfo: vnpOrderInfo,
+        bankCode: vnpBankCode,
+        payDate: vnpPayDate,
+        txnRef: vnpTxnRef,
+      };
+
+      setTransactionData(paymentInfo);
+
+      // Kiểm tra mã phản hồi từ VNPay
+      if (vnpResponseCode === "00") {
+        // Thanh toán thành công
+        setPaymentResult({
+          status: "success",
+          title: "Thanh toán thành công",
+          message: "Giao dịch đã được thực hiện thành công",
+        });
+      } else {
+        // Xử lý các mã lỗi
+        const errorMessages = {
+          "07": "Giao dịch bị nghi ngờ gian lận",
+          "09": "Thẻ/Tài khoản chưa đăng ký Internet Banking",
+          10: "Xác thực thông tin sai quá 3 lần",
+          11: "Đã hết hạn chờ thanh toán",
+          12: "Thẻ/Tài khoản bị khóa",
+          13: "Nhập sai OTP",
+          24: "Khách hàng hủy giao dịch",
+          51: "Tài khoản không đủ số dư",
+          65: "Vượt quá hạn mức giao dịch",
+          75: "Ngân hàng đang bảo trì",
+          79: "Nhập sai mật khẩu quá số lần",
+          99: "Lỗi khác",
+        };
+
+        const errorMsg =
+          errorMessages[vnpResponseCode] || "Giao dịch không thành công";
+
+        setPaymentResult({
+          status: "error",
+          title: "Thanh toán thất bại",
+          message: errorMsg,
+        });
+      }
+
+      // Gọi API cập nhật trạng thái thanh toán
+      if (vnpResponseCode && vnpTxnRef) {
+        try {
+          await axios.get("http://localhost:8080/api/vnpay/payment-return", {
+            params: {
+              vnp_ResponseCode: vnpResponseCode,
+              vnp_TransactionNo: vnpTransactionNo,
+              vnp_Amount: vnpAmount,
+              vnp_OrderInfo: vnpOrderInfo,
+              vnp_BankCode: vnpBankCode,
+              vnp_PayDate: vnpPayDate,
+              vnp_TxnRef: vnpTxnRef,
+            },
+          });
+        } catch (apiError) {
+          console.error("Không thể cập nhật trạng thái:", apiError);
+        }
+      }
+    } catch (error) {
+      console.error("Lỗi xử lý thanh toán:", error);
+      setPaymentResult({
+        status: "error",
+        title: "Lỗi hệ thống",
+        message: "Có lỗi xảy ra khi xử lý kết quả thanh toán",
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
+  // Xử lý khi component được render
   useEffect(() => {
-    addDebugLog("🔵 PaymentResult component MOUNTED");
-    addDebugLog(
-      `📊 Search params: ${Array.from(searchParams.entries())
-        .map(([k, v]) => `${k}=${v}`)
-        .join(", ")}`
-    );
+    handlePaymentResult();
+  }, []);
 
-    const checkPaymentResult = async () => {
-      try {
-        addDebugLog("🔄 Starting payment result check");
-
-        // Lấy các tham số từ URL trả về từ VNPay
-        const vnp_ResponseCode = searchParams.get("vnp_ResponseCode");
-        const vnp_TransactionNo = searchParams.get("vnp_TransactionNo");
-        const vnp_Amount = searchParams.get("vnp_Amount");
-        const vnp_OrderInfo = searchParams.get("vnp_OrderInfo");
-        const vnp_BankCode = searchParams.get("vnp_BankCode");
-        const vnp_PayDate = searchParams.get("vnp_PayDate");
-        const vnp_TxnRef = searchParams.get("vnp_TxnRef");
-
-        addDebugLog(`📦 Params decoded: 
-          ResponseCode=${vnp_ResponseCode}
-          TransactionNo=${vnp_TransactionNo}
-          TxnRef=${vnp_TxnRef}`);
-
-        // Tạo object chứa thông tin thanh toán
-        const paymentInfo = {
-          responseCode: vnp_ResponseCode,
-          transactionNo: vnp_TransactionNo,
-          amount: vnp_Amount ? parseInt(vnp_Amount) / 100 : null,
-          orderInfo: vnp_OrderInfo,
-          bankCode: vnp_BankCode,
-          payDate: vnp_PayDate,
-          txnRef: vnp_TxnRef,
-        };
-
-        setPaymentDetails(paymentInfo);
-
-        // Kiểm tra kết quả thanh toán
-        if (vnp_ResponseCode === "00") {
-          setResult({
-            status: "success",
-            title: "Thanh toán thành công!",
-            message: "Cảm ơn bạn đã sử dụng dịch vụ của chúng tôi.",
-            icon: "✅",
-          });
-          addDebugLog("✅ Payment successful according to response code");
-        } else {
-          const errorMessages = {
-            "07": "Giao dịch bị nghi ngờ gian lận",
-            "09": "Giao dịch không thành công do: Thẻ/Tài khoản của khách hàng chưa đăng ký dịch vụ InternetBanking",
-            10: "Giao dịch không thành công do: Khách hàng xác thực thông tin thẻ/tài khoản không đúng quá 3 lần",
-            11: "Giao dịch không thành công do: Đã hết hạn chờ thanh toán. Xin quý khách vui lòng thực hiện lại giao dịch.",
-            12: "Giao dịch không thành công do: Thẻ/Tài khoản của khách hàng bị khóa.",
-            13: "Giao dịch không thành công do: Quý khách nhập sai mật khẩu xác thực giao dịch (OTP).",
-            24: "Giao dịch không thành công do: Khách hàng hủy giao dịch",
-            51: "Giao dịch không thành công do: Tài khoản của quý khách không đủ số dư để thực hiện giao dịch.",
-            65: "Giao dịch không thành công do: Tài khoản của Quý khách đã vượt quá hạn mức giao dịch trong ngày.",
-            75: "Ngân hàng thanh toán đang bảo trì",
-            79: "Giao dịch không thành công do: KH nhập sai mật khẩu thanh toán quá số lần quy định.",
-            99: "Các lỗi khác",
-          };
-
-          const errorMessage =
-            errorMessages[vnp_ResponseCode] || "Thanh toán thất bại!";
-
-          setResult({
-            status: "error",
-            title: "Thanh toán thất bại",
-            message: errorMessage,
-            icon: "❌",
-          });
-          addDebugLog(`❌ Payment failed: ${errorMessage}`);
-        }
-
-        // Nếu có response code từ VNPay, gọi API để cập nhật trạng thái
-        if (vnp_ResponseCode && vnp_TxnRef) {
-          try {
-            const callNumber = apiCallCount + 1;
-            setApiCallCount(callNumber);
-            addDebugLog(
-              `📞 Calling payment-return API (call #${callNumber})...`
-            );
-
-            const updateResponse = await axios.get(
-              "http://localhost:8080/api/vnpay/payment-return",
-              {
-                params: {
-                  vnp_ResponseCode,
-                  vnp_TransactionNo,
-                  vnp_Amount,
-                  vnp_OrderInfo,
-                  vnp_BankCode,
-                  vnp_PayDate,
-                  vnp_TxnRef,
-                },
-              }
-            );
-
-            addDebugLog(
-              `✅ Payment status updated: ${JSON.stringify(
-                updateResponse.data
-              )}`
-            );
-            addDebugLog(`📊 Total API calls made: ${callNumber}`);
-          } catch (updateError) {
-            addDebugLog(
-              `❌ Failed to update payment status: ${updateError.message}`
-            );
-            console.error("❌ Failed to update payment status:", updateError);
-          }
-        }
-      } catch (error) {
-        addDebugLog(`❌ Error checking payment result: ${error.message}`);
-        console.error("❌ Lỗi khi kiểm tra kết quả thanh toán:", error);
-        setResult({
-          status: "error",
-          title: "Lỗi hệ thống",
-          message:
-            "Có lỗi xảy ra khi kiểm tra kết quả thanh toán. Vui lòng liên hệ hỗ trợ.",
-          icon: "⚠️",
-        });
-      } finally {
-        addDebugLog("🏁 Finished payment result check");
-        setLoading(false);
-      }
-    };
-
-    // Kiểm tra nếu component bị re-render nhiều lần
-    const checkRenderCount = () => {
-      const renderKey = "payment_result_renders";
-      const currentCount = parseInt(localStorage.getItem(renderKey) || "0") + 1;
-      localStorage.setItem(renderKey, currentCount.toString());
-      addDebugLog(`🔄 Component render count: ${currentCount}`);
-      return currentCount;
-    };
-
-    checkRenderCount();
-    checkPaymentResult();
-
-    // Cleanup function
-    return () => {
-      addDebugLog("🔴 PaymentResult component UNMOUNTED");
-    };
-  }, [searchParams]); // Chỉ phụ thuộc vào searchParams
-
-  const formatCurrency = (amount) => {
-    return amount ? amount.toLocaleString("vi-VN") + " ₫" : "N/A";
+  // Hàm định dạng số tiền
+  const formatMoney = (amount) => {
+    if (!amount) return "Không xác định";
+    return amount.toLocaleString("vi-VN") + " ₫";
   };
 
-  const formatPayDate = (payDate) => {
-    if (!payDate) return "N/A";
+  // Hàm chuyển đổi định dạng ngày giờ
+  const formatDateTime = (dateString) => {
+    if (!dateString) return "Không xác định";
 
     // Định dạng: yyyyMMddHHmmss -> dd/MM/yyyy HH:mm:ss
-    const year = payDate.substring(0, 4);
-    const month = payDate.substring(4, 6);
-    const day = payDate.substring(6, 8);
-    const hour = payDate.substring(8, 10);
-    const minute = payDate.substring(10, 12);
-    const second = payDate.substring(12, 14);
+    const year = dateString.substring(0, 4);
+    const month = dateString.substring(4, 6);
+    const day = dateString.substring(6, 8);
+    const hour = dateString.substring(8, 10);
+    const minute = dateString.substring(10, 12);
+    const second = dateString.substring(12, 14);
 
     return `${day}/${month}/${year} ${hour}:${minute}:${second}`;
   };
 
-  const getBankName = (bankCode) => {
-    const bankNames = {
+  // Hàm lấy tên ngân hàng
+  const getBankName = (code) => {
+    const banks = {
       VNBANK: "Ngân hàng VNPay",
       INTCARD: "Thẻ quốc tế",
       VNPAYQR: "VNPay QR",
@@ -218,16 +156,17 @@ const PaymentResult = () => {
       KLB: "KienLongBank",
     };
 
-    return bankNames[bankCode] || bankCode || "N/A";
+    return banks[code] || code || "Không xác định";
   };
 
-  if (loading) {
+  // Hiển thị trạng thái loading
+  if (isLoading) {
     return (
       <div className="payment-result-container">
         <div className="loading-section">
           <div className="loading-spinner"></div>
-          <h2>Đang xác nhận kết quả thanh toán...</h2>
-          <p>Vui lòng chờ trong giây lát</p>
+          <h2>Đang kiểm tra kết quả thanh toán</h2>
+          <p>Vui lòng đợi trong giây lát</p>
         </div>
       </div>
     );
@@ -235,61 +174,61 @@ const PaymentResult = () => {
 
   return (
     <div className="payment-result-container">
-      <div className={`result-card ${result?.status}`}>
+      <div className={`result-card ${paymentResult?.status}`}>
         <div className="result-header">
-          <div className="result-icon">{result?.icon}</div>
-          <h1 className="result-title">{result?.title}</h1>
-          <p className="result-message">{result?.message}</p>
+          <div className="result-icon">
+            {paymentResult?.status === "success" ? "✓" : "✗"}
+          </div>
+          <h1 className="result-title">{paymentResult?.title}</h1>
+          <p className="result-message">{paymentResult?.message}</p>
         </div>
 
-        {paymentDetails && (
+        {transactionData && (
           <div className="payment-details">
-            <h3>📋 Thông tin giao dịch</h3>
+            <h3>Chi tiết giao dịch</h3>
             <div className="details-grid">
               <div className="detail-item">
-                <span className="detail-label">Mã giao dịch VNPay:</span>
+                <span className="detail-label">Mã giao dịch:</span>
                 <span className="detail-value">
-                  {paymentDetails.transactionNo || "N/A"}
+                  {transactionData.transactionNo || "Không có"}
                 </span>
               </div>
               <div className="detail-item">
                 <span className="detail-label">Mã tham chiếu:</span>
                 <span className="detail-value">
-                  {paymentDetails.txnRef || "N/A"}
+                  {transactionData.txnRef || "Không có"}
                 </span>
               </div>
               <div className="detail-item">
                 <span className="detail-label">Số tiền:</span>
                 <span
-                  className={`detail-value ${
-                    result?.status === "success" ? "success-amount" : ""
-                  }`}
+                  className={`detail-value ${paymentResult?.status === "success" ? "success-amount" : ""}`}
                 >
-                  {formatCurrency(paymentDetails.amount)}
+                  {formatMoney(transactionData.amount)}
                 </span>
               </div>
               <div className="detail-item">
                 <span className="detail-label">Ngân hàng:</span>
                 <span className="detail-value">
-                  {getBankName(paymentDetails.bankCode)}
+                  {getBankName(transactionData.bankCode)}
                 </span>
               </div>
               <div className="detail-item">
                 <span className="detail-label">Thời gian:</span>
                 <span className="detail-value">
-                  {formatPayDate(paymentDetails.payDate)}
+                  {formatDateTime(transactionData.payDate)}
                 </span>
               </div>
               <div className="detail-item">
                 <span className="detail-label">Nội dung:</span>
                 <span className="detail-value">
-                  {paymentDetails.orderInfo || "N/A"}
+                  {transactionData.orderInfo || "Không có"}
                 </span>
               </div>
               <div className="detail-item">
                 <span className="detail-label">Mã phản hồi:</span>
                 <span className="detail-value">
-                  {paymentDetails.responseCode || "N/A"}
+                  {transactionData.responseCode || "Không có"}
                 </span>
               </div>
             </div>
@@ -297,51 +236,51 @@ const PaymentResult = () => {
         )}
 
         <div className="result-actions">
-          {result?.status === "success" && (
+          {paymentResult?.status === "success" && (
             <>
               <button
                 className="btn-primary"
                 onClick={() => navigate("/invoices")}
               >
-                📋 Xem hóa đơn
+                Xem hóa đơn
               </button>
               <button
                 className="btn-secondary"
                 onClick={() => navigate("/patient/appointments")}
               >
-                📅 Xem lịch hẹn
+                Xem lịch hẹn
               </button>
               <button className="btn-secondary" onClick={() => navigate("/")}>
-                🏠 Về trang chủ
+                Trang chủ
               </button>
             </>
           )}
 
-          {result?.status === "error" && (
+          {paymentResult?.status === "error" && (
             <>
               <button
                 className="btn-primary"
                 onClick={() => navigate("/payment")}
               >
-                🔄 Thử lại thanh toán
+                Thử lại
               </button>
               <button className="btn-secondary" onClick={() => navigate("/")}>
-                🏠 Về trang chủ
+                Trang chủ
               </button>
               <button
                 className="btn-support"
                 onClick={() => window.open("tel:19001001", "_self")}
               >
-                📞 Gọi hỗ trợ
+                Hỗ trợ
               </button>
             </>
           )}
         </div>
 
         <div className="result-footer">
-          <p>Cảm ơn bạn đã sử dụng dịch vụ của chúng tôi!</p>
+          <p>Cảm ơn bạn đã sử dụng dịch vụ</p>
           <p>
-            Mọi thắc mắc vui lòng liên hệ: <strong>1900 1001</strong>
+            Liên hệ hỗ trợ: <strong>1900 1001</strong>
           </p>
         </div>
       </div>

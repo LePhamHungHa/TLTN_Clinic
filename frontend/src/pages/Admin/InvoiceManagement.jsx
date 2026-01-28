@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import "../../css/InvoiceManagement.css";
 import {
   BarChart,
   Bar,
@@ -14,7 +15,6 @@ import {
   LineChart,
   Line,
 } from "recharts";
-import "../../css/InvoiceManagement.css";
 
 const InvoiceManagement = () => {
   const [activeTab, setActiveTab] = useState("revenue");
@@ -23,12 +23,10 @@ const InvoiceManagement = () => {
   const [allRegistrations, setAllRegistrations] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  // State cho tab Hóa đơn
   const [invoiceSearchTerm, setInvoiceSearchTerm] = useState("");
   const [invoiceStatusFilter, setInvoiceStatusFilter] = useState("ALL");
   const [selectedInvoice, setSelectedInvoice] = useState(null);
 
-  // Fetch data khi tab thay đổi
   useEffect(() => {
     if (activeTab === "revenue") {
       fetchAllRegistrations();
@@ -47,7 +45,7 @@ const InvoiceManagement = () => {
         "http://localhost:8080/api/patient-registrations",
         {
           headers: { Authorization: `Bearer ${token}` },
-        }
+        },
       );
 
       if (response.ok) {
@@ -55,7 +53,7 @@ const InvoiceManagement = () => {
         setAllRegistrations(data);
       }
     } catch (error) {
-      console.error("Error fetching registrations:", error);
+      console.error("Lỗi khi lấy dữ liệu:", error);
     } finally {
       setLoading(false);
     }
@@ -76,127 +74,138 @@ const InvoiceManagement = () => {
         setAllInvoices(data);
       }
     } catch (error) {
-      console.error("Error fetching invoices:", error);
+      console.error("Lỗi khi lấy hóa đơn:", error);
     } finally {
       setLoading(false);
     }
   };
 
-  // Tính toán thống kê từ tất cả lịch hẹn
   const calculateRevenueFromRegistrations = () => {
-    if (allRegistrations.length === 0) return null;
+    if (allRegistrations.length === 0) {
+      return null;
+    }
 
-    const stats = {
-      totalRegistrations: allRegistrations.length,
-      paidRegistrations: 0,
-      pendingRegistrations: 0,
-      unpaidRegistrations: 0,
-      totalRevenue: 0,
-      paidRevenue: 0,
-      pendingRevenue: 0,
-    };
+    let totalRegistrations = allRegistrations.length;
+    let paidRegistrations = 0;
+    let pendingRegistrations = 0;
+    let unpaidRegistrations = 0;
+    let totalRevenue = 0;
+    let paidRevenue = 0;
+    let pendingRevenue = 0;
 
     allRegistrations.forEach((reg) => {
-      const paidAmount = parseFloat(reg.paidAmount) || 0;
-      const examinationFee = parseFloat(reg.examinationFee) || 0;
-      const paymentStatus = reg.paymentStatus || "UNPAID";
+      let paidAmount = parseFloat(reg.paidAmount) || 0;
+      let examinationFee = parseFloat(reg.examinationFee) || 0;
+      let paymentStatus = reg.paymentStatus || "UNPAID";
 
       if (paymentStatus === "PAID" || paidAmount > 0) {
-        stats.paidRegistrations++;
-        stats.paidRevenue += paidAmount;
-        stats.totalRevenue += paidAmount;
+        paidRegistrations++;
+        paidRevenue += paidAmount;
+        totalRevenue += paidAmount;
       } else if (paymentStatus === "PENDING") {
-        stats.pendingRegistrations++;
-        stats.pendingRevenue += examinationFee;
+        pendingRegistrations++;
+        pendingRevenue += examinationFee;
       } else {
-        stats.unpaidRegistrations++;
+        unpaidRegistrations++;
       }
     });
 
-    // Tính tỷ lệ
-    stats.paymentRate =
-      stats.totalRegistrations > 0
-        ? ((stats.paidRegistrations / stats.totalRegistrations) * 100).toFixed(
-            1
-          )
-        : 0;
+    let paymentRate = 0;
+    if (totalRegistrations > 0) {
+      paymentRate = (paidRegistrations / totalRegistrations) * 100;
+    }
 
-    stats.averageRevenue =
-      stats.paidRegistrations > 0
-        ? stats.paidRevenue / stats.paidRegistrations
-        : 0;
+    let averageRevenue = 0;
+    if (paidRegistrations > 0) {
+      averageRevenue = paidRevenue / paidRegistrations;
+    }
 
-    return stats;
+    return {
+      totalRegistrations: totalRegistrations,
+      paidRegistrations: paidRegistrations,
+      pendingRegistrations: pendingRegistrations,
+      unpaidRegistrations: unpaidRegistrations,
+      totalRevenue: totalRevenue,
+      paidRevenue: paidRevenue,
+      pendingRevenue: pendingRevenue,
+      paymentRate: paymentRate.toFixed(1),
+      averageRevenue: averageRevenue,
+    };
   };
 
-  // Format currency
   const formatCurrency = (amount) => {
+    if (!amount) amount = 0;
     return new Intl.NumberFormat("vi-VN", {
       style: "currency",
       currency: "VND",
       minimumFractionDigits: 0,
-    }).format(amount || 0);
+    }).format(amount);
   };
 
-  // Format number
   const formatNumber = (num) => {
-    return new Intl.NumberFormat("vi-VN").format(num || 0);
+    if (!num) num = 0;
+    return new Intl.NumberFormat("vi-VN").format(num);
   };
 
-  // Format percentage
   const formatPercentage = (num) => {
-    return `${parseFloat(num || 0).toFixed(1)}%`;
+    return parseFloat(num || 0).toFixed(1) + "%";
   };
 
-  // Prepare payment status data for pie chart
   const preparePaymentStatusData = () => {
     const stats = calculateRevenueFromRegistrations();
     if (!stats) return [];
+
+    let paidPercentage = stats.paymentRate;
+    let pendingPercentage = 0;
+    let unpaidPercentage = 0;
+
+    if (stats.totalRegistrations > 0) {
+      pendingPercentage = (
+        (stats.pendingRegistrations / stats.totalRegistrations) *
+        100
+      ).toFixed(1);
+      unpaidPercentage = (
+        (stats.unpaidRegistrations / stats.totalRegistrations) *
+        100
+      ).toFixed(1);
+    }
 
     return [
       {
         name: "Đã thanh toán",
         value: stats.paidRegistrations,
-        percentage: stats.paymentRate,
+        percentage: paidPercentage,
         color: "#10B981",
         revenue: stats.paidRevenue,
       },
       {
         name: "Chờ thanh toán",
         value: stats.pendingRegistrations,
-        percentage: (
-          (stats.pendingRegistrations / stats.totalRegistrations) *
-          100
-        ).toFixed(1),
+        percentage: pendingPercentage,
         color: "#F59E0B",
         revenue: stats.pendingRevenue,
       },
       {
         name: "Chưa thanh toán",
         value: stats.unpaidRegistrations,
-        percentage: (
-          (stats.unpaidRegistrations / stats.totalRegistrations) *
-          100
-        ).toFixed(1),
+        percentage: unpaidPercentage,
         color: "#EF4444",
         revenue: 0,
       },
     ];
   };
 
-  // Prepare revenue trend data
   const prepareRevenueTrendData = () => {
-    // Nhóm theo tháng
-    const monthlyData = {};
+    let monthlyData = {};
 
     allRegistrations.forEach((reg) => {
       if (reg.appointmentDate) {
-        const date = new Date(reg.appointmentDate);
-        const monthYear = `${date.getMonth() + 1}/${date.getFullYear()}`;
+        let date = new Date(reg.appointmentDate);
+        let monthYear = date.getMonth() + 1 + "/" + date.getFullYear();
 
         if (!monthlyData[monthYear]) {
           monthlyData[monthYear] = {
-            month: `Tháng ${date.getMonth() + 1}/${date.getFullYear()}`,
+            month: "Tháng " + (date.getMonth() + 1) + "/" + date.getFullYear(),
             revenue: 0,
             appointments: 0,
             paid: 0,
@@ -215,28 +224,28 @@ const InvoiceManagement = () => {
       }
     });
 
-    // Chuyển thành mảng và sắp xếp
-    return Object.values(monthlyData)
-      .sort((a, b) => {
-        const aDate = a.month.split(" ")[1].split("/");
-        const bDate = b.month.split(" ")[1].split("/");
-        return (
-          new Date(aDate[1], aDate[0] - 1) - new Date(bDate[1], bDate[0] - 1)
-        );
-      })
-      .slice(-6); // Lấy 6 tháng gần nhất
+    let result = Object.values(monthlyData);
+
+    result.sort((a, b) => {
+      let aDate = a.month.split(" ")[1].split("/");
+      let bDate = b.month.split(" ")[1].split("/");
+      return (
+        new Date(aDate[1], aDate[0] - 1) - new Date(bDate[1], bDate[0] - 1)
+      );
+    });
+
+    return result.slice(-6);
   };
 
-  // Prepare department revenue data
   const prepareDepartmentRevenueData = () => {
-    const departmentStats = {};
+    let departmentStats = {};
 
     allRegistrations.forEach((reg) => {
-      const department = reg.department || "Không xác định";
+      let department = reg.department || "Không xác định";
 
       if (!departmentStats[department]) {
         departmentStats[department] = {
-          department,
+          department: department,
           appointments: 0,
           revenue: 0,
           paid: 0,
@@ -254,49 +263,49 @@ const InvoiceManagement = () => {
       }
     });
 
-    return Object.values(departmentStats)
-      .sort((a, b) => b.revenue - a.revenue)
-      .slice(0, 5); // Top 5
+    let result = Object.values(departmentStats);
+
+    result.sort((a, b) => b.revenue - a.revenue);
+
+    return result.slice(0, 5);
   };
 
-  // Filter invoices cho tab Hóa đơn
   const filteredInvoices = allInvoices.filter((invoice) => {
-    const matchesSearch =
-      invoiceSearchTerm === "" ||
-      (invoice.invoiceNumber?.toLowerCase() || "").includes(
-        invoiceSearchTerm.toLowerCase()
-      ) ||
-      (invoice.patientName?.toLowerCase() || "").includes(
-        invoiceSearchTerm.toLowerCase()
-      ) ||
-      (invoice.patientEmail?.toLowerCase() || "").includes(
-        invoiceSearchTerm.toLowerCase()
-      ) ||
-      (invoice.patientPhone || "").includes(invoiceSearchTerm);
+    let matchesSearch = true;
+    if (invoiceSearchTerm) {
+      let searchLower = invoiceSearchTerm.toLowerCase();
+      matchesSearch =
+        (invoice.invoiceNumber?.toLowerCase() || "").includes(searchLower) ||
+        (invoice.patientName?.toLowerCase() || "").includes(searchLower) ||
+        (invoice.patientEmail?.toLowerCase() || "").includes(searchLower) ||
+        (invoice.patientPhone || "").includes(invoiceSearchTerm);
+    }
 
-    const matchesStatus =
-      invoiceStatusFilter === "ALL" || invoice.status === invoiceStatusFilter;
+    let matchesStatus = true;
+    if (invoiceStatusFilter !== "ALL") {
+      matchesStatus = invoice.status === invoiceStatusFilter;
+    }
 
     return matchesSearch && matchesStatus;
   });
 
-  // Get status label with color for invoices
   const getStatusLabel = (status) => {
-    const statusMap = {
-      PAID: { label: "Đã thanh toán", color: "#10B981", bg: "#D1FAE5" },
-      PENDING: { label: "Chờ thanh toán", color: "#F59E0B", bg: "#FEF3C7" },
-      CANCELLED: { label: "Đã hủy", color: "#EF4444", bg: "#FEE2E2" },
-      REFUNDED: { label: "Đã hoàn tiền", color: "#8B5CF6", bg: "#EDE9FE" },
-    };
-    return (
-      statusMap[status] || { label: status, color: "#6B7280", bg: "#F3F4F6" }
-    );
+    if (status === "PAID") {
+      return { label: "Đã thanh toán", color: "#10B981", bg: "#D1FAE5" };
+    } else if (status === "PENDING") {
+      return { label: "Chờ thanh toán", color: "#F59E0B", bg: "#FEF3C7" };
+    } else if (status === "CANCELLED") {
+      return { label: "Đã hủy", color: "#EF4444", bg: "#FEE2E2" };
+    } else if (status === "REFUNDED") {
+      return { label: "Đã hoàn tiền", color: "#8B5CF6", bg: "#EDE9FE" };
+    } else {
+      return { label: status, color: "#6B7280", bg: "#F3F4F6" };
+    }
   };
 
-  // Format date for invoices
   const formatDate = (dateString) => {
     if (!dateString) return "N/A";
-    const date = new Date(dateString);
+    let date = new Date(dateString);
     return date.toLocaleDateString("vi-VN", {
       year: "numeric",
       month: "2-digit",
@@ -306,7 +315,6 @@ const InvoiceManagement = () => {
     });
   };
 
-  // Handle refresh
   const handleRefresh = () => {
     if (activeTab === "revenue") {
       fetchAllRegistrations();
@@ -315,22 +323,18 @@ const InvoiceManagement = () => {
     }
   };
 
-  // Handle time range change
   const handleTimeRangeChange = (range) => {
     setTimeRange(range);
   };
 
-  // Handle tab change
   const handleTabChange = (tab) => {
     setActiveTab(tab);
   };
 
-  // Tính toán thống kê
   const revenueData = calculateRevenueFromRegistrations();
 
   return (
     <div className="invoice-management">
-      {/* Header với Tabs */}
       <div className="invoice-header">
         <div className="header-left">
           <h2>💰 Quản lý Doanh thu & Hóa đơn</h2>
@@ -350,9 +354,7 @@ const InvoiceManagement = () => {
               ].map((range) => (
                 <button
                   key={range}
-                  className={`time-range-btn ${
-                    timeRange === range ? "active" : ""
-                  }`}
+                  className={`time-range-btn ${timeRange === range ? "active" : ""}`}
                   onClick={() => handleTimeRangeChange(range)}
                 >
                   {range === "TODAY" && "Hôm nay"}
@@ -370,7 +372,6 @@ const InvoiceManagement = () => {
         </div>
       </div>
 
-      {/* Tab Navigation */}
       <div className="tab-navigation">
         <button
           className={`tab-btn ${activeTab === "revenue" ? "active" : ""}`}
@@ -393,10 +394,8 @@ const InvoiceManagement = () => {
         </div>
       ) : (
         <>
-          {/* Tab Doanh thu */}
           {activeTab === "revenue" && revenueData && (
             <div className="revenue-tab">
-              {/* Summary Cards */}
               <div className="quick-stats">
                 <div className="stat-card total-revenue">
                   <div className="stat-icon">💰</div>
@@ -451,9 +450,7 @@ const InvoiceManagement = () => {
                 </div>
               </div>
 
-              {/* Charts Section */}
               <div className="charts-section">
-                {/* Payment Status Distribution */}
                 <div className="chart-card">
                   <h3>📊 Phân bổ trạng thái thanh toán</h3>
                   <div className="chart-wrapper">
@@ -516,7 +513,6 @@ const InvoiceManagement = () => {
                   </div>
                 </div>
 
-                {/* Revenue Trend */}
                 <div className="chart-card">
                   <h3>📈 Xu hướng doanh thu 6 tháng gần nhất</h3>
                   <div className="chart-wrapper">
@@ -566,7 +562,6 @@ const InvoiceManagement = () => {
                   </div>
                 </div>
 
-                {/* Department Revenue */}
                 <div className="chart-card full-width">
                   <h3>🏥 Doanh thu theo khoa (Top 5)</h3>
                   <div className="chart-wrapper">
@@ -612,7 +607,6 @@ const InvoiceManagement = () => {
                 </div>
               </div>
 
-              {/* Detailed Statistics */}
               <div className="detailed-stats">
                 <h3>📋 Thống kê chi tiết</h3>
                 <div className="stats-grid">
@@ -669,10 +663,8 @@ const InvoiceManagement = () => {
             </div>
           )}
 
-          {/* Tab Hóa đơn */}
           {activeTab === "invoices" && (
             <div className="invoices-tab">
-              {/* Filters */}
               <div className="invoice-filters">
                 <div className="search-box">
                   <input
@@ -698,7 +690,6 @@ const InvoiceManagement = () => {
                 </div>
               </div>
 
-              {/* Invoice List */}
               <div className="invoice-list-container">
                 <div className="invoice-list-header">
                   <span className="list-count">
@@ -793,7 +784,6 @@ const InvoiceManagement = () => {
             </div>
           )}
 
-          {/* Invoice Detail Modal */}
           {selectedInvoice && (
             <div
               className="modal-overlay"

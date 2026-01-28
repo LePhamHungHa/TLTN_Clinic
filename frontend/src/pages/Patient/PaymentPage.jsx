@@ -7,142 +7,130 @@ const PaymentPage = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  // Dữ liệu từ trang đăng ký khám - THÊM patientRegistrationId
-  const patientRegistrationId =
+  const patientRegId =
     location.state?.patientRegistrationId || location.state?.registrationId;
-  const fullname = location.state?.fullname || "Unknown";
-  const phone = location.state?.phone || "000000000";
-  const amount = location.state?.amount || 200000;
+  const patientName = location.state?.fullname || "Unknown";
+  const phoneNumber = location.state?.phone || "000000000";
+  const paymentAmount = location.state?.amount || 200000;
 
-  const [countdown, setCountdown] = useState(30 * 60);
-  const [loading, setLoading] = useState(false);
+  const [remainingTime, setRemainingTime] = useState(30 * 60);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   useEffect(() => {
-    console.log("📍 PaymentPage location.state:", location.state);
-    console.log("🆔 patientRegistrationId:", patientRegistrationId);
+    const intervalId = setInterval(() => {
+      setRemainingTime((prevTime) => {
+        if (prevTime > 0) {
+          return prevTime - 1;
+        }
+        return 0;
+      });
+    }, 1000);
 
-    const timer = setInterval(
-      () => setCountdown((prev) => (prev > 0 ? prev - 1 : 0)),
-      1000
-    );
-    return () => clearInterval(timer);
-  }, [location.state, patientRegistrationId]);
+    return () => {
+      clearInterval(intervalId);
+    };
+  }, []);
 
-  const formatTime = (seconds) => {
-    const m = Math.floor(seconds / 60);
-    const s = seconds % 60;
-    return `${m}:${s < 10 ? "0" : ""}${s}`;
+  const formatTimer = (totalSeconds) => {
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return `${minutes}:${seconds < 10 ? "0" : ""}${seconds}`;
   };
 
-  const handlePayment = async () => {
-    if (!patientRegistrationId) {
-      alert("❌ Thiếu thông tin đăng ký khám. Vui lòng quay lại trang trước.");
+  const processPayment = async () => {
+    if (!patientRegId) {
+      alert("Không tìm thấy thông tin đăng ký. Vui lòng thử lại.");
       return;
     }
 
-    setLoading(true);
+    setIsProcessing(true);
+
     try {
-      console.log("🔄 Creating payment...", {
-        amount,
-        patientRegistrationId,
-        fullname,
-        phone,
-      });
+      const requestBody = {
+        amount: paymentAmount,
+        orderInfo: `Thanh toán phí khám cho ${patientName} - ${phoneNumber}`,
+        patientRegistrationId: patientRegId,
+      };
 
       const response = await axios.post(
         "http://localhost:8080/api/vnpay/create-payment",
-        {
-          amount: amount,
-          orderInfo: `Thanh toan phi kham cho ${fullname} - ${phone}`,
-          patientRegistrationId: patientRegistrationId,
-        },
+        requestBody,
         {
           timeout: 10000,
           headers: {
             "Content-Type": "application/json",
           },
-        }
+        },
       );
 
-      console.log("✅ Payment created:", response.data);
-
-      if (response.data.paymentUrl) {
-        localStorage.setItem("currentTransaction", response.data.transactionNo);
+      if (response.data && response.data.paymentUrl) {
+        localStorage.setItem("transactionId", response.data.transactionNo);
         window.location.href = response.data.paymentUrl;
       } else {
-        throw new Error("Không nhận được URL thanh toán từ server");
+        alert("Không thể tạo liên kết thanh toán.");
       }
     } catch (error) {
-      console.error("❌ Lỗi khi tạo giao dịch:", error);
-
-      let errorMessage =
-        "Không thể tạo giao dịch thanh toán. Vui lòng thử lại!";
+      let errorMsg = "Không thể kết nối. Vui lòng kiểm tra lại!";
 
       if (error.response) {
-        console.error("Response data:", error.response.data);
-        console.error("Response status:", error.response.status);
-
         if (error.response.status === 403) {
-          errorMessage = "Không có quyền truy cập. Vui lòng đăng nhập lại!";
+          errorMsg = "Bạn cần đăng nhập lại!";
         } else if (error.response.data && error.response.data.error) {
-          errorMessage = error.response.data.error;
+          errorMsg = error.response.data.error;
         }
       } else if (error.request) {
-        errorMessage =
-          "Không thể kết nối đến server. Vui lòng kiểm tra kết nối!";
+        errorMsg = "Không kết nối được server!";
       }
 
-      alert(errorMessage);
+      alert(errorMsg);
     } finally {
-      setLoading(false);
+      setIsProcessing(false);
     }
   };
 
   return (
     <div className="payment-container">
       <h1 className="payment-title">Thanh toán phí khám bệnh</h1>
-      <p className="payment-subtitle">
-        Nhấn nút bên dưới để thanh toán qua cổng VNPay:
-      </p>
+      <p className="payment-subtitle">Vui lòng thanh toán qua cổng VNPay:</p>
 
       <div className="payment-info">
         <p>
-          <strong>Họ và tên:</strong> {fullname}
+          <strong>Họ tên:</strong> {patientName}
         </p>
         <p>
-          <strong>Số điện thoại:</strong> {phone}
+          <strong>Số điện thoại:</strong> {phoneNumber}
         </p>
         <p>
-          <strong>Số tiền:</strong> {amount.toLocaleString("vi-VN")} ₫
+          <strong>Số tiền:</strong> {paymentAmount.toLocaleString("vi-VN")} ₫
         </p>
         <p>
-          <strong>Mã đăng ký:</strong> {patientRegistrationId || "Chưa có"}
+          <strong>Mã đăng ký:</strong> {patientRegId || "N/A"}
         </p>
       </div>
 
       <div className="payment-expire">
-        ⏳ Phiên thanh toán hết hạn sau: <span>{formatTime(countdown)}</span>
+        Thời gian còn lại: <span>{formatTimer(remainingTime)}</span>
       </div>
 
       <div style={{ marginTop: 24 }}>
         <button
           className="payment-btn"
-          onClick={handlePayment}
-          disabled={loading || !patientRegistrationId}
+          onClick={processPayment}
+          disabled={isProcessing || !patientRegId}
         >
-          {loading ? "Đang xử lý..." : "Thanh toán online"}
+          {isProcessing ? "Đang chuyển hướng..." : "Thanh toán online"}
         </button>
 
-        {!patientRegistrationId && (
+        {!patientRegId && (
           <p style={{ color: "red", marginTop: "10px" }}>
-            ⚠️ Thiếu thông tin đăng ký. Vui lòng quay lại trang đăng ký.
+            Thiếu thông tin đăng ký. Vui lòng thử lại.
           </p>
         )}
       </div>
 
       <div style={{ marginTop: 18 }}>
         <button className="payment-back" onClick={() => navigate("/")}>
-          ← Quay lại trang chủ
+          Về trang chủ
         </button>
       </div>
     </div>

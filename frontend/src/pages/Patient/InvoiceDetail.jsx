@@ -3,35 +3,35 @@ import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import "../../css/InvoiceDetail.css";
 
-const InvoiceDetail = () => {
+function InvoiceDetail() {
   const { invoiceNumber } = useParams();
   const navigate = useNavigate();
-  const [invoice, setInvoice] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [invoiceData, setInvoiceData] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    const fetchInvoiceDetail = async () => {
+    const getInvoiceDetail = async () => {
       try {
-        setLoading(true);
-        const response = await axios.get(
-          `http://localhost:8080/api/invoices/${invoiceNumber}`
+        setIsLoading(true);
+        const result = await axios.get(
+          `http://localhost:8080/api/invoices/${invoiceNumber}`,
         );
-        setInvoice(response.data);
+        setInvoiceData(result.data);
       } catch (err) {
-        console.error("❌ Lỗi khi lấy chi tiết hóa đơn:", err);
+        console.error("Lỗi khi lấy chi tiết hóa đơn:", err);
         setError("Không tìm thấy hóa đơn hoặc có lỗi xảy ra");
       } finally {
-        setLoading(false);
+        setIsLoading(false);
       }
     };
 
     if (invoiceNumber) {
-      fetchInvoiceDetail();
+      getInvoiceDetail();
     }
   }, [invoiceNumber]);
 
-  const formatCurrency = (amount) => {
+  const formatMoney = (amount) => {
     return amount ? amount.toLocaleString("vi-VN") + " ₫" : "0 ₫";
   };
 
@@ -48,14 +48,14 @@ const InvoiceDetail = () => {
     });
   };
 
-  const getStatusBadge = (status) => {
-    const statusConfig = {
+  const getStatus = (status) => {
+    const statusMap = {
       PAID: { label: "Đã thanh toán", className: "status-paid" },
       PENDING: { label: "Chờ thanh toán", className: "status-pending" },
       CANCELLED: { label: "Đã hủy", className: "status-cancelled" },
     };
 
-    const config = statusConfig[status] || {
+    const config = statusMap[status] || {
       label: status,
       className: "status-unknown",
     };
@@ -65,18 +65,18 @@ const InvoiceDetail = () => {
     );
   };
 
-  const printInvoice = () => {
-    if (!invoice) return;
+  const printDocument = () => {
+    if (!invoiceData) return;
 
     const printWindow = window.open("", "_blank");
     printWindow.document.write(`
       <!DOCTYPE html>
       <html>
       <head>
-        <title>Hóa đơn ${invoice.invoiceNumber}</title>
+        <title>Hóa đơn ${invoiceData.invoiceNumber}</title>
         <style>
           body { font-family: Arial, sans-serif; padding: 40px; max-width: 800px; margin: 0 auto; }
-          .invoice-print-header { text-align: center; margin-bottom: 40px; padding-bottom: 20px; border-bottom: 3px solid #333; }
+          .invoice-header { text-align: center; margin-bottom: 40px; padding-bottom: 20px; border-bottom: 3px solid #333; }
           .clinic-name { font-size: 28px; font-weight: bold; color: #2c3e50; margin-bottom: 10px; }
           .invoice-title { font-size: 22px; font-weight: bold; margin: 20px 0; }
           .invoice-meta { margin: 20px 0; }
@@ -93,7 +93,7 @@ const InvoiceDetail = () => {
         </style>
       </head>
       <body>
-        <div class="invoice-print-header">
+        <div class="invoice-header">
           <div class="clinic-name">PHÒNG KHÁM MEDICARE</div>
           <div>Địa chỉ: 123 Đường ABC, Quận XYZ, TP.HCM</div>
           <div>Điện thoại: 1900 1001 | Email: info@medicare.com</div>
@@ -104,27 +104,27 @@ const InvoiceDetail = () => {
         <div class="invoice-meta">
           <div class="meta-row">
             <span class="meta-label">Số hóa đơn:</span>
-            <span>${invoice.invoiceNumber}</span>
+            <span>${invoiceData.invoiceNumber}</span>
           </div>
           <div class="meta-row">
             <span class="meta-label">Ngày lập hóa đơn:</span>
-            <span>${formatDate(invoice.invoiceDate)}</span>
+            <span>${formatDate(invoiceData.invoiceDate)}</span>
           </div>
           <div class="meta-row">
             <span class="meta-label">Mã bệnh nhân:</span>
-            <span>REG-${invoice.patientRegistrationId}</span>
+            <span>REG-${invoiceData.patientRegistrationId}</span>
           </div>
           <div class="meta-row">
             <span class="meta-label">Tên bệnh nhân:</span>
-            <span>${invoice.patientName}</span>
+            <span>${invoiceData.patientName}</span>
           </div>
           <div class="meta-row">
             <span class="meta-label">Số điện thoại:</span>
-            <span>${invoice.patientPhone}</span>
+            <span>${invoiceData.patientPhone}</span>
           </div>
           <div class="meta-row">
             <span class="meta-label">Email:</span>
-            <span>${invoice.patientEmail}</span>
+            <span>${invoiceData.patientEmail}</span>
           </div>
         </div>
         
@@ -140,13 +140,13 @@ const InvoiceDetail = () => {
           <tbody>
             <tr>
               <td>1</td>
-              <td>${invoice.serviceName}</td>
-              <td>${formatCurrency(invoice.amount)}</td>
-              <td>${formatCurrency(invoice.amount)}</td>
+              <td>${invoiceData.serviceName}</td>
+              <td>${formatMoney(invoiceData.amount)}</td>
+              <td>${formatMoney(invoiceData.amount)}</td>
             </tr>
             <tr class="total-row">
               <td colspan="3" style="text-align: right; padding-right: 20px;">TỔNG CỘNG:</td>
-              <td>${formatCurrency(invoice.amount)}</td>
+              <td>${formatMoney(invoiceData.amount)}</td>
             </tr>
           </tbody>
         </table>
@@ -154,23 +154,23 @@ const InvoiceDetail = () => {
         <div class="invoice-meta">
           <div class="meta-row">
             <span class="meta-label">Phương thức thanh toán:</span>
-            <span>${invoice.paymentMethod}</span>
+            <span>${invoiceData.paymentMethod}</span>
           </div>
           <div class="meta-row">
             <span class="meta-label">Mã giao dịch:</span>
-            <span>${invoice.transactionNo}</span>
+            <span>${invoiceData.transactionNo}</span>
           </div>
           <div class="meta-row">
             <span class="meta-label">Ngân hàng:</span>
-            <span>${invoice.bankCode || "VNPay"}</span>
+            <span>${invoiceData.bankCode || "VNPay"}</span>
           </div>
           <div class="meta-row">
             <span class="meta-label">Trạng thái:</span>
-            <span>${getStatusBadge(invoice.status).props.children}</span>
+            <span>${invoiceData.status === "PAID" ? "Đã thanh toán" : invoiceData.status}</span>
           </div>
           <div class="meta-row">
             <span class="meta-label">Ngày thanh toán:</span>
-            <span>${formatDate(invoice.paymentDate)}</span>
+            <span>${formatDate(invoiceData.paymentDate)}</span>
           </div>
         </div>
         
@@ -191,7 +191,7 @@ const InvoiceDetail = () => {
     printWindow.print();
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="invoice-detail-container">
         <div className="loading-section">
@@ -202,18 +202,17 @@ const InvoiceDetail = () => {
     );
   }
 
-  if (error || !invoice) {
+  if (error || !invoiceData) {
     return (
       <div className="invoice-detail-container">
         <div className="error-state">
-          <div className="error-icon">❌</div>
           <h3>{error || "Không tìm thấy hóa đơn"}</h3>
           <p>Vui lòng kiểm tra lại số hóa đơn hoặc liên hệ hỗ trợ</p>
           <button
-            className="btn-secondary"
+            className="secondary-button"
             onClick={() => navigate("/invoices")}
           >
-            ← Quay lại danh sách
+            Quay lại danh sách
           </button>
         </div>
       </div>
@@ -223,13 +222,13 @@ const InvoiceDetail = () => {
   return (
     <div className="invoice-detail-container">
       <div className="invoice-detail-header">
-        <button className="btn-back" onClick={() => navigate("/invoices")}>
-          ← Quay lại
+        <button className="back-button" onClick={() => navigate("/invoices")}>
+          Quay lại
         </button>
-        <h1>Hóa đơn #{invoice.invoiceNumber}</h1>
+        <h1>Hóa đơn #{invoiceData.invoiceNumber}</h1>
         <div className="header-actions">
-          <button className="btn-print-detail" onClick={printInvoice}>
-            🖨️ In hóa đơn
+          <button className="print-button" onClick={printDocument}>
+            In hóa đơn
           </button>
         </div>
       </div>
@@ -246,18 +245,18 @@ const InvoiceDetail = () => {
             <div className="invoice-meta">
               <div className="meta-item">
                 <span className="meta-label">Số hóa đơn:</span>
-                <span className="meta-value">{invoice.invoiceNumber}</span>
+                <span className="meta-value">{invoiceData.invoiceNumber}</span>
               </div>
               <div className="meta-item">
                 <span className="meta-label">Ngày lập:</span>
                 <span className="meta-value">
-                  {formatDate(invoice.invoiceDate)}
+                  {formatDate(invoiceData.invoiceDate)}
                 </span>
               </div>
               <div className="meta-item">
                 <span className="meta-label">Trạng thái:</span>
                 <span className="meta-value">
-                  {getStatusBadge(invoice.status)}
+                  {getStatus(invoiceData.status)}
                 </span>
               </div>
             </div>
@@ -270,20 +269,20 @@ const InvoiceDetail = () => {
             <div className="info-grid">
               <div className="info-item">
                 <span className="info-label">Họ tên:</span>
-                <span className="info-value">{invoice.patientName}</span>
+                <span className="info-value">{invoiceData.patientName}</span>
               </div>
               <div className="info-item">
                 <span className="info-label">Email:</span>
-                <span className="info-value">{invoice.patientEmail}</span>
+                <span className="info-value">{invoiceData.patientEmail}</span>
               </div>
               <div className="info-item">
                 <span className="info-label">Số điện thoại:</span>
-                <span className="info-value">{invoice.patientPhone}</span>
+                <span className="info-value">{invoiceData.patientPhone}</span>
               </div>
               <div className="info-item">
                 <span className="info-label">Mã đăng ký:</span>
                 <span className="info-value">
-                  REG-{invoice.patientRegistrationId}
+                  REG-{invoiceData.patientRegistrationId}
                 </span>
               </div>
             </div>
@@ -303,16 +302,16 @@ const InvoiceDetail = () => {
               <tbody>
                 <tr>
                   <td>1</td>
-                  <td>{invoice.serviceName}</td>
-                  <td>{formatCurrency(invoice.amount)}</td>
-                  <td>{formatCurrency(invoice.amount)}</td>
+                  <td>{invoiceData.serviceName}</td>
+                  <td>{formatMoney(invoiceData.amount)}</td>
+                  <td>{formatMoney(invoiceData.amount)}</td>
                 </tr>
                 <tr className="total-row">
                   <td colSpan="3" className="total-label">
                     TỔNG CỘNG
                   </td>
                   <td className="total-amount">
-                    {formatCurrency(invoice.amount)}
+                    {formatMoney(invoiceData.amount)}
                   </td>
                 </tr>
               </tbody>
@@ -324,24 +323,24 @@ const InvoiceDetail = () => {
             <div className="info-grid">
               <div className="info-item">
                 <span className="info-label">Phương thức:</span>
-                <span className="info-value">{invoice.paymentMethod}</span>
+                <span className="info-value">{invoiceData.paymentMethod}</span>
               </div>
               <div className="info-item">
                 <span className="info-label">Mã giao dịch:</span>
                 <span className="info-value transaction-code">
-                  {invoice.transactionNo}
+                  {invoiceData.transactionNo}
                 </span>
               </div>
               <div className="info-item">
                 <span className="info-label">Ngân hàng:</span>
                 <span className="info-value">
-                  {invoice.bankCode || "VNPay"}
+                  {invoiceData.bankCode || "VNPay"}
                 </span>
               </div>
               <div className="info-item">
                 <span className="info-label">Ngày thanh toán:</span>
                 <span className="info-value">
-                  {formatDate(invoice.paymentDate)}
+                  {formatDate(invoiceData.paymentDate)}
                 </span>
               </div>
             </div>
@@ -373,18 +372,21 @@ const InvoiceDetail = () => {
       </div>
 
       <div className="action-buttons">
-        <button className="btn-secondary" onClick={() => navigate("/invoices")}>
-          📋 Danh sách hóa đơn
+        <button
+          className="secondary-button"
+          onClick={() => navigate("/invoices")}
+        >
+          Danh sách hóa đơn
         </button>
-        <button className="btn-primary" onClick={printInvoice}>
-          🖨️ In hóa đơn
+        <button className="primary-button" onClick={printDocument}>
+          In hóa đơn
         </button>
-        <button className="btn-secondary" onClick={() => navigate("/")}>
-          🏠 Trang chủ
+        <button className="secondary-button" onClick={() => navigate("/")}>
+          Trang chủ
         </button>
       </div>
     </div>
   );
-};
+}
 
 export default InvoiceDetail;
