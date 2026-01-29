@@ -9,7 +9,7 @@ import ToastProvider from "./components/ToastProvider";
 import Header from "./components/Header.jsx";
 import Home from "./components/Home.jsx";
 import Footer from "./components/Footer.jsx";
-import Patients from "./pages/Patients.jsx";
+// import Patients from "./pages/Patients.jsx";
 import Appointments from "./pages/Patient/Appointments.jsx";
 import Login from "./pages/Auth/Login.jsx";
 import Register from "./pages/Auth/Register.jsx";
@@ -79,7 +79,7 @@ function App() {
           }
         />
 
-        <Route
+        {/* <Route
           path="/patients"
           element={
             <PrivateRoute role="ADMIN">
@@ -90,7 +90,7 @@ function App() {
               </>
             </PrivateRoute>
           }
-        />
+        /> */}
         <Route
           path="/appointments"
           element={

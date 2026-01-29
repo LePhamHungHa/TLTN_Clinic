@@ -19,6 +19,16 @@ const Appointments = () => {
   const [qrData, setQRData] = useState(null);
   const [isDownloading, setIsDownloading] = useState(false);
   const [showHelp, setShowHelp] = useState(true);
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [selectedAppointment, setSelectedAppointment] = useState(null);
+  const [cancelReason, setCancelReason] = useState("");
+  const [requestRefund, setRequestRefund] = useState(false);
+  const [refundAccountInfo, setRefundAccountInfo] = useState({
+    accountNumber: "",
+    bankName: "",
+    accountHolder: "",
+  });
+  const [isCancelling, setIsCancelling] = useState(false);
 
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(5);
@@ -30,8 +40,10 @@ const Appointments = () => {
     const userData = localStorage.getItem("user");
     if (!userData) return null;
     try {
-      return JSON.parse(userData)?.token || null;
-    } catch {
+      const user = JSON.parse(userData);
+      return user?.token || user?.accessToken;
+    } catch (error) {
+      console.error("Parse user data error:", error);
       return null;
     }
   }, []);
@@ -533,6 +545,12 @@ STATUS:${getStatusForQR(appointment.status)}`;
     );
   };
 
+  const canCancelAppointment = (appointment) => {
+    const cannotCancelStatuses = ["COMPLETED", "IN_PROGRESS", "CANCELLED"];
+    const canCancel = !cannotCancelStatuses.includes(appointment.status);
+    return canCancel;
+  };
+
   const getDoctorText = (appointment) => {
     if (appointment.doctor) {
       const doctor = appointment.doctor;
@@ -593,6 +611,183 @@ STATUS:${getStatusForQR(appointment.status)}`;
     return numbers;
   };
 
+  const handleCancelClick = async (appointment) => {
+    try {
+      const token = getAuthToken();
+      if (!token) {
+        alert("Bạn chưa đăng nhập. Vui lòng đăng nhập lại.");
+        navigate("/login");
+        return;
+      }
+      
+      // Test token nhanh
+      const user = JSON.parse(localStorage.getItem("user") || "{}");
+      console.log("=== DEBUG: CANCEL PREPARATION ===");
+      console.log("Current user:", user);
+      console.log("Token exists:", !!token);
+      console.log("Appointment ID:", appointment.id);
+      console.log("================================");
+      
+      setSelectedAppointment(appointment);
+      setCancelReason("");
+      setRequestRefund(false);
+      setRefundAccountInfo({
+        accountNumber: "",
+        bankName: "",
+        accountHolder: "",
+      });
+      setShowCancelModal(true);
+    } catch (error) {
+      console.error("Error preparing cancel:", error);
+      alert("Có lỗi xảy ra khi chuẩn bị hủy lịch. Vui lòng thử lại.");
+    }
+  };
+
+  const handleConfirmCancel = async () => {
+    if (!selectedAppointment || !cancelReason.trim()) {
+      alert("Vui lòng nhập lý do hủy");
+      return;
+    }
+
+    if (cancelReason.length > 500) {
+      alert("Lý do hủy không được quá 500 ký tự");
+      return;
+    }
+
+    setIsCancelling(true);
+
+    try {
+      const token = getAuthToken();
+      const user = JSON.parse(localStorage.getItem("user") || "{}");
+
+      console.log("=== DEBUG CANCEL INFO ===");
+      console.log("User ID from localStorage:", user?.id);
+      console.log("User Email:", user?.email);
+      console.log("Token exists:", !!token);
+      console.log("Appointment ID:", selectedAppointment.id);
+      console.log("==========================");
+
+      if (!token) {
+        alert("Phiên đăng nhập không hợp lệ. Vui lòng đăng nhập lại.");
+        setIsCancelling(false);
+        navigate("/login");
+        return;
+      }
+
+      // Xác định userId - ưu tiên từ localStorage
+      const userId = user?.id || 1;
+      const userEmail = user?.email || "";
+
+      const cancelData = {
+        appointmentId: selectedAppointment.id,
+        reason: cancelReason,
+        requestRefund: requestRefund,
+        userId: userId,
+        userEmail: userEmail,
+        // Chỉ thêm thông tin hoàn tiền nếu có yêu cầu
+        ...(requestRefund && {
+          bankAccountNumber: refundAccountInfo.accountNumber || "",
+          bankName: refundAccountInfo.bankName || "",
+          accountHolderName: refundAccountInfo.accountHolder || ""
+        })
+      };
+
+      console.log("Sending cancel data:", cancelData);
+
+      // Gửi request với đầy đủ headers
+      const response = await axios.post(
+        "http://localhost:8080/api/patient-registrations/cancel",
+        cancelData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+            "Accept": "application/json"
+          },
+          timeout: 15000,
+          validateStatus: function (status) {
+            return status < 500; // Chỉ reject nếu status >= 500
+          }
+        }
+      );
+
+      console.log("Cancel response:", response.data);
+
+      if (response.data && response.data.success) {
+        alert("Hủy lịch hẹn thành công!");
+        setShowCancelModal(false);
+        loadAppointments();
+
+        // Reset form
+        setCancelReason("");
+        setRequestRefund(false);
+        setRefundAccountInfo({
+          accountNumber: "",
+          bankName: "",
+          accountHolder: "",
+        });
+      } else {
+        const errorMsg = response.data?.message || "Hủy lịch thất bại không xác định";
+        alert(`Hủy lịch thất bại: ${errorMsg}`);
+      }
+    } catch (error) {
+      console.error("Lỗi hủy lịch chi tiết:", error);
+      
+      // Xử lý lỗi chi tiết
+      if (error.code === 'ECONNABORTED') {
+        alert("Request timeout. Vui lòng thử lại.");
+      } else if (error.response) {
+        // Server trả về response với status code lỗi
+        const status = error.response.status;
+        const errorData = error.response.data;
+        
+        console.log("Error status:", status);
+        console.log("Error data:", errorData);
+        
+        switch (status) {
+          case 401:
+            alert("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.");
+            localStorage.removeItem("user");
+            navigate("/login");
+            break;
+          case 403:
+            if (errorData.message && errorData.message.includes("token")) {
+              alert("Token không hợp lệ hoặc đã hết hạn. Vui lòng đăng nhập lại.");
+              localStorage.removeItem("user");
+              navigate("/login");
+            } else {
+              alert("Bạn không có quyền thực hiện thao tác này.");
+            }
+            break;
+          case 404:
+            alert("Không tìm thấy lịch hẹn.");
+            break;
+          case 422:
+            alert(`Dữ liệu không hợp lệ: ${errorData.message || errorData.error}`);
+            break;
+          default:
+            alert(`Lỗi server (${status}): ${errorData.message || "Vui lòng thử lại sau"}`);
+        }
+      } else if (error.request) {
+        // Request được gửi nhưng không nhận được response
+        alert("Không thể kết nối đến server. Vui lòng kiểm tra kết nối mạng và thử lại.");
+        console.log("No response received:", error.request);
+      } else {
+        // Lỗi khác
+        alert(`Lỗi: ${error.message}`);
+      }
+    } finally {
+      setIsCancelling(false);
+    }
+  };
+
+  const handleRefundAccountChange = (field, value) => {
+    setRefundAccountInfo((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+  };
+
   if (isLoading) {
     return (
       <div className="patient-appointments-container">
@@ -648,6 +843,13 @@ STATUS:${getStatusForQR(appointment.status)}`;
                 <div className="instruction-text">
                   <strong>Check-in:</strong> Sử dụng mã QR để check-in tại quầy
                   lễ tân
+                </div>
+              </div>
+              <div className="instruction-item">
+                <div className="instruction-number">4</div>
+                <div className="instruction-text">
+                  <strong>Hủy lịch:</strong> Nhấn nút "HỦY LỊCH" nếu không thể
+                  đến khám
                 </div>
               </div>
             </div>
@@ -719,6 +921,7 @@ STATUS:${getStatusForQR(appointment.status)}`;
               <option value="NEEDS_MANUAL_REVIEW">Cần xử lý</option>
               <option value="REJECTED">Đã từ chối</option>
               <option value="COMPLETED">Đã hoàn thành</option>
+              <option value="CANCELLED">Đã hủy</option>
             </select>
           </div>
 
@@ -871,6 +1074,7 @@ STATUS:${getStatusForQR(appointment.status)}`;
                 onToggleExpand={toggleExpandCard}
                 onShowQR={showQRCode}
                 onPayment={handlePayment}
+                onCancel={handleCancelClick}
                 getStatusBadge={getStatusBadge}
                 getPaymentBadge={getPaymentBadge}
                 getSessionText={getSessionText}
@@ -878,6 +1082,7 @@ STATUS:${getStatusForQR(appointment.status)}`;
                 formatDateTime={formatDateTime}
                 getDoctorText={getDoctorText}
                 canShowPaymentButton={canShowPaymentButton}
+                canCancelAppointment={canCancelAppointment}
                 getStatusText={getStatusText}
               />
             ))}
@@ -925,6 +1130,23 @@ STATUS:${getStatusForQR(appointment.status)}`;
           onClose={() => setShowQRModal(false)}
           formatDate={formatDate}
           getStatusText={getStatusText}
+        />
+      )}
+
+      {showCancelModal && selectedAppointment && (
+        <CancelModal
+          appointment={selectedAppointment}
+          cancelReason={cancelReason}
+          setCancelReason={setCancelReason}
+          requestRefund={requestRefund}
+          setRequestRefund={setRequestRefund}
+          refundAccountInfo={refundAccountInfo}
+          setRefundAccountInfo={handleRefundAccountChange}
+          isCancelling={isCancelling}
+          onConfirm={handleConfirmCancel}
+          onClose={() => setShowCancelModal(false)}
+          formatDate={formatDate}
+          isPaid={selectedAppointment?.paymentStatus === "Đã thanh toán"}
         />
       )}
 
@@ -1007,15 +1229,19 @@ const AppointmentItem = React.memo(
     onToggleExpand,
     onShowQR,
     onPayment,
+    onCancel,
     getStatusBadge,
     getPaymentBadge,
     formatDate,
     formatDateTime,
     getDoctorText,
     canShowPaymentButton,
+    canCancelAppointment,
     getStatusText,
     getSessionText,
   }) => {
+    const showCancelButton = canCancelAppointment(appointment);
+
     return (
       <div className={`appointment-card ${isExpanded ? "expanded" : ""}`}>
         <div
@@ -1228,6 +1454,19 @@ const AppointmentItem = React.memo(
                   </button>
                 )}
 
+                {showCancelButton && (
+                  <button
+                    className="cancel-button danger"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onCancel(appointment);
+                    }}
+                    title="Hủy lịch hẹn này"
+                  >
+                    HỦY LỊCH
+                  </button>
+                )}
+
                 <button
                   className="print-button tertiary"
                   onClick={() => window.print()}
@@ -1254,7 +1493,7 @@ const AppointmentItem = React.memo(
                 </div>
                 <div className="note-item">
                   <span className="note-text">
-                    Thanh toán trước khi đến nếu chưa thanh toán online
+                    Nếu không thể đến được, vui lòng hủy lịch trước 1 ngày
                   </span>
                 </div>
               </div>
@@ -1350,6 +1589,192 @@ const QRModal = React.memo(
               </button>
               <button className="action-button close" onClick={onClose}>
                 ĐÓNG
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  },
+);
+
+const CancelModal = React.memo(
+  ({
+    appointment,
+    cancelReason,
+    setCancelReason,
+    requestRefund,
+    setRequestRefund,
+    refundAccountInfo,
+    setRefundAccountInfo,
+    isCancelling,
+    onConfirm,
+    onClose,
+    formatDate,
+    isPaid,
+  }) => {
+    return (
+      <div className="modal-overlay" onClick={onClose}>
+        <div className="cancel-modal" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-header">
+            <h2>HỦY LỊCH HẸN</h2>
+            <button className="close-modal" onClick={onClose}>
+              Đóng
+            </button>
+          </div>
+
+          <div className="modal-body">
+            <div className="appointment-info">
+              <h3>Đơn #{appointment.registrationNumber || appointment.id}</h3>
+              <div className="info-grid">
+                <div className="info-item">
+                  <span className="info-label">Bệnh nhân:</span>
+                  <span className="info-value">{appointment.fullName}</span>
+                </div>
+                <div className="info-item">
+                  <span className="info-label">Ngày khám:</span>
+                  <span className="info-value">
+                    {formatDate(appointment.appointmentDate)}
+                  </span>
+                </div>
+                <div className="info-item">
+                  <span className="info-label">Khoa:</span>
+                  <span className="info-value">{appointment.department}</span>
+                </div>
+                <div className="info-item">
+                  <span className="info-label">Trạng thái thanh toán:</span>
+                  <span className="info-value status">
+                    {appointment.paymentStatus}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="cancel-form">
+              <div className="form-group">
+                <label htmlFor="cancel-reason">
+                  Lý do hủy <span className="required">*</span>
+                </label>
+                <textarea
+                  id="cancel-reason"
+                  value={cancelReason}
+                  onChange={(e) => setCancelReason(e.target.value)}
+                  placeholder="Vui lòng nhập lý do hủy lịch..."
+                  rows={4}
+                  maxLength={500}
+                  className="reason-textarea"
+                />
+                <div className="char-count">
+                  {cancelReason.length}/500 ký tự
+                </div>
+              </div>
+
+              {isPaid && (
+                <div className="refund-section">
+                  <div className="checkbox-group">
+                    <input
+                      type="checkbox"
+                      id="request-refund"
+                      checked={requestRefund}
+                      onChange={(e) => setRequestRefund(e.target.checked)}
+                    />
+                    <label htmlFor="request-refund">Yêu cầu hoàn tiền</label>
+                  </div>
+
+                  {requestRefund && (
+                    <div className="refund-form">
+                      <h4>Thông tin tài khoản nhận hoàn tiền</h4>
+
+                      <div className="refund-input-group">
+                        <div className="form-group">
+                          <label htmlFor="account-number">Số tài khoản</label>
+                          <input
+                            type="text"
+                            id="account-number"
+                            value={refundAccountInfo.accountNumber}
+                            onChange={(e) =>
+                              setRefundAccountInfo(
+                                "accountNumber",
+                                e.target.value,
+                              )
+                            }
+                            placeholder="Nhập số tài khoản"
+                            className="refund-input"
+                          />
+                        </div>
+
+                        <div className="form-group">
+                          <label htmlFor="bank-name">Tên ngân hàng</label>
+                          <input
+                            type="text"
+                            id="bank-name"
+                            value={refundAccountInfo.bankName}
+                            onChange={(e) =>
+                              setRefundAccountInfo("bankName", e.target.value)
+                            }
+                            placeholder="Nhập tên ngân hàng"
+                            className="refund-input"
+                          />
+                        </div>
+
+                        <div className="form-group">
+                          <label htmlFor="account-holder">
+                            Tên chủ tài khoản
+                          </label>
+                          <input
+                            type="text"
+                            id="account-holder"
+                            value={refundAccountInfo.accountHolder}
+                            onChange={(e) =>
+                              setRefundAccountInfo(
+                                "accountHolder",
+                                e.target.value,
+                              )
+                            }
+                            placeholder="Nhập tên chủ tài khoản"
+                            className="refund-input"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="refund-note">
+                        Ghi chú: Số tiền hoàn sẽ được tính theo chính sách hoàn
+                        tiền của bệnh viện
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <div className="warning-box">
+                <h4>LƯU Ý QUAN TRỌNG</h4>
+                <ul>
+                  <li>Hủy lịch không thể khôi phục</li>
+                  <li>Chỉ có thể hủy lịch trước 1 ngày so với ngày hẹn</li>
+                  {isPaid && (
+                    <li>
+                      Hoàn tiền chỉ áp dụng khi hủy trước 3 ngày (80%) hoặc 1
+                      ngày (50%)
+                    </li>
+                  )}
+                </ul>
+              </div>
+            </div>
+
+            <div className="modal-actions">
+              <button
+                className="action-button cancel-confirm"
+                onClick={onConfirm}
+                disabled={isCancelling || !cancelReason.trim()}
+              >
+                {isCancelling ? "ĐANG XỬ LÝ..." : "XÁC NHẬN HỦY"}
+              </button>
+              <button
+                className="action-button cancel"
+                onClick={onClose}
+                disabled={isCancelling}
+              >
+                QUAY LẠI
               </button>
             </div>
           </div>

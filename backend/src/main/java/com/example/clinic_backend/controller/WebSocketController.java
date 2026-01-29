@@ -7,6 +7,8 @@ import org.springframework.stereotype.Controller;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.Map;
 
 @Controller
 public class WebSocketController {
@@ -14,12 +16,12 @@ public class WebSocketController {
     @Autowired
     private SimpMessagingTemplate messagingTemplate;
 
-    // gui thong bao khi co don moi
+    // Gửi thông báo khi có đơn đăng ký mới
     public void sendNewAppointmentNotification(PatientRegistration appointment) {
         try {
-            System.out.println("Dang gui thong bao WebSocket cho don dang ky moi: " + appointment.getId());
+            System.out.println("Đang gửi thông báo WebSocket cho đơn đăng ký mới: " + appointment.getId());
             
-            // tao doi tuong thong bao
+            // Tạo đối tượng thông báo
             AppointmentNotification notification = new AppointmentNotification(
                 appointment.getId(),
                 appointment.getFullName(),
@@ -31,16 +33,64 @@ public class WebSocketController {
                 appointment.getCreatedAt()
             );
 
-            // gui den tat ca client dang subscribe
+            // Gửi đến tất cả client đang subscribe
             messagingTemplate.convertAndSend("/topic/new-appointments", notification);
             
-            System.out.println("Da gui thong bao WebSocket thanh cong");
+            System.out.println("Đã gửi thông báo WebSocket thành công");
         } catch (Exception e) {
-            System.out.println("Loi khi gui thong bao WebSocket: " + e.getMessage());
+            System.out.println("Lỗi khi gửi thông báo WebSocket: " + e.getMessage());
         }
     }
 
-    // class inner cho thong bao
+    // Gửi thông báo khi có lịch hẹn bị hủy
+    public void sendCancellationNotification(PatientRegistration appointment) {
+        try {
+            System.out.println("Đang gửi thông báo WebSocket cho lịch hẹn bị hủy: " + appointment.getId());
+            
+            // Tạo thông báo hủy lịch
+            Map<String, Object> notification = new HashMap<>();
+            notification.put("type", "APPOINTMENT_CANCELLED");
+            notification.put("appointmentId", appointment.getId());
+            notification.put("patientName", appointment.getFullName());
+            notification.put("registrationNumber", appointment.getRegistrationNumber());
+            notification.put("department", appointment.getDepartment());
+            notification.put("cancelledAt", LocalDateTime.now());
+            notification.put("refundRequested", "REQUESTED".equals(appointment.getRefundStatus()));
+            
+            // Gửi đến admin
+            messagingTemplate.convertAndSend("/topic/admin/notifications", notification);
+            
+            System.out.println("Đã gửi thông báo hủy lịch WebSocket thành công");
+        } catch (Exception e) {
+            System.out.println("Lỗi khi gửi thông báo hủy lịch WebSocket: " + e.getMessage());
+        }
+    }
+
+    // Gửi thông báo cho admin
+    public void sendNotificationToAdmins(Map<String, Object> notification) {
+        try {
+            messagingTemplate.convertAndSend("/topic/admin/notifications", notification);
+            System.out.println("Đã gửi thông báo cho admin");
+        } catch (Exception e) {
+            System.out.println("Lỗi gửi thông báo cho admin: " + e.getMessage());
+        }
+    }
+
+    // Gửi thông báo cho user cụ thể
+    public void sendNotificationToUser(Long userId, Map<String, Object> notification) {
+        try {
+            messagingTemplate.convertAndSendToUser(
+                userId.toString(),
+                "/queue/appointments",
+                notification
+            );
+            System.out.println("Đã gửi thông báo cho user: " + userId);
+        } catch (Exception e) {
+            System.out.println("Lỗi gửi thông báo cho user: " + e.getMessage());
+        }
+    }
+
+    // Class inner cho thông báo đăng ký mới
     public static class AppointmentNotification {
         private Long id;
         private String fullName;
@@ -66,7 +116,7 @@ public class WebSocketController {
             this.createdAt = createdAt;
         }
 
-        // getters and setters
+        // Getter và Setter
         public Long getId() { return id; }
         public void setId(Long id) { this.id = id; }
 

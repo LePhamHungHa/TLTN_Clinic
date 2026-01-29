@@ -5,8 +5,6 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-
 @Entity
 @Table(name = "patient_registrations")
 public class PatientRegistration {
@@ -50,6 +48,7 @@ public class PatientRegistration {
     @Column(name = "user_id")
     private Long userId;
 
+    // Liên kết với bác sĩ
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "doctor_id", referencedColumnName = "id", insertable = false, updatable = false)
     private Doctor doctor;
@@ -111,12 +110,37 @@ public class PatientRegistration {
     @Column(name = "last_reminder_sent_at")
     private LocalDateTime lastReminderSentAt;
 
-    // constructors
+    @Column(name = "cancelled_at")
+    private LocalDateTime cancelledAt;
+    
+    @Column(name = "cancelled_by")
+    private Long cancelledBy;
+    
+    @Column(name = "cancellation_reason", columnDefinition = "TEXT")
+    private String cancellationReason;
+    
+    @Column(name = "refund_account_info", columnDefinition = "TEXT")
+    private String refundAccountInfo;
+    
+    @Column(name = "refund_status")
+    private String refundStatus = "NONE";
+    
+    @Column(name = "refund_amount")
+    private BigDecimal refundAmount;
+    
+    @Column(name = "refund_requested_at")
+    private LocalDateTime refundRequestedAt;
+    
+    @Column(name = "refund_processed_at")
+    private LocalDateTime refundProcessedAt;
+
+    // Constructor mặc định
     public PatientRegistration() {
         this.createdAt = LocalDateTime.now();
         this.status = "PENDING";
         this.examinationStatus = "WAITING";
         this.reminderSent = false;
+        this.refundStatus = "NONE";
     }
 
     public PatientRegistration(String fullName, LocalDate dob, String gender, String phone, 
@@ -133,7 +157,7 @@ public class PatientRegistration {
         this.appointmentDate = appointmentDate;
     }
 
-    // getters setters
+    // Getter và Setter
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
@@ -173,13 +197,8 @@ public class PatientRegistration {
     public Long getUserId() { return userId; }
     public void setUserId(Long userId) { this.userId = userId; }
 
-    public Long getPatientId() { 
-        return userId; 
-    }
-    
-    public void setPatientId(Long patientId) { 
-        this.userId = patientId; 
-    }
+    public Long getPatientId() { return userId; }
+    public void setPatientId(Long patientId) { this.userId = patientId; }
 
     public Doctor getDoctor() { return doctor; }
     public void setDoctor(Doctor doctor) { this.doctor = doctor; }
@@ -191,9 +210,7 @@ public class PatientRegistration {
     public void setTransactionNumber(String transactionNumber) { this.transactionNumber = transactionNumber; }
     
     public String getRoomNumber() { return roomNumber; }
-    public void setRoomNumber(String roomNumber) { 
-        this.roomNumber = roomNumber;
-    }
+    public void setRoomNumber(String roomNumber) { this.roomNumber = roomNumber; }
     
     public Integer getQueueNumber() { return queueNumber; }
     public void setQueueNumber(Integer queueNumber) { this.queueNumber = queueNumber; }
@@ -243,26 +260,64 @@ public class PatientRegistration {
     public LocalDateTime getLastReminderSentAt() { return lastReminderSentAt; }
     public void setLastReminderSentAt(LocalDateTime lastReminderSentAt) { this.lastReminderSentAt = lastReminderSentAt; }
 
+    // Getter và Setter cho hủy lịch
+    public LocalDateTime getCancelledAt() { return cancelledAt; }
+    public void setCancelledAt(LocalDateTime cancelledAt) { this.cancelledAt = cancelledAt; }
+    
+    public Long getCancelledBy() { return cancelledBy; }
+    public void setCancelledBy(Long cancelledBy) { this.cancelledBy = cancelledBy; }
+    
+    public String getCancellationReason() { return cancellationReason; }
+    public void setCancellationReason(String cancellationReason) { this.cancellationReason = cancellationReason; }
+    
+    public String getRefundAccountInfo() { return refundAccountInfo; }
+    public void setRefundAccountInfo(String refundAccountInfo) { this.refundAccountInfo = refundAccountInfo; }
+    
+    public String getRefundStatus() { return refundStatus; }
+    public void setRefundStatus(String refundStatus) { this.refundStatus = refundStatus; }
+    
+    public BigDecimal getRefundAmount() { return refundAmount; }
+    public void setRefundAmount(BigDecimal refundAmount) { this.refundAmount = refundAmount; }
+    
+    public LocalDateTime getRefundRequestedAt() { return refundRequestedAt; }
+    public void setRefundRequestedAt(LocalDateTime refundRequestedAt) { this.refundRequestedAt = refundRequestedAt; }
+    
+    public LocalDateTime getRefundProcessedAt() { return refundProcessedAt; }
+    public void setRefundProcessedAt(LocalDateTime refundProcessedAt) { this.refundProcessedAt = refundProcessedAt; }
+    
+    // Kiểm tra xem lịch hẹn có thể hủy không
+    public boolean canBeCancelled() {
+    // Không thể hủy nếu đã hủy hoặc đã hoàn thành
+    if ("CANCELLED".equals(this.status) || "COMPLETED".equals(this.status)) {
+        return false;
+    }
+    
+    // Kiểm tra ngày hẹn phải sau ngày hôm nay ít nhất 1 ngày
+    if (this.appointmentDate == null) {
+        return false;
+    }
+    
+    LocalDate tomorrow = LocalDate.now().plusDays(1);
+    return this.appointmentDate.isAfter(tomorrow);
+}
+    
+    // Kiểm tra xem có thể yêu cầu hoàn tiền không
+    public boolean canRequestRefund() {
+        return ("Đã thanh toán".equals(this.paymentStatus) || 
+                "PAID".equals(this.paymentStatus)) && 
+                "CANCELLED".equals(this.status);
+    }
+
     @Override
     public String toString() {
         return "PatientRegistration{" +
                 "id=" + id +
                 ", fullName='" + fullName + '\'' +
-                ", dob=" + dob +
-                ", gender='" + gender + '\'' +
-                ", phone='" + phone + '\'' +
-                ", email='" + email + '\'' +
-                ", address='" + address + '\'' +
-                ", department='" + department + '\'' +
                 ", appointmentDate=" + appointmentDate +
-                ", doctorId=" + doctorId +
-                ", userId=" + userId +
-                ", doctor=" + (doctor != null ? doctor.getFullName() : "null") +
-                ", assignedSession='" + assignedSession + '\'' +
+                ", department='" + department + '\'' +
                 ", status='" + status + '\'' +
-                ", examinationStatus='" + examinationStatus + '\'' +
                 ", paymentStatus='" + paymentStatus + '\'' +
-                ", reminderSent=" + reminderSent +
+                ", refundStatus='" + refundStatus + '\'' +
                 '}';
     }
 }

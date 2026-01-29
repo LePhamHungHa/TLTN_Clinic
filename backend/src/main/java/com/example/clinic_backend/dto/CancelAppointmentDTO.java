@@ -10,7 +10,9 @@ public class CancelAppointmentDTO {
     private String bankAccountNumber;
     private String bankName;
     private String accountHolderName;
-    private String refundQRCodeImage; // Base64 encoded QR code image
+    private String refundQRCodeImage;
+    private Long userId; 
+    private String userEmail;
     
     // Getter và Setter
     public Long getAppointmentId() { return appointmentId; }
@@ -36,6 +38,18 @@ public class CancelAppointmentDTO {
     
     public String getRefundQRCodeImage() { return refundQRCodeImage; }
     public void setRefundQRCodeImage(String refundQRCodeImage) { this.refundQRCodeImage = refundQRCodeImage; }
+    
+    public Long getUserId() { return userId; }
+    public void setUserId(Long userId) { this.userId = userId; }
+    
+    // Getter và Setter cho userEmail
+    public String getUserEmail() {
+        return userEmail;
+    }
+    
+    public void setUserEmail(String userEmail) {
+        this.userEmail = userEmail;
+    }
 
     @Override
     public String toString() {
@@ -43,6 +57,8 @@ public class CancelAppointmentDTO {
                 "appointmentId=" + appointmentId +
                 ", reason='" + reason + '\'' +
                 ", requestRefund=" + requestRefund +
+                ", userId=" + userId +
+                ", userEmail='" + userEmail + '\'' +
                 '}';
     }
 }
