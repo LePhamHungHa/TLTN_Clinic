@@ -59,6 +59,7 @@ const Appointments = () => {
         return;
       }
 
+      // 🎯 FIXED: Gọi API duy nhất để lấy tất cả thông tin
       const response = await axios.get(
         `http://localhost:8080/api/patient-registrations/by-email?email=${encodeURIComponent(user.email)}`,
         {
@@ -70,48 +71,37 @@ const Appointments = () => {
         },
       );
 
-      const appointmentsWithPaymentInfo = await Promise.all(
-        response.data.map(async (appointment) => {
-          let paymentStatus = "Chưa thanh toán";
-          let paymentAmount = appointment.examinationFee || 0;
-          let paymentDate = null;
-          let paymentMethod = null;
+      // 🎯 FIXED: Không gọi API payment riêng nữa - dùng data từ backend
+      const appointmentsWithPaymentInfo = response.data.map((appointment) => {
+        // Xác định payment status từ data có sẵn từ backend
+        let paymentStatus = "Chưa thanh toán";
+        let paymentAmount = appointment.examinationFee || 0;
+        let paymentDate = null;
+        let paymentMethod = null;
 
-          try {
-            const paymentResponse = await axios.get(
-              `http://localhost:8080/api/payments/status/${appointment.id}`,
-              {
-                headers: {
-                  Authorization: `Bearer ${token}`,
-                },
-                timeout: 8000,
-              },
-            );
+        // Kiểm tra payment status từ backend response
+        const paymentStatusFromBackend = appointment.paymentStatus;
 
-            if (paymentResponse.data.success) {
-              const paymentInfo = paymentResponse.data;
-              if (paymentInfo.paymentStatus === "PAID") {
-                paymentStatus = "Đã thanh toán";
-                paymentMethod = paymentInfo.paymentMethod || "VNPAY";
-              }
-              paymentAmount = paymentInfo.amount || paymentAmount;
-              paymentDate = paymentInfo.paymentDate;
-            }
-          } catch {
-            if (appointment.paymentStatus === "PAID") {
-              paymentStatus = "Đã thanh toán";
-            }
-          }
+        if (
+          paymentStatusFromBackend === "PAID" ||
+          paymentStatusFromBackend === "Đã thanh toán" ||
+          appointment.paidAt
+        ) {
+          paymentStatus = "Đã thanh toán";
+          paymentMethod = "VNPAY";
+          paymentDate = appointment.paidAt;
+          paymentAmount =
+            appointment.paidAmount || appointment.examinationFee || 0;
+        }
 
-          return {
-            ...appointment,
-            paymentStatus,
-            paymentAmount,
-            paymentDate,
-            paymentMethod,
-          };
-        }),
-      );
+        return {
+          ...appointment,
+          paymentStatus, // Đã được xác định từ data backend
+          paymentAmount,
+          paymentDate,
+          paymentMethod,
+        };
+      });
 
       const sortedAppointments = appointmentsWithPaymentInfo.sort((a, b) => {
         return (
@@ -134,7 +124,7 @@ const Appointments = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [getAuthToken]);
+  }, [getAuthToken, navigate]);
 
   useEffect(() => {
     loadAppointments();
@@ -619,7 +609,7 @@ STATUS:${getStatusForQR(appointment.status)}`;
         navigate("/login");
         return;
       }
-      
+
       // Test token nhanh
       const user = JSON.parse(localStorage.getItem("user") || "{}");
       console.log("=== DEBUG: CANCEL PREPARATION ===");
@@ -627,7 +617,7 @@ STATUS:${getStatusForQR(appointment.status)}`;
       console.log("Token exists:", !!token);
       console.log("Appointment ID:", appointment.id);
       console.log("================================");
-      
+
       setSelectedAppointment(appointment);
       setCancelReason("");
       setRequestRefund(false);
@@ -688,8 +678,8 @@ STATUS:${getStatusForQR(appointment.status)}`;
         ...(requestRefund && {
           bankAccountNumber: refundAccountInfo.accountNumber || "",
           bankName: refundAccountInfo.bankName || "",
-          accountHolderName: refundAccountInfo.accountHolder || ""
-        })
+          accountHolderName: refundAccountInfo.accountHolder || "",
+        }),
       };
 
       console.log("Sending cancel data:", cancelData);
@@ -702,13 +692,13 @@ STATUS:${getStatusForQR(appointment.status)}`;
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
-            "Accept": "application/json"
+            Accept: "application/json",
           },
           timeout: 15000,
           validateStatus: function (status) {
             return status < 500; // Chỉ reject nếu status >= 500
-          }
-        }
+          },
+        },
       );
 
       console.log("Cancel response:", response.data);
@@ -727,23 +717,24 @@ STATUS:${getStatusForQR(appointment.status)}`;
           accountHolder: "",
         });
       } else {
-        const errorMsg = response.data?.message || "Hủy lịch thất bại không xác định";
+        const errorMsg =
+          response.data?.message || "Hủy lịch thất bại không xác định";
         alert(`Hủy lịch thất bại: ${errorMsg}`);
       }
     } catch (error) {
       console.error("Lỗi hủy lịch chi tiết:", error);
-      
+
       // Xử lý lỗi chi tiết
-      if (error.code === 'ECONNABORTED') {
+      if (error.code === "ECONNABORTED") {
         alert("Request timeout. Vui lòng thử lại.");
       } else if (error.response) {
         // Server trả về response với status code lỗi
         const status = error.response.status;
         const errorData = error.response.data;
-        
+
         console.log("Error status:", status);
         console.log("Error data:", errorData);
-        
+
         switch (status) {
           case 401:
             alert("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.");
@@ -752,7 +743,9 @@ STATUS:${getStatusForQR(appointment.status)}`;
             break;
           case 403:
             if (errorData.message && errorData.message.includes("token")) {
-              alert("Token không hợp lệ hoặc đã hết hạn. Vui lòng đăng nhập lại.");
+              alert(
+                "Token không hợp lệ hoặc đã hết hạn. Vui lòng đăng nhập lại.",
+              );
               localStorage.removeItem("user");
               navigate("/login");
             } else {
@@ -763,14 +756,20 @@ STATUS:${getStatusForQR(appointment.status)}`;
             alert("Không tìm thấy lịch hẹn.");
             break;
           case 422:
-            alert(`Dữ liệu không hợp lệ: ${errorData.message || errorData.error}`);
+            alert(
+              `Dữ liệu không hợp lệ: ${errorData.message || errorData.error}`,
+            );
             break;
           default:
-            alert(`Lỗi server (${status}): ${errorData.message || "Vui lòng thử lại sau"}`);
+            alert(
+              `Lỗi server (${status}): ${errorData.message || "Vui lòng thử lại sau"}`,
+            );
         }
       } else if (error.request) {
         // Request được gửi nhưng không nhận được response
-        alert("Không thể kết nối đến server. Vui lòng kiểm tra kết nối mạng và thử lại.");
+        alert(
+          "Không thể kết nối đến server. Vui lòng kiểm tra kết nối mạng và thử lại.",
+        );
         console.log("No response received:", error.request);
       } else {
         // Lỗi khác
